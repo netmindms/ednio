@@ -224,4 +224,4 @@ int EdEvent::getFd()
 }
 
 
-} /* namespace kes2 */
+} /* namespace edft */

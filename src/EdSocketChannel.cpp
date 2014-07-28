@@ -34,14 +34,11 @@ void EdSocketChannel::OnWrite(void)
 		int retVal = tx();
 		if (retVal == SR_COMPLETE)
 		{
-			// 수정 내용
-			//    OnTxComplete 안에서 close하거나 object를 해제할 경우를 대비해 OnTxComplete() 호출을 가장 나중에 하도로 수정.
-			//     검증 필요....
+
 			u8* data = chk->data;
 			void* user = chk->user;
 			if (getFd() >= 0)
 			{
-				//ch->mChks->put_empty_nolock(chk);
 				mFreeChks.push_back(chk);
 
 				// transmit next pending packet
