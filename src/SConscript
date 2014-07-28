@@ -1,0 +1,11 @@
+import os
+Import('TopEnv')
+curdir = Dir('.').srcnode().abspath
+incpath = '-I' + curdir +'/include '
+TopEnv.Append(CPPFLAGS=incpath)
+
+curobj = TopEnv.Object(Glob('*.cpp')) + TopEnv.Object(Glob('*.cc'))
+
+obj = curobj
+
+Return('obj')
