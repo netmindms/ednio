@@ -5,7 +5,7 @@
  *      Author: khkim
  */
 #define DBGTAG "estmr"
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 
 
 #include <string.h>

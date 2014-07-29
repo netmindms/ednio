@@ -7,11 +7,17 @@
 
 #ifndef EDEVENT_H_
 #define EDEVENT_H_
+
+#include "config.h"
+
 #include <fcntl.h>
-#ifdef USE_LIBEVENT
+
+#if USE_LIBEVENT
 #include <event2/event.h>
 #endif
+
 #include "EdContext.h"
+
 
 namespace edft
 {
@@ -50,7 +56,7 @@ protected:
 private:
 	edevt_t* mEvt;
 
-#ifdef USE_LIBEVENT
+#if USE_LIBEVENT
 	struct event *mEvent;
 #endif
 
@@ -60,9 +66,9 @@ private:
 private:
 	void setNonBlockMode(void);
 	static void esevent_cb(edevt_t* pevt, int fd, int events);
-	#ifdef USE_LIBEVENT
+#if USE_LIBEVENT
 	static void libevent_cb(evutil_socket_t fd, short flags, void *arg);
-	#endif
+#endif
 
 
 public:

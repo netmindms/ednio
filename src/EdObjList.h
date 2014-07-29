@@ -7,7 +7,7 @@
 
 #ifndef __EDOBJLISTH__
 #define __EDOBJLISTH__
-
+#include "config.h"
 #include <pthread.h>
 #include "edslog.h"
 #include "EdMutex.h"

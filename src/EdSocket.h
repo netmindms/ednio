@@ -7,7 +7,7 @@
 
 #ifndef EDSOCKET_H_
 #define EDSOCKET_H_
-
+#include "config.h"
 #include <errno.h>
 #include <sys/un.h>
 #include <net/if.h>

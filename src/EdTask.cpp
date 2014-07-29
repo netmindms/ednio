@@ -4,11 +4,13 @@
  *  Created on: 2014. 02. 10.
  *      Author: khkim
  */
+#include "config.h"
 
 #define DBG_LEVEL DBG_WARN
 #define DBGTAG "etask"
 
-#ifdef USE_LIBEVENT
+
+#if USE_LIBEVENT
 #include <event2/util.h>
 #include <event2/event.h>
 #endif
@@ -38,7 +40,7 @@ EdTask::EdTask(int nmsgq)
 	mTid = 0;
 	mMaxMsqQueSize = nmsgq;
 	memset(&mCtx, 0, sizeof(mCtx));
-#ifdef USE_LIBEVENT
+#if USE_LIBEVENT
 	mLibMsgEvent = NULL;
 #endif
 	mEdMsgEvt = NULL;
@@ -63,7 +65,7 @@ int EdTask::run(int mode)
 	}
 	else
 	{
-#ifdef USE_LIBEVENT
+#if USE_LIBEVENT
 		pthread_create(&mTid, NULL, libevent_thread, this);
 		return sendMsg(EDM_INIT);
 #else
@@ -88,7 +90,7 @@ void EdTask::terminate(void)
 	}
 	else
 	{
-#ifdef USE_LIBEVENT
+#if USE_LIBEVENT
 		postExit();
 		wait();
 #endif
@@ -103,8 +105,8 @@ void* EdTask::esev_thread(void* arg)
 
 }
 
-#ifdef USE_LIBEVENT
 
+#if USE_LIBEVENT
 void* EdTask::libevent_thread(void* arg)
 {
 	dbgd("libevent thread proc start...");
@@ -407,7 +409,7 @@ void EdTask::dispatchMsgs(int cnt)
 			if (pmsg->msgid == EDM_EXIT)
 			{
 				mCtx.exit_flag = 1;
-#ifdef USE_LIBEVENT
+#if USE_LIBEVENT
 				if (mCtx.mode == MODE_LIBEVENT)
 				{
 					event_base_loopexit(mCtx.eventBase, NULL);
@@ -499,7 +501,7 @@ void EdTask::callMsgClose()
 	OnEventProc(&msg);
 }
 
-#ifdef USE_LIBEVENT
+#if USE_LIBEVENT
 void EdTask::libevent_cb(evutil_socket_t fd, short shortInt, void*user)
 {
 	dbgv("libevent callback, fd=%d", fd);

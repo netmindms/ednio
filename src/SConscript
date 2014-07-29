@@ -1,10 +1,38 @@
 import os
 Import('TopEnv')
+
+
+
+def gen_configh(target, source, env):
+	defs = {}
+	if TopEnv['USE_LIBEVENT'] == 'true':
+		defs['USE_LIBEVENT'] = 1
+	else:
+		defs['USE_LIBEVENT'] = 0
+		
+	infile = file(str(source[0]), 'r')
+	cbuf = infile.read() % defs 
+	cfgfile = file(str(target[0]), 'w')
+	cfgfile.write(cbuf)
+	cfgfile.close()
+	infile.close()
+
 curdir = Dir('.').srcnode().abspath
+TopEnv.AlwaysBuild(TopEnv.Command(curdir+'/config.h', './config.h.in', gen_configh) )
+
 incpath = '-I' + curdir +'/include '
 TopEnv.Append(CPPFLAGS=incpath)
 
+needlibs = TopEnv['LIBS']
+needlibs += ['pthread', 'rt', 'dl']
+
+if TopEnv['USE_LIBEVENT'] == 'true':
+	needlibs += ['event']
+
+TopEnv['LIBS'] = needlibs	
+print 'needlibs == ',  needlibs
 curobj = TopEnv.Object(Glob('*.cpp')) + TopEnv.Object(Glob('*.cc'))
+
 
 obj = curobj
 

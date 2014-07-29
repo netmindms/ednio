@@ -5,8 +5,8 @@
  *      Author: khkim
  */
 
-#define DBG_LEVEL DBG_DEBUG
-#define DBGTAG "esevt"
+#define DBG_LEVEL DBG_WARN
+#define DBGTAG "edevt"
 #include <string.h>
 #include "EdEvent.h"
 #include "edslog.h"
@@ -49,14 +49,13 @@ void EdEvent::registerEvent(uint16_t flag)
 	{
 		if (mEvt == NULL)
 		{
-			//mEvt = es_event_reg(mContext, mFd, flag, esevent_cb, (void*) this);
 			mEvt = mTask->regEdEvent(mFd, flag, esevent_cb, (void*) this);
 			mIsReg = true;
 		}
 	}
 	else
 	{
-#ifdef USE_LIBEVENT
+#if USE_LIBEVENT
 		dbgd("register event, fd=%d,", mFd);
 		uint16_t evtflag=0;
 		if(!(flag & EVT_ONESHOT))
@@ -92,7 +91,7 @@ void EdEvent::deregisterEvent(void)
 	}
 	else
 	{
-#ifdef USE_LIBEVENT
+#if USE_LIBEVENT
 		if (mEvent)
 		{
 			dbgd("deregister libevent...");
@@ -119,7 +118,7 @@ void EdEvent::esevent_cb(edevt_t* pevt, int fd, int events)
 	}
 }
 
-#ifdef USE_LIBEVENT
+#if USE_LIBEVENT
 void EdEvent::libevent_cb(int fd, short flags, void* arg)
 {
 	EdEvent *ev = (EdEvent*) arg;
@@ -149,7 +148,7 @@ void EdEvent::changeEvent(uint16_t flags)
 	}
 	else
 	{
-#ifdef USE_LIBEVENT
+#if USE_LIBEVENT
 		event_del(mEvent);
 		event_free(mEvent);
 		uint16_t evtflag = EV_PERSIST;
@@ -183,7 +182,7 @@ void EdEvent::setContext(EdContext* ctx)
 
 void EdEvent::initMembers()
 {
-#ifdef USE_LIBEVENT
+#if USE_LIBEVENT
 	mEvent = NULL;
 #endif
 	mIsReg = false;

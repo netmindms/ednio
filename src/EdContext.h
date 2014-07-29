@@ -1,6 +1,7 @@
 #ifndef __EDCONTEXTH__
 #define __EDCONTEXTH__
 
+#include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,7 +11,6 @@
 #include <pthread.h>
 #include <event2/event.h>
 
-//#define USE_LIBEVENT
 
 
 #define MAX_GET_EVENTS 100
@@ -47,7 +47,7 @@ struct EdContext
 
 	void *user;
 
-#ifdef USE_LIBEVENT
+#if USE_LIBEVENT
 	event_base *eventBase;
 #endif
 

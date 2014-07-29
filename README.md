@@ -54,6 +54,19 @@ Second, Override OnXXX virtual functions of each event classes.
 
 To understand detail, refer to example codes.
 
+Task
+----
+To use ednio event driven APIs, you should make one EdTask at least.
+EdTask is a thread having event dispatch loop.
+It is responsible for monitoring events and triggering callback for each event.
+EdTask has its own specific event dispatching loop. But if you want, you can use libevent in place of ednio event loop. This libevent compatible mode is useful in case you should use any opensource library dependent on libevent.(For example, hiredis library)
+To make EdTask run with libevent, call EdTask::run(MODE_LIBEVENT).
+Also, You need to build sources with following build argument.
+
+	$ scons libevent=true
+Make sure that libevent library is installed on your system in advance as well.
+
+
 
 IPC between EdTasks
 -------------------
@@ -65,11 +78,11 @@ Never call sendMsg on the same task(that is, target task), Doing so causes perma
 
 Thread safe and Thread Local Storage
 ------------------------------------
-Most of ednio API are not thread-safe.(except sendMsg, postMsg)
+Most of ednio API are not thread-safe.(except sendMsg and postMsg)
 It is intenional in designe concept. 
 I believe the best solution for thread sychronization problem is not making the situation which synchronization is needed.
 ednio prefers single-thread, multi-instance model.
-EdEvent classes(EdSocket, EdTimer, EdPipe) refer context object stored in thread local storage to determine to run on which task. Therefore, If you opened an event object on A EdTask, callback will be on A EdTask. Also, you cannot refer event object on other task. If you need the situation, use IPC functions.
+EdEvent classes(EdSocket, EdTimer, EdPipe) refer context object stored in thread local storage to determine to run on which task. Therefore, If you opened an event object on A EdTask, callback will be on A EdTask. Also, it is not a good choice to refer event object directly on other task. If you need the situation, use IPC functions.
 
 
 ToDo

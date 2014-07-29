@@ -7,7 +7,7 @@
 
 #ifndef EDNIO_H_
 #define EDNIO_H_
-
+#include "config.h"
 #include "EdType.h"
 #include "EdContext.h"
 #include "EdTask.h"

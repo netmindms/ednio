@@ -7,6 +7,8 @@
 #ifndef EDTASK_H_
 #define EDTASK_H_
 
+#include "config.h"
+
 #include <pthread.h>
 #include <list>
 #include <unordered_map>
@@ -223,7 +225,7 @@ private:
 	static void msgevent_cb(edevt_t* pevt, int fd, int events);
 
 private:
-#ifdef USE_LIBEVENT
+#if USE_LIBEVENT
 	event *mLibMsgEvent;
 	static void* libevent_thread(void* arg);
 	static void libevent_cb(evutil_socket_t, short, void *);

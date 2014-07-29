@@ -7,6 +7,8 @@
 
 #ifndef EDMUTEX_H_
 #define EDMUTEX_H_
+#include "config.h"
+
 #include <pthread.h>
 
 namespace edft

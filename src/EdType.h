@@ -7,6 +7,7 @@
 
 #ifndef EDTYPE_H_
 #define EDTYPE_H_
+#include "config.h"
 
 #include <stdint.h>
 

@@ -1,6 +1,6 @@
 #ifndef __EDSLOGH__
 #define __EDSLOGH__
-
+#include "config.h"
 void edlog(const char *tagstr, int lineno, const char *fmtstr, ...);
 
 
