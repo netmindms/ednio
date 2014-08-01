@@ -578,6 +578,7 @@ edevt_t* EdTask::regEdEvent(int fd, uint32_t events, EVENTCB cb, void* user)
 		return NULL;
 	}
 
+	pevt->isReg = true;
 	mEvtList.push_back(pevt);
 
 	dbgv("== reg event, fd=%d, event_obj=%p, event=%d, count=%d, ret=%d ", fd,	pevt, events, mEvtList.size(), ret);
@@ -622,7 +623,28 @@ int EdTask::esMain(EdContext* psys)
 			epv = events + i;
 			edevt_t* pevt = (edevt_t*) epv->data.ptr;
 			dbgv("event data.ptr=%p, pevtuser=%p", pevt, pevt->user);
-			pevt->evtcb(pevt, pevt->fd, epv->events);
+
+			if(epv->events & EPOLLIN)
+				pevt->evtcb(pevt, pevt->fd, EVT_READ);
+			if(pevt->isReg==false)
+				goto __release_event__;
+
+			if( (epv->events & EPOLLRDHUP) || (epv->events & EPOLLHUP) || (epv->events & EPOLLERR))
+				pevt->evtcb(pevt, pevt->fd, EVT_HANGUP);
+			if(pevt->isReg==false)
+				goto __release_event__;
+
+			if(epv->events & EPOLLOUT)
+				pevt->evtcb(pevt, pevt->fd, EVT_WRITE);
+			if(pevt->isReg==false)
+				goto __release_event__;
+
+__release_event__:
+			// check if event is dereg.
+			if(pevt->isReg==false)
+			{
+				freeEvent(pevt);
+			}
 		}
 	}
 	psys->opened = 0;
@@ -642,10 +664,12 @@ void EdTask::threadMain()
 
 	mEdMsgEvt = regEdEvent(mMsgFd, EVT_READ, msgevent_cb, this);
 
+	// main event loop
 	esMain(pctx);
 
 	cleanupAllTimer();
 	deregEdEvent(mEdMsgEvt);
+	freeEvent(mEdMsgEvt);
 	callMsgClose();
 	esClose(pctx);
 
@@ -660,13 +684,18 @@ void EdTask::deregEdEvent(edevt_t* pevt)
 	mEvtList.remove(pevt);
 	pctx->evt_count--;
 	dbgv("== dereg event, event_obj=%p, count=%d", pevt, pctx->evt_count);
-	freeEvent(pevt);
+	pevt->isReg = false;
+
+	// For multi event checking to be enable, postpone free event object.
+	// event loop will free event object.
+	//freeEvent(pevt);
 }
 
 void EdTask::esClose(EdContext* pctx)
 {
-
-	close(pctx->epfd);
+	if(pctx->epfd > 0)
+		close(pctx->epfd);
+	pctx->epfd = -1;
 
 	// check free resource
 	if (pctx->evt_alloc_cnt > 0)

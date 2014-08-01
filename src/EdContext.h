@@ -63,6 +63,7 @@ typedef struct edevt_t
 	int fd;
 	void* user;
 	EdContext *pEdCtx;
+	bool isReg;
 	void (*evtcb)(edevt_t* pevt, int fd, int events);
 } edevt_t;
 

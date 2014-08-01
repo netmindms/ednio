@@ -30,6 +30,7 @@ enum
 	EVT_READ = EPOLLIN,
 	EVT_WRITE = EPOLLOUT,
 	EVT_ONESHOT = EPOLLONESHOT,
+	EVT_HANGUP = EPOLLRDHUP,
 };
 
 class EdTask;
@@ -84,6 +85,8 @@ public:
 	 * @detail When fd is monitored with EVT_WRITE and data is ready, this function is called.
 	 */
 	virtual void OnEventWrite(void);
+
+	virtual void OnEventHangup(void);
 
 	/**
 	 * @brief Register fd with interested events on event monitor(epoll_wait)

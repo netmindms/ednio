@@ -5,21 +5,24 @@
  *      Author: khkim
  */
 
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 #define DBGTAG "essck"
 
 #include "EdSocket.h"
 #include "edslog.h"
 #include "EdType.h"
 
-namespace edft {
+namespace edft
+{
 
-EdSocket::EdSocket() {
+EdSocket::EdSocket()
+{
 	mSockCallback = NULL;
 	clearInternal();
 }
 
-EdSocket::~EdSocket() {
+EdSocket::~EdSocket()
+{
 	close();
 }
 
@@ -40,10 +43,11 @@ void EdSocket::openChildSock(int fd)
 	registerEvent(EVT_READ);
 }
 
-void EdSocket::acceptSock(EdSocket* pchild, ISocketCb *cb) {
+void EdSocket::acceptSock(EdSocket* pchild, ISocketCb *cb)
+{
 	int fd = accept();
 	pchild->openChildSock(fd);
-	if(cb)
+	if (cb)
 		pchild->setCallback(cb);
 #if 0
 	struct sockaddr_in inaddr;
@@ -52,52 +56,62 @@ void EdSocket::acceptSock(EdSocket* pchild, ISocketCb *cb) {
 	slen = sizeof(inaddr);
 	int fd;
 	fd = ::accept(mFd, (struct sockaddr*) &inaddr, &slen);
-	if (fd > 0) {
+	if (fd > 0)
+	{
 		pchild->setContext(mContext);
 		if (cb)
-			pchild->setCallback(cb);
+		pchild->setCallback(cb);
 		pchild->setFd(fd);
 		pchild->mStatus = SOCK_STATUS_CONNECTED;
 		pchild->registerEvent(EVT_READ);
 		ret = 0;
-	} else {
+	}
+	else
+	{
 		ret = errno;
 		dbge("### accept error....listen fd=%d, ret=%d", mFd, fd);
 	}
 #endif
 }
 
-int EdSocket::bindSock(int port, const char* addr) {
+int EdSocket::bindSock(int port, const char* addr)
+{
 
 	int retVal = -1;
-	if (mFd < 0) {
+	if (mFd < 0)
+	{
 		openSock(SOCK_TYPE_TCP);
 	}
 
-	if (mType == SOCK_TYPE_UNIXSTREAM || mType == SOCK_TYPE_UNIXDGRAM) {
+	if (mType == SOCK_TYPE_UNIXSTREAM || mType == SOCK_TYPE_UNIXDGRAM)
+	{
 		struct sockaddr_un uaddr;
 		uaddr.sun_family = AF_UNIX;
 		strcpy(uaddr.sun_path, addr);
 		int len = strlen(addr) + sizeof(uaddr.sun_family);
 		retVal = bind(mFd, (struct sockaddr*) &uaddr, len);
-		if(!retVal)
+		if (!retVal)
 			mIsBinded = true;
-	} else {
+	}
+	else
+	{
 		struct sockaddr_in inaddr;
 		inaddr.sin_family = AF_INET;
 		inaddr.sin_port = htons(port);
 		inaddr.sin_addr.s_addr = inet_addr(addr);
 		retVal = bind(mFd, (struct sockaddr*) &inaddr, sizeof(inaddr));
-		if(!retVal)
+		if (!retVal)
 			mIsBinded = true;
 		registerEvent(EVT_READ);
 	}
 	return retVal;
 }
 
-void EdSocket::close(void) {
+void EdSocket::close(void)
+{
 	dbgd("close socket, fd=%d", mFd);
-	if (mFd >= 0) {
+	if (mFd >= 0)
+	{
 		::close(mFd);
 		deregisterEvent();
 		mFd = -1;
@@ -107,11 +121,15 @@ void EdSocket::close(void) {
 	mIsBinded = false;
 }
 
-int EdSocket::connect(const char* ipaddr, int port) {
-	if (mType == SOCK_TYPE_TCP || mType == SOCK_TYPE_UDP) {
+int EdSocket::connect(const char* ipaddr, int port)
+{
+	if (mType == SOCK_TYPE_TCP || mType == SOCK_TYPE_UDP)
+	{
 		uint32_t ip = inet_addr(ipaddr);
 		return connect(ip, port);
-	} else if (mType == SOCK_TYPE_UNIXSTREAM || mType == SOCK_TYPE_UNIXDGRAM) {
+	}
+	else if (mType == SOCK_TYPE_UNIXSTREAM || mType == SOCK_TYPE_UNIXDGRAM)
+	{
 #if 0
 		// TODO: connect unix socket
 #endif
@@ -120,13 +138,14 @@ int EdSocket::connect(const char* ipaddr, int port) {
 	return -1;
 }
 
-int EdSocket::listenSock(int port, const char* ip) {
+int EdSocket::listenSock(int port, const char* ip)
+{
 	int retval;
 	mIsListen = true;
-	if(mIsBinded == false)
+	if (mIsBinded == false)
 	{
 		retval = bindSock(port, ip);
-		if(retval < 0)
+		if (retval < 0)
 			return retval;
 	}
 
@@ -145,7 +164,8 @@ int EdSocket::listenSock(int port, const char* ip) {
 	return retval;
 }
 
-int EdSocket::openSock(int type) {
+int EdSocket::openSock(int type)
+{
 	mType = type;
 	int fd;
 
@@ -157,7 +177,8 @@ int EdSocket::openSock(int type) {
 		fd = socket(AF_UNIX, SOCK_DGRAM, 0);
 	else if (type == SOCK_TYPE_UNIXSTREAM)
 		fd = socket(AF_UNIX, SOCK_STREAM, 0);
-	else {
+	else
+	{
 		dbge("### invalid socket type=%d", type);
 		assert(0);
 		return -1;
@@ -171,38 +192,45 @@ int EdSocket::openSock(int type) {
 	return fd;
 }
 
-int EdSocket::recv(void* buf, int size) {
+int EdSocket::recv(void* buf, int size)
+{
 	int ret = read(mFd, buf, size);
-	if (ret == 0) {
+	if (ret == 0)
+	{
 		int sockerr;
 		socklen_t socklen = sizeof(sockerr);
 		getsockopt(mFd, SOL_SOCKET, SO_ERROR, &sockerr, &socklen);
 		dbgv("### read error: sock err=%d, bufsize=%d", sockerr, size);
-		if(1) { //sockerr == ECONNRESET) {
+		if (1)
+		{ //sockerr == ECONNRESET) {
+			postReserveDisconnect();
+#if 0
 			if(mType == SOCK_TYPE_TCP)
 			{
 				mStatus = SOCK_STATUS_DISCONNECTED;
 				mRaiseDisconnect = 1; // disconnected by remote
 			}
+#endif
 		}
 	}
 	/*
-	else if(ret<0)
-	{
-		int sockerr;
-		socklen_t socklen = sizeof(sockerr);
-		getsockopt(mFd, SOL_SOCKET, SO_ERROR, &sockerr, &socklen);
-		dbgv("### read ret negtive: sock err=%d, bufsize=%d", sockerr, size);
+	 else if(ret<0)
+	 {
+	 int sockerr;
+	 socklen_t socklen = sizeof(sockerr);
+	 getsockopt(mFd, SOL_SOCKET, SO_ERROR, &sockerr, &socklen);
+	 dbgv("### read ret negtive: sock err=%d, bufsize=%d", sockerr, size);
 
-		if(sockerr == 0) {
-			mStatus = SOCK_STATUS_DISCONNECTED;
-			mRaiseDisconnect = 1; // disconnected by remote
-		}
-	}*/
+	 if(sockerr == 0) {
+	 mStatus = SOCK_STATUS_DISCONNECTED;
+	 mRaiseDisconnect = 1; // disconnected by remote
+	 }
+	 }*/
 	return ret;
 }
 
-void EdSocket::rejectSock(void) {
+void EdSocket::rejectSock(void)
+{
 	int fd;
 	socklen_t slen;
 	struct sockaddr_in inaddr;
@@ -211,79 +239,138 @@ void EdSocket::rejectSock(void) {
 	::close(fd);
 }
 
-int EdSocket::send(const void* buf, int size) {
+int EdSocket::send(const void* buf, int size)
+{
 	return write(mFd, buf, size);
 }
 
-void EdSocket::OnRead(void) {
+void EdSocket::OnRead(void)
+{
 	if (mSockCallback)
 		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_READ);
 }
 
-void EdSocket::OnDisconnected(void) {
+void EdSocket::OnDisconnected(void)
+{
 	dbgv("### ondis essocket esevent=%p, cb=%p", this, mSockCallback);
 	if (mSockCallback)
 		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_DISCONNECTED);
 }
 
-void EdSocket::OnWrite(void) {
+void EdSocket::OnWrite(void)
+{
 	if (mSockCallback)
 		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_WRITE);
 }
 
-void EdSocket::OnConnected(void) {
+void EdSocket::OnConnected(void)
+{
 	if (mSockCallback)
 		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_CONNECTED);
 }
 
-void EdSocket::OnIncomingConnection(void) {
+void EdSocket::OnIncomingConnection(void)
+{
 	if (mSockCallback)
 		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_INCOMING_ACCEPT);
 }
 
-void EdSocket::OnEventRead() {
-	if (mIsListen == false) {
+void EdSocket::OnEventRead()
+{
+	if (mIsListen == false)
+	{
 		mRaiseDisconnect = 0;
 		OnRead();
-		if (mRaiseDisconnect != 0) {
+
+		if (mRaiseDisconnect != 0)
+		{
 			close();
 			OnDisconnected();
 		}
-	} else {
+
+	}
+	else
+	{
 		OnIncomingConnection();
 	}
 }
 
-void EdSocket::OnEventWrite() {
+void EdSocket::OnEventWrite()
+{
 	int sockerr;
 	socklen_t socklen = sizeof(sockerr);
-	if (mStatus == SOCK_STATUS_CONNECTING) {
+	if (mStatus == SOCK_STATUS_CONNECTING)
+	{
 		getsockopt(mFd, SOL_SOCKET, SO_ERROR, &sockerr, &socklen);
 		dbgv("    sock error=%d", sockerr);
-		if (sockerr != 0) {
-			if (sockerr == ECONNREFUSED) {
+		if (sockerr != 0)
+		{
+			if (sockerr == ECONNREFUSED)
+			{
 				dbgd("### connection refused.....err=%d", sockerr);
-			} else if (sockerr == ETIMEDOUT) {
+			}
+			else if (sockerr == ETIMEDOUT)
+			{
 				dbgd("### connection timeout......err=%d", sockerr);
-			} else if (sockerr == EHOSTUNREACH) {
+			}
+			else if (sockerr == EHOSTUNREACH)
+			{
 				dbgd("### connection host_unreach...err=%d", sockerr);
-			} else {
+			}
+			else
+			{
 				dbgd("### connection etc error...err=%d", sockerr);
 			}
 			close();
 			OnDisconnected();
-		} else {
+		}
+		else
+		{
 			dbgd("=== connected, fd=%d, ", mFd);
 			mStatus = SOCK_STATUS_CONNECTED;
-			changeEvent(EVT_READ);
+			changeEvent(EVT_READ | EVT_HANGUP);
 			OnConnected();
 		}
-	} else {
+	}
+	else
+	{
 		OnWrite();
 	}
 }
 
-int EdSocket::connect(uint32_t ip, int port) {
+void EdSocket::OnEventHangup(void)
+{
+	dbgd("#### on event hangup");
+	int sockerr;
+	socklen_t socklen = sizeof(sockerr);
+	getsockopt(mFd, SOL_SOCKET, SO_ERROR, &sockerr, &socklen);
+	dbgv("    sock error=%d", sockerr);
+	if (sockerr != 0)
+	{
+		if (sockerr == ECONNREFUSED)
+		{
+			dbgd("### connection refused.....err=%d", sockerr);
+		}
+		else if (sockerr == ETIMEDOUT)
+		{
+			dbgd("### connection timeout......err=%d", sockerr);
+		}
+		else if (sockerr == EHOSTUNREACH)
+		{
+			dbgd("### connection host_unreach...err=%d", sockerr);
+		}
+		else
+		{
+			dbgd("### connection etc error...err=%d", sockerr);
+		}
+	}
+
+	close();
+	OnDisconnected();
+}
+
+int EdSocket::connect(uint32_t ip, int port)
+{
 	if (mFd < 0)
 		openSock(SOCK_TYPE_TCP);
 
@@ -295,26 +382,34 @@ int EdSocket::connect(uint32_t ip, int port) {
 
 	int cnnret = ::connect(mFd, (struct sockaddr*) &sckaddr, sizeof(sckaddr));
 	dbgd("	connecting to %0x ......., ret=%d, errno=%d", ip, cnnret, errno);
-	if (mType == SOCK_TYPE_TCP) {
-		registerEvent(EVT_WRITE);
+	if (mType == SOCK_TYPE_TCP)
+	{
+		registerEvent(EVT_WRITE | EVT_HANGUP);
 		mStatus = SOCK_STATUS_CONNECTING;
 
-	} else if (mType == SOCK_TYPE_UDP) {
+	}
+	else if (mType == SOCK_TYPE_UDP)
+	{
 
-	} else {
+	}
+	else
+	{
 		cnnret = -1;
 	}
 	return cnnret;
 }
 
-void EdSocket::setNoTimewait() {
+void EdSocket::setNoTimewait()
+{
 
-	struct linger lingerdata = { 1, 0 };
+	struct linger lingerdata =
+	{ 1, 0 };
 	setsockopt(mFd, SOL_SOCKET, SO_LINGER, &lingerdata, sizeof(lingerdata));
 
 }
 
-void EdSocket::getPeerAddr(char* ipaddr, u16* port) {
+void EdSocket::getPeerAddr(char* ipaddr, u16* port)
+{
 	struct sockaddr_in addr;
 	socklen_t len = sizeof(addr);
 	getpeername(mFd, (sockaddr*) &addr, &len);
@@ -322,19 +417,16 @@ void EdSocket::getPeerAddr(char* ipaddr, u16* port) {
 	*port = ntohs(addr.sin_port);
 }
 
-
 void EdSocket::setCallback(ISocketCb* cb)
 {
-	 mSockCallback = cb;
+	mSockCallback = cb;
 	dbgv("setcb, cb=%p, msockcallback=%p", cb, mSockCallback);
 }
-
 
 EdSocket::ISocketCb* EdSocket::getCallback()
 {
 	return mSockCallback;
 }
-
 
 void EdSocket::clearInternal()
 {
@@ -344,6 +436,15 @@ void EdSocket::clearInternal()
 	mRaiseDisconnect = 0;
 	mType = SOCK_TYPE_TCP;
 	mIsBinded = false;
+}
+
+void EdSocket::postReserveDisconnect()
+{
+	if (mType == SOCK_TYPE_TCP)
+	{
+		mStatus = SOCK_STATUS_DISCONNECTED;
+		mRaiseDisconnect = 1; // disconnected by remote
+	}
 }
 
 } /* namespace edft */

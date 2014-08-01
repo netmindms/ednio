@@ -40,6 +40,10 @@ void EdEvent::OnEventWrite(void)
 {
 }
 
+void EdEvent::OnEventHangup(void)
+{
+}
+
 void EdEvent::registerEvent(uint16_t flag)
 {
 	if (mIsReg == true)
@@ -65,7 +69,8 @@ void EdEvent::registerEvent(uint16_t flag)
 		if (flag & EVT_WRITE)
 			evtflag |= EV_WRITE;
 
-		mEvent = event_new(mContext->eventBase, mFd, evtflag, libevent_cb,	(void*) this);
+		mEvent = event_new(mContext->eventBase, mFd, evtflag, libevent_cb,
+				(void*) this);
 		event_add(mEvent, NULL);
 		mIsReg = true;
 #endif
@@ -106,7 +111,33 @@ void EdEvent::deregisterEvent(void)
 
 void EdEvent::esevent_cb(edevt_t* pevt, int fd, int events)
 {
+	/*
+	 * Although epoll_wait can report multiple events at a time,
+	 * ednio process only single event at a time.
+	 * There are two reasons.
+	 * First, most frequent event will be READ event and other events will be active sometimes.
+	 * Therefore, checking READ maily is proper.
+	 * Second, This is main reason. When user code process a event reported by ednio, user may dereg event object.
+	 * Then, following event checking will cause the process to die because of refering invalid memory.
+	 */
 	EdEvent *esevt = (EdEvent*) pevt->user;
+
+#if 1
+
+	if (events & EVT_READ)
+	{
+		esevt->OnEventRead();
+	}
+	else if (events & EVT_WRITE)
+	{
+		esevt->OnEventWrite();
+	}
+	else if (events & EVT_HANGUP)
+	{
+		esevt->OnEventHangup();
+	}
+
+#else
 	if (events & EVT_READ)
 	{
 		esevt->OnEventRead();
@@ -116,13 +147,21 @@ void EdEvent::esevent_cb(edevt_t* pevt, int fd, int events)
 	{
 		esevt->OnEventWrite();
 	}
+
+	if (events & EVT_HANGUP)
+	{
+		esevt->OnEventHangup();
+	}
+#endif
+
 }
 
 #if USE_LIBEVENT
 void EdEvent::libevent_cb(int fd, short flags, void* arg)
 {
 	EdEvent *ev = (EdEvent*) arg;
-	dbgv("event proc, base=%p, mfd=%d, fd=%d, flags=%0x, esevent=%p", ev->mContext->eventBase, ev->mFd, fd, flags, ev);
+	dbgv("event proc, base=%p, mfd=%d, fd=%d, flags=%0x, esevent=%p",
+			ev->mContext->eventBase, ev->mFd, fd, flags, ev);
 	if (ev->mFd < 0)
 	{
 		dbge("###### fd error...");
