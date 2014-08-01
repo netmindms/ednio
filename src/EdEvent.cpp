@@ -111,19 +111,7 @@ void EdEvent::deregisterEvent(void)
 
 void EdEvent::esevent_cb(edevt_t* pevt, int fd, int events)
 {
-	/*
-	 * Although epoll_wait can report multiple events at a time,
-	 * ednio process only single event at a time.
-	 * There are two reasons.
-	 * First, most frequent event will be READ event and other events will be active sometimes.
-	 * Therefore, checking READ maily is proper.
-	 * Second, This is main reason. When user code process a event reported by ednio, user may dereg event object.
-	 * Then, following event checking will cause the process to die because of refering invalid memory.
-	 */
 	EdEvent *esevt = (EdEvent*) pevt->user;
-
-#if 1
-
 	if (events & EVT_READ)
 	{
 		esevt->OnEventRead();
@@ -136,24 +124,6 @@ void EdEvent::esevent_cb(edevt_t* pevt, int fd, int events)
 	{
 		esevt->OnEventHangup();
 	}
-
-#else
-	if (events & EVT_READ)
-	{
-		esevt->OnEventRead();
-	}
-
-	if (events & EVT_WRITE)
-	{
-		esevt->OnEventWrite();
-	}
-
-	if (events & EVT_HANGUP)
-	{
-		esevt->OnEventHangup();
-	}
-#endif
-
 }
 
 #if USE_LIBEVENT

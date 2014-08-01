@@ -191,7 +191,7 @@ private:
 	int mMsgFd;
 	edevt_t *mEdMsgEvt;
 	EdObjList<edevt_t> mEvtList;
-
+	EdObjList<edevt_t> mDummyEvtList;
 private:
 	edevt_t* regEdEvent(int fd, uint32_t events, EVENTCB cb, void* user);
 	void deregEdEvent(edevt_t* pevt);
@@ -212,6 +212,8 @@ private:
 	int postEdMsg(u16 msgid, u64 data);
 	void dispatchMsgs(int cnt);
 	void callMsgClose();
+	void cleanUpEventResource();
+
 protected:
 	/**
 	 * @brief Set result value related to EdMsg sent by sendMsg.

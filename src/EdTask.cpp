@@ -641,11 +641,7 @@ int EdTask::esMain(EdContext* psys)
 
 __release_event__:
 			// check if event is dereg.
-			if(pevt->isReg==false)
-			{
-				mEvtList.remove(pevt);
-				freeEvent(pevt);
-			}
+			cleanUpEventResource();
 		}
 	}
 	psys->opened = 0;
@@ -672,23 +668,20 @@ void EdTask::threadMain()
 
 	// dereg eventfd for ipc msg.
 	deregEdEvent(mEdMsgEvt);
-	mEvtList.remove(mEdMsgEvt);
-	freeEvent(mEdMsgEvt);
 	callMsgClose();
-
 	// cleanup event resources.
-	dbgd("After EDM_CLOSE, free remaining event resource, size=%d", mEvtList.size());
-	edevt_t *pevt;
-	for(;;)
+	dbgd("After EDM_CLOSE, free remaining event resource, size=%d", mDummyEvtList.size());
+	cleanUpEventResource();
+
+	if(mEvtList.size()>0)
 	{
-		pevt = mEvtList.pop_front();
-		if(!pevt)
-			break;
-		if(pevt->isReg==false)
+		dbge("##### There are still active events..count=%d, Missing closing events???", mEvtList.size());
+		for(edevt_t* pevt=mEvtList.pop_front();pevt;)
 		{
-			mEvtList.remove(pevt);
-			freeEvent(pevt);
+			dbge("  missed fd: %d", pevt->fd);
+			pevt = mEvtList.pop_front();
 		}
+		assert(0);
 	}
 
 	esClose(pctx);
@@ -708,6 +701,9 @@ void EdTask::deregEdEvent(edevt_t* pevt)
 	pctx->evt_count--;
 	dbgv("== dereg event, event_obj=%p, count=%d", pevt, pctx->evt_count);
 	pevt->isReg = false;
+	mEvtList.remove(pevt);
+
+	mDummyEvtList.push_back(pevt);
 
 }
 
@@ -767,6 +763,18 @@ EdMsg* EdTask::allocMsgObj()
 void EdTask::setSendMsgResult(EdMsg* pmsg, int code)
 {
 	pmsg->result = code;
+}
+
+
+void EdTask::cleanUpEventResource()
+{
+	edevt_t* pevt;
+	for(pevt = mDummyEvtList.pop_front();pevt;)
+	{
+		dbgd("free event resource=%p", pevt);
+		freeEvent(pevt);
+		pevt = mDummyEvtList.pop_front();
+	}
 }
 
 } // namespace edft

@@ -5,8 +5,8 @@
  *      Author: khkim
  */
 
-#define DBG_LEVEL DBG_DEBUG
-#define DBGTAG "essck"
+#define DBG_LEVEL DBG_WARN
+#define DBGTAG "edsck"
 
 #include "EdSocket.h"
 #include "edslog.h"
@@ -109,9 +109,9 @@ int EdSocket::bindSock(int port, const char* addr)
 
 void EdSocket::close(void)
 {
-	dbgd("close socket, fd=%d", mFd);
 	if (mFd >= 0)
 	{
+		dbgd("close socket, fd=%d", mFd);
 		::close(mFd);
 		deregisterEvent();
 		mFd = -1;

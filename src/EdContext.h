@@ -9,8 +9,9 @@
 #include <assert.h>
 #include <unistd.h>
 #include <pthread.h>
+#if USE_LIBEVENT
 #include <event2/event.h>
-
+#endif
 
 
 #define MAX_GET_EVENTS 100
