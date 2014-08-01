@@ -622,7 +622,7 @@ int EdTask::esMain(EdContext* psys)
 		{
 			epv = events + i;
 			edevt_t* pevt = (edevt_t*) epv->data.ptr;
-			dbgv("event data.ptr=%p, pevtuser=%p", pevt, pevt->user);
+			dbgv("event data.ptr=%p, pevtuser=%p, event=%0x", pevt, pevt->user, epv->events);
 
 			if(epv->events & EPOLLIN)
 				pevt->evtcb(pevt, pevt->fd, EVT_READ);
@@ -643,6 +643,7 @@ __release_event__:
 			// check if event is dereg.
 			if(pevt->isReg==false)
 			{
+				mEvtList.remove(pevt);
 				freeEvent(pevt);
 			}
 		}
@@ -668,9 +669,28 @@ void EdTask::threadMain()
 	esMain(pctx);
 
 	cleanupAllTimer();
+
+	// dereg eventfd for ipc msg.
 	deregEdEvent(mEdMsgEvt);
+	mEvtList.remove(mEdMsgEvt);
 	freeEvent(mEdMsgEvt);
 	callMsgClose();
+
+	// cleanup event resources.
+	dbgd("After EDM_CLOSE, free remaining event resource, size=%d", mEvtList.size());
+	edevt_t *pevt;
+	for(;;)
+	{
+		pevt = mEvtList.pop_front();
+		if(!pevt)
+			break;
+		if(pevt->isReg==false)
+		{
+			mEvtList.remove(pevt);
+			freeEvent(pevt);
+		}
+	}
+
 	esClose(pctx);
 
 	_tEdContext = NULL;
@@ -681,14 +701,14 @@ void EdTask::deregEdEvent(edevt_t* pevt)
 {
 	EdContext* pctx = &mCtx;
 	dbgd("esEventDereg fd=%d", pevt->fd);
-	mEvtList.remove(pevt);
+
+	struct epoll_event event;
+	memset(&event, 0, sizeof(event));
+	epoll_ctl(mCtx.epfd, EPOLL_CTL_DEL, pevt->fd, &event);
 	pctx->evt_count--;
 	dbgv("== dereg event, event_obj=%p, count=%d", pevt, pctx->evt_count);
 	pevt->isReg = false;
 
-	// For multi event checking to be enable, postpone free event object.
-	// event loop will free event object.
-	//freeEvent(pevt);
 }
 
 void EdTask::esClose(EdContext* pctx)
