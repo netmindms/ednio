@@ -132,6 +132,7 @@ public:
 
 	virtual void OnEventRead(void);
 	virtual void OnEventWrite(void);
+	virtual void OnEventHangup(void);
 
 	/**
 	 * @brief Called when read event is activated
@@ -176,6 +177,8 @@ public:
 	void setNoTimewait();
 private:
 	void clearInternal();
+protected:
+	void postReserveDisconnect();
 
 private:
 	int mStatus;
