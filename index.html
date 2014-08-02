@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Ednio : Event Driven Non Block IO Task Library for C++">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Ednio</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/netmindms/ednio">View on GitHub</a>
+
+          <h1 id="project_title">Ednio</h1>
+          <h2 id="project_tagline">Event Driven Non Block IO Task Library for C++</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/netmindms/ednio/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/netmindms/ednio/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a name="ednio" class="anchor" href="#ednio"><span class="octicon octicon-link"></span></a>ednio</h1>
+
+<h1>
+<a name="event-driven-non-block-io-task-library-for-c" class="anchor" href="#event-driven-non-block-io-task-library-for-c"><span class="octicon octicon-link"></span></a>Event Driven Non Block IO Task Library for C++</h1>
+
+<h2>
+<a name="overview" class="anchor" href="#overview"><span class="octicon octicon-link"></span></a>Overview</h2>
+
+<p>ednio is a simple C++ library that provides event driven scheme on thread.</p>
+
+<p>This provides as follwing features.</p>
+
+<ul>
+<li>Event Driven Task having event loop and default event callback procedure.</li>
+<li>Easy non block socket API</li>
+<li>Easy Timer API that notify expiration asynchronously.</li>
+<li>Easy non block mode pipe API</li>
+</ul><h2>
+<a name="how-to-build" class="anchor" href="#how-to-build"><span class="octicon octicon-link"></span></a>How to build</h2>
+
+<p>To build the sources, you need scons build tool. 
+On Ubuntu, you can install it as following.</p>
+
+<pre><code>$ sudo apt-get install scons
+</code></pre>
+
+<p>In case of other Linux, refer to scons.org of official scons home page.</p>
+
+<p>After you install scons, you just enter follwing command on top folder of source to build</p>
+
+<pre><code>$ scons
+</code></pre>
+
+<h2>
+<a name="typical-usage" class="anchor" href="#typical-usage"><span class="octicon octicon-link"></span></a>Typical Usage</h2>
+
+<ul>
+<li>make your own event driven task by inheriting EdTask class and override OnEventProc() to capture events.</li>
+<li>write initial codes on code block processing EDM_INIT event. EDM_INIT message is sent by ednio framework when task just start.</li>
+<li>Add your specific messages by defining message id since EDM_USER</li>
+<li>call EdTask::run() to start task.</li>
+<li>write cleanup codes on code block processing EDM_CLOSE. EDM_CLOSE message is sent by ednio framework before task terminates.</li>
+</ul><h2>
+<a name="socket-timer-pipe" class="anchor" href="#socket-timer-pipe"><span class="octicon octicon-link"></span></a>Socket, Timer, Pipe</h2>
+
+<p>ednio API basically run asynchronously with non block IO.
+It means that you has your codes not blocked with best effort.
+Otherwise, events on task(thread) will be delayed.
+ednio socket, timer, pipe APIs run on non block mode.
+You can get their events as two styles.</p>
+
+<p>First, Use call back interface.
+Callback interface is an instance of callback abstract class of socket, timer, pipe.</p>
+
+<p>Second, Override OnXXX virtual functions of each event classes.</p>
+
+<p>To understand detail, refer to example codes.</p>
+
+<h2>
+<a name="task" class="anchor" href="#task"><span class="octicon octicon-link"></span></a>Task</h2>
+
+<p>To use ednio event driven APIs, you should make one EdTask at least.
+EdTask is a thread having event dispatch loop.
+It is responsible for monitoring events and triggering callback for each event.
+EdTask has its own specific event dispatching loop. But if you want, you can use libevent in place of ednio event loop. This libevent compatible mode is useful in case you should use any opensource library dependent on libevent.(For example, hiredis library)
+To make EdTask run with libevent, call EdTask::run(MODE_LIBEVENT).
+Also, You need to build sources with following build argument.</p>
+
+<pre><code>$ scons libevent=true
+</code></pre>
+
+<p>Make sure that libevent library is installed on your system in advance as well.</p>
+
+<h2>
+<a name="ipc-between-edtasks" class="anchor" href="#ipc-between-edtasks"><span class="octicon octicon-link"></span></a>IPC between EdTasks</h2>
+
+<p>ednio allows to make some instances of EdTask.
+If you want to communicate between tasks, you can use EdTask::postMsg() or EdTask::sendMsg().
+postMsg return immediately after adding the message to que. But sendMsg wait until the message is processed by target task.
+Never call sendMsg on the same task(that is, target task), Doing so causes permanent dead-lock on that task.</p>
+
+<h2>
+<a name="thread-safe-and-thread-local-storage" class="anchor" href="#thread-safe-and-thread-local-storage"><span class="octicon octicon-link"></span></a>Thread safe and Thread Local Storage</h2>
+
+<p>Most of ednio API are not thread-safe.(except sendMsg and postMsg)
+It is intenional in designe concept. 
+I believe the best solution for thread sychronization problem is not making the situation which synchronization is needed.
+ednio prefers single-thread, multi-instance model.
+EdEvent classes(EdSocket, EdTimer, EdPipe) refer context object stored in thread local storage to determine to run on which task. Therefore, If you opened an event object on A EdTask, callback will be on A EdTask. Also, it is not a good choice to refer event object directly on other task. If you need the situation, use IPC functions.</p>
+
+<h2>
+<a name="todo" class="anchor" href="#todo"><span class="octicon octicon-link"></span></a>ToDo</h2>
+
+<ul>
+<li>Support Non Block Mode SSL Socket </li>
+<li>Support Non Block Mode libcurl</li>
+<li>Support Non Block Mode DB Client.</li>
+</ul>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Ednio maintained by <a href="https://github.com/netmindms">netmindms</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
