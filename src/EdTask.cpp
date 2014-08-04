@@ -530,6 +530,12 @@ int EdTask::esOpen(void* user)
 {
 	memset(&mCtx, 0, sizeof(EdContext));
 
+#if USE_SSL
+	const SSL_METHOD *method = TLSv1_client_method();
+	mCtx.sslCtx = SSL_CTX_new(method);
+	dbgd("new ssl context = %p", mCtx.sslCtx);
+#endif
+
 	mCtx.epfd = epoll_create(10);
 	if (!mCtx.epfd)
 	{
@@ -712,6 +718,14 @@ void EdTask::esClose(EdContext* pctx)
 	if(pctx->epfd > 0)
 		close(pctx->epfd);
 	pctx->epfd = -1;
+
+#if USE_SSL
+	if(pctx->sslCtx)
+	{
+		SSL_CTX_free(pctx->sslCtx);
+		pctx->sslCtx = NULL;
+	}
+#endif
 
 	// check free resource
 	if (pctx->evt_alloc_cnt > 0)

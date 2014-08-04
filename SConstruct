@@ -1,12 +1,14 @@
 import os
-AddOption('--libevent',
-                  dest='libevent',
-                  action='store_true',
-                  default=False
-                  )
+#AddOption('--libevent',
+#                  dest='libevent',
+#                  action='store_true',
+#                  default=False
+#                  )
  
 TopEnv = Environment()
 TopEnv['USE_LIBEVENT'] = ARGUMENTS.get('libevent', 'false')
+TopEnv['USE_SSL'] = ARGUMENTS.get('ssl', 'false')
+
 TopEnv['LIBS']= []
 
 TopEnv.Append(CPPFLAGS='-g -O3 -fmessage-length=0 --std=c++0x -fPIC ')
