@@ -5,7 +5,7 @@
  *      Author: khkim
  */
 
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 #define DBGTAG "edsck"
 
 #include "EdSocket.h"

@@ -5,7 +5,7 @@
  *      Author: netmind
  */
 
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 #define DBGTAG "sslsc"
 #include "../edslog.h"
 #include "../EdNio.h"
@@ -54,11 +54,12 @@ void EdSSLSocket::OnDisconnected()
 	sslClose();
 
 	if (mSSLCallback)
-		mSSLCallback->IOnSSLSocket(this, SOCK_EVENT_DISCONNECTED);
+		mSSLCallback->IOnSSLSocket(this, SSL_EVENT_DISCONNECTED);
 }
 
 void EdSSLSocket::startHandshake()
 {
+	dbgd("start handshake...");
 	mSSLCtx = getContext()->sslCtx;
 
 	if (mSSL == NULL && mSessionConencted == false)
@@ -66,10 +67,13 @@ void EdSSLSocket::startHandshake()
 
 		mSSL = SSL_new(mSSLCtx);
 		SSL_set_fd(mSSL, getFd());
-
+/*
 		int cret = SSL_connect(mSSL);
 		int err = SSL_get_error(mSSL, cret);
 		changeSSLSockEvent(err, false);
+		dbgd("     start ssl_connect, cret=%d, err=%d", cret, err);
+		*/
+		procSSLConnect();
 	}
 }
 
@@ -77,12 +81,13 @@ void EdSSLSocket::changeSSLSockEvent(int err, bool bwrite)
 {
 	if (err == SSL_ERROR_WANT_WRITE)
 	{
-		changeEvent(EVT_READ | EVT_WRITE);
+		changeEvent(EVT_WRITE);
+		dbgd("change write event.......");
 	}
 	else if (err == SSL_ERROR_WANT_READ)
 	{
 		changeEvent(EVT_READ);
-
+		dbgd("change read event.......");
 	}
 	else if (err == SSL_ERROR_ZERO_RETURN)
 	{
@@ -106,7 +111,7 @@ int EdSSLSocket::sslRecv(void* buf, int bufsize)
 		}
 		return -1;
 	}
-	else if(rret == 0)
+	else if (rret == 0)
 	{
 		int err = SSL_get_error(mSSL, rret);
 		dbgd(" rret is zero, err=%d", err);
@@ -122,44 +127,11 @@ int EdSSLSocket::sslRecv(void* buf, int bufsize)
 
 void EdSSLSocket::procSSLRead(void)
 {
-	dbgd("proc tls read...");
+	dbgd("proc ssl read...");
 
 	if (mSessionConencted == false)
 	{
-		int cret = SSL_connect(mSSL);
-		dbgd("ssl connect, ret=%d", cret);
-		if (cret == 1)
-		{
-			mSessionConencted = true;
-			OnSSLConnected();
-		}
-		else if(cret == 0)
-		{
-			dbgd("### session shutdown ...");
-			SSL_shutdown(mSSL);
-			OnSSLDisconnected();
-		}
-		else
-		{
-			int err = SSL_get_error(mSSL, cret);
-			dbgd("ssl connect err, err=%d", err);
-			if (err == SSL_ERROR_SSL)
-			{
-				long l = ERR_get_error();
-				char errbuf[1024];
-				ERR_error_string(l, errbuf);
-				dbgd("ssl error ssl  = %s", errbuf);
-				SSL_shutdown(mSSL);
-			}
-			else
-			{
-				changeSSLSockEvent(err, false);
-				if (err == SSL_ERROR_ZERO_RETURN)
-				{
-					postReserveDisconnect();
-				}
-			}
-		}
+		procSSLConnect();
 	}
 	else
 	{
@@ -225,15 +197,53 @@ void EdSSLSocket::sslClose()
 
 }
 
-
 int EdSSLSocket::sslConnect(const char* ipaddr, int port)
 {
-	if(EdSSLIsInit() == false)
+	if (EdSSLIsInit() == false)
 	{
 		dbge("##### ssl lib is not initialized...");
+		assert(0);
 		return -10000;
 	}
 	return connect(ipaddr, port);
+}
+
+void EdSSLSocket::procSSLConnect(void)
+{
+	int cret = SSL_connect(mSSL);
+	dbgd("ssl connect, ret=%d", cret);
+	if (cret == 1)
+	{
+		mSessionConencted = true;
+		OnSSLConnected();
+	}
+	else if (cret == 0)
+	{
+		dbgd("### session shutdown ...");
+		SSL_shutdown(mSSL);
+		OnSSLDisconnected();
+	}
+	else
+	{
+		int err = SSL_get_error(mSSL, cret);
+		dbgd("ssl connect err, err=%d", err);
+		if (err == SSL_ERROR_SSL)
+		{
+			long l = ERR_get_error();
+			char errbuf[1024];
+			ERR_error_string(l, errbuf);
+			dbgd("ssl error ssl  = %s", errbuf);
+			SSL_shutdown(mSSL);
+		}
+		else
+		{
+			changeSSLSockEvent(err, false);
+			if (err == SSL_ERROR_ZERO_RETURN || err == SSL_ERROR_SYSCALL )
+			{
+				postReserveDisconnect();
+			}
+		}
+	}
 }
 
 } /* namespace edft */

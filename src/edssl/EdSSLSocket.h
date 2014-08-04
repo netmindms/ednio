@@ -73,6 +73,7 @@ public:
 private:
 	void startHandshake();
 	void procSSLRead(void);
+	void procSSLConnect(void);
 	void changeSSLSockEvent(int err, bool bwrite);
 private:
 	SSL *mSSL;

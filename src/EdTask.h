@@ -78,6 +78,8 @@ private:
 	int mMaxMsqQueSize;
 	unordered_map<u32, TaskTimer*> mTimerMap;
 
+	int mRunMode;
+
 	EdMutex mMsgMutex;
 #ifdef MSGLIST_ED
 	EdObjList<EdMsg> mEmptyMsgs;
