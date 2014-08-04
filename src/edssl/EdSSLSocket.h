@@ -12,14 +12,22 @@
 #include <openssl/ossl_typ.h>
 #include <openssl/ssl.h>
 
-#include "EdSocket.h"
+#include "../EdSocket.h"
 
 namespace edft
 {
 
+enum {
+		SSL_EVENT_DISCONNECTED=0,
+		SSL_EVENT_CONNECTED,
+		SSL_EVENT_READ,
+		SSL_EVENT_WRITE,
+	};
+
 class EdSSLSocket : public EdSocket
 {
 public:
+
 	class ISSLSocketCb {
 	public:
 		virtual void IOnSSLSocket(EdSSLSocket *psock, int event)=0;
@@ -37,6 +45,7 @@ public:
 	virtual void OnSSLDisconnected();
 	virtual void OnSSLRead();
 
+	int sslConnect(const char *ipaddr, int port=443);
 
 	/**
 	 * @brief Read data from ssl connection
@@ -68,7 +77,7 @@ private:
 private:
 	SSL *mSSL;
 	SSL_CTX *mSSLCtx;
-	bool mIsHandshake;
+	bool mSessionConencted;
 	ISSLSocketCb *mSSLCallback;
 
 };

@@ -17,6 +17,10 @@
 
 #include <signal.h>
 
+#if USE_SSL
+bool _gSSLIsInit=false;
+#endif
+
 const char* EdNioGetVer()
 {
 	return "0.5.0";
@@ -25,12 +29,21 @@ const char* EdNioGetVer()
 int EdNioInit()
 {
 	signal(SIGPIPE, SIG_IGN);
+	return 0;
+}
 
 #if USE_SSL
+int EdSSLInit()
+{
 	SSL_library_init();
 	SSL_load_error_strings();
 	OpenSSL_add_all_algorithms();
-#endif
-
+	_gSSLIsInit = true;
 	return 0;
 }
+
+bool EdSSLIsInit()
+{
+	return _gSSLIsInit;
+}
+#endif

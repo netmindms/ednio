@@ -7,8 +7,10 @@
 
 #define DBG_LEVEL DBG_DEBUG
 #define DBGTAG "sslsc"
-#include "edslog.h"
+#include "../edslog.h"
+#include "../EdNio.h"
 #include "EdSSLSocket.h"
+
 #include <openssl/err.h>
 
 namespace edft
@@ -18,7 +20,7 @@ EdSSLSocket::EdSSLSocket()
 {
 	mSSLCtx = NULL;
 	mSSL = NULL;
-	mIsHandshake = false;
+	mSessionConencted = false;
 	mSSLCallback = NULL;
 }
 
@@ -59,7 +61,7 @@ void EdSSLSocket::startHandshake()
 {
 	mSSLCtx = getContext()->sslCtx;
 
-	if (mSSL == NULL && mIsHandshake == false)
+	if (mSSL == NULL && mSessionConencted == false)
 	{
 
 		mSSL = SSL_new(mSSLCtx);
@@ -122,13 +124,13 @@ void EdSSLSocket::procSSLRead(void)
 {
 	dbgd("proc tls read...");
 
-	if (mIsHandshake == false)
+	if (mSessionConencted == false)
 	{
 		int cret = SSL_connect(mSSL);
 		dbgd("ssl connect, ret=%d", cret);
 		if (cret == 1)
 		{
-			mIsHandshake = true;
+			mSessionConencted = true;
 			OnSSLConnected();
 		}
 		else if(cret == 0)
@@ -179,13 +181,19 @@ SSL_CTX* EdSSLSocket::getSSLContext()
 void EdSSLSocket::OnSSLConnected()
 {
 	if (mSSLCallback)
-		mSSLCallback->IOnSSLSocket(this, SOCK_EVENT_CONNECTED);
+		mSSLCallback->IOnSSLSocket(this, SSL_EVENT_CONNECTED);
+}
+
+void EdSSLSocket::OnSSLDisconnected()
+{
+	if (mSSLCallback)
+		mSSLCallback->IOnSSLSocket(this, SSL_EVENT_DISCONNECTED);
 }
 
 void EdSSLSocket::OnSSLRead()
 {
 	if (mSSLCallback)
-		mSSLCallback->IOnSSLSocket(this, SOCK_EVENT_READ);
+		mSSLCallback->IOnSSLSocket(this, SSL_EVENT_READ);
 }
 
 void EdSSLSocket::setSSLCallback(ISSLSocketCb* cb)
@@ -218,8 +226,14 @@ void EdSSLSocket::sslClose()
 }
 
 
-void EdSSLSocket::OnSSLDisconnected()
+int EdSSLSocket::sslConnect(const char* ipaddr, int port)
 {
+	if(EdSSLIsInit() == false)
+	{
+		dbge("##### ssl lib is not initialized...");
+		return -10000;
+	}
+	return connect(ipaddr, port);
 }
 
 } /* namespace edft */
