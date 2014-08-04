@@ -167,6 +167,8 @@ public:
 
 int main()
 {
+	EdNioInit();
+
 	MainTask mtask;
 	mtask.run();
 	getchar();
