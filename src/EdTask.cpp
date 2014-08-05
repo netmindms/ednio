@@ -45,6 +45,8 @@ EdTask::EdTask(int nmsgq)
 #endif
 	mEdMsgEvt = NULL;
 	mMsgFd = -1;
+
+	mRunMode = MODE_EDEV;
 }
 
 EdTask::~EdTask()
@@ -56,7 +58,7 @@ int EdTask::run(int mode)
 {
 
 	initMsg();
-	mCtx.mode = mode;
+	mRunMode = mode;
 	if (mode == MODE_EDEV)
 	{
 
@@ -114,6 +116,8 @@ void* EdTask::libevent_thread(void* arg)
 	EdContext* pctx = &ptask->mCtx;
 	_tEdContext = &ptask->mCtx;
 
+	ptask->esOpen(ptask);
+
 	pctx->eventBase = event_base_new();
 	ptask->mLibMsgEvent = event_new(pctx->eventBase, ptask->mMsgFd, EV_READ | EV_PERSIST, libevent_cb, (void*) ptask);
 	event_add(ptask->mLibMsgEvent, NULL);
@@ -128,6 +132,7 @@ void* EdTask::libevent_thread(void* arg)
 	event_base_free(pctx->eventBase);
 	pctx->eventBase = NULL;
 
+	ptask->esClose(pctx);
 	return NULL;
 }
 #endif
@@ -529,12 +534,16 @@ void EdTask::TaskTimer::OnTimer()
 int EdTask::esOpen(void* user)
 {
 	memset(&mCtx, 0, sizeof(EdContext));
+	mCtx.mode = mRunMode;
 
-	mCtx.epfd = epoll_create(10);
-	if (!mCtx.epfd)
+	if(mCtx.mode == MODE_EDEV)
 	{
-		dbge("### epoll open error...");
-		assert(0);
+		mCtx.epfd = epoll_create(10);
+		if (!mCtx.epfd)
+		{
+			dbge("### epoll open error...");
+			assert(0);
+		}
 	}
 
 	mCtx.exit_flag = 0;
@@ -709,9 +718,12 @@ void EdTask::deregEdEvent(edevt_t* pevt)
 
 void EdTask::esClose(EdContext* pctx)
 {
-	if(pctx->epfd > 0)
-		close(pctx->epfd);
-	pctx->epfd = -1;
+	if(pctx->mode == MODE_EDEV)
+	{
+		if(pctx->epfd > 0)
+			close(pctx->epfd);
+		pctx->epfd = -1;
+	}
 
 	// check free resource
 	if (pctx->evt_alloc_cnt > 0)
@@ -736,8 +748,8 @@ int EdTask::changeEdEvent(edevt_t* pevt, uint32_t event)
 	ev.events = event;
 	ev.data.ptr = pevt;
 	ret = epoll_ctl(pevt->pEdCtx->epfd, EPOLL_CTL_MOD, pevt->fd, &ev);
-	dbgv("== es_change, fd=%d, cb=%p, user=%p, ret=%d", pevt->fd, pevt->evtcb,
-			pevt->user, ret);
+	dbgv("== change event, fd=%d, cb=%p, user=%p, event=%0x, ret=%d", pevt->fd, pevt->evtcb,
+			pevt->user, event, ret);
 	return ret;
 }
 
