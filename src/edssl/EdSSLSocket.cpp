@@ -22,6 +22,7 @@ EdSSLSocket::EdSSLSocket()
 	mSSL = NULL;
 	mSessionConencted = false;
 	mSSLCallback = NULL;
+	mIsSSLServer = false;
 }
 
 EdSSLSocket::~EdSSLSocket()
@@ -210,7 +211,12 @@ int EdSSLSocket::sslConnect(const char* ipaddr, int port)
 
 void EdSSLSocket::procSSLConnect(void)
 {
-	int cret = SSL_connect(mSSL);
+	int cret;
+	if(mIsSSLServer==false)
+		cret = SSL_connect(mSSL);
+	else
+		cret = SSL_accept(mSSL);
+
 	dbgd("ssl connect, ret=%d", cret);
 	if (cret == 1)
 	{
@@ -244,6 +250,24 @@ void EdSSLSocket::procSSLConnect(void)
 			}
 		}
 	}
+}
+
+
+void EdSSLSocket::openSSLChildSock(int fd, SSL_CTX* psslctx)
+{
+	openChildSock(fd);
+	mIsSSLServer = true;
+	mSSLCtx = psslctx;
+	//mSSLCtx = SSL_CTX_new(TLSv1_server_method());
+//	int ret;
+//	ret = SSL_CTX_use_certificate_file(mSSLCtx, "/home/netmind/testkey/netsvr.crt", SSL_FILETYPE_PEM);
+//	dbgd("set cert file, ret=%d", ret);
+//	ret = SSL_CTX_use_PrivateKey_file(mSSLCtx, "/home/netmind/testkey/testkey.key", SSL_FILETYPE_PEM);
+//	dbgd("set key file, ret=%d", ret);
+	mSSL = SSL_new(mSSLCtx);
+	SSL_set_fd(mSSL, fd);
+
+	procSSLConnect();
 }
 
 } /* namespace edft */

@@ -535,7 +535,8 @@ int EdTask::esOpen(void* user)
 	memset(&mCtx, 0, sizeof(EdContext));
 	mCtx.mode = mRunMode;
 #if USE_SSL
-	const SSL_METHOD *method = TLSv1_client_method();
+	//const SSL_METHOD *method = TLSv1_client_method();
+	const SSL_METHOD *method = TLSv1_method();
 	mCtx.sslCtx = SSL_CTX_new(method);
 	dbgd("new ssl context = %p", mCtx.sslCtx);
 #endif

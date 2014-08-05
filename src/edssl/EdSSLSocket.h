@@ -68,6 +68,9 @@ public:
 	 */
 	SSL *getSSL();
 	SSL_CTX* getSSLContext();
+
+	void openSSLChildSock(int fd, SSL_CTX* psslctx);
+
 	void setSSLCallback(ISSLSocketCb *cb);
 
 private:
@@ -80,6 +83,7 @@ private:
 	SSL_CTX *mSSLCtx;
 	bool mSessionConencted;
 	ISSLSocketCb *mSSLCallback;
+	bool mIsSSLServer;
 
 };
 
