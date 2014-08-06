@@ -29,7 +29,7 @@ incpath = '-I' + curdir
 TopEnv.Append(CPPFLAGS=incpath)
 
 needlibs = TopEnv['LIBS']
-needlibs += ['pthread', 'rt', 'dl']
+needlibs += ['pthread', 'rt' ]
 
 if TopEnv['USE_LIBEVENT'] == 'true':
 	needlibs += ['event']
