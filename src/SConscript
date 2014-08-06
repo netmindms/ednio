@@ -10,6 +10,11 @@ def gen_configh(target, source, env):
 	else:
 		defs['USE_LIBEVENT'] = 0
 		
+	if TopEnv['USE_SSL'] == 'true':
+		defs['USE_SSL'] = 1
+	else:
+		defs['USE_SSL'] = 0		
+		
 	infile = file(str(source[0]), 'r')
 	cbuf = infile.read() % defs 
 	cfgfile = file(str(target[0]), 'w')
@@ -20,7 +25,7 @@ def gen_configh(target, source, env):
 curdir = Dir('.').srcnode().abspath
 TopEnv.AlwaysBuild(TopEnv.Command(curdir+'/config.h', './config.h.in', gen_configh) )
 
-incpath = '-I' + curdir +'/include '
+incpath = '-I' + curdir
 TopEnv.Append(CPPFLAGS=incpath)
 
 needlibs = TopEnv['LIBS']
@@ -33,7 +38,10 @@ TopEnv['LIBS'] = needlibs
 print 'needlibs == ',  needlibs
 curobj = TopEnv.Object(Glob('*.cpp')) + TopEnv.Object(Glob('*.cc'))
 
+subobj = []
+if TopEnv['USE_SSL'] == 'true':
+	subobj = SConscript('edssl/SConscript')
 
-obj = curobj
+obj = curobj + subobj
 
 Return('obj')

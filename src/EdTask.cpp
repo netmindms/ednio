@@ -61,7 +61,6 @@ int EdTask::run(int mode)
 	mRunMode = mode;
 	if (mode == MODE_EDEV)
 	{
-
 		pthread_create(&mTid, NULL, esev_thread, this);
 		return sendMsg(EDM_INIT);
 	}
@@ -535,6 +534,17 @@ int EdTask::esOpen(void* user)
 {
 	memset(&mCtx, 0, sizeof(EdContext));
 	mCtx.mode = mRunMode;
+<<<<<<< HEAD
+=======
+#if 0
+#if USE_SSL
+	//const SSL_METHOD *method = TLSv1_client_method();
+	const SSL_METHOD *method = TLSv1_method();
+	mCtx.sslCtx = SSL_CTX_new(method);
+	dbgd("new ssl context = %p", mCtx.sslCtx);
+#endif
+#endif
+>>>>>>> refs/heads/sslwork
 
 	if(mCtx.mode == MODE_EDEV)
 	{
@@ -724,6 +734,19 @@ void EdTask::esClose(EdContext* pctx)
 			close(pctx->epfd);
 		pctx->epfd = -1;
 	}
+<<<<<<< HEAD
+=======
+
+#if 0
+#if USE_SSL
+	if(pctx->sslCtx)
+	{
+		SSL_CTX_free(pctx->sslCtx);
+		pctx->sslCtx = NULL;
+	}
+#endif
+#endif
+>>>>>>> refs/heads/sslwork
 
 	// check free resource
 	if (pctx->evt_alloc_cnt > 0)

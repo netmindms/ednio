@@ -19,5 +19,9 @@
 const char* EdNioGetVer();
 int EdNioInit();
 
+#if USE_SSL
+int EdSSLInit();
+bool EdSSLIsInit();
+#endif
 
 #endif /* EDNIO_H_ */

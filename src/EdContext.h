@@ -13,6 +13,11 @@
 #include <event2/event.h>
 #endif
 
+#if USE_SSL
+#include <openssl/evp.h>
+#include <openssl/ossl_typ.h>
+#include <openssl/ssl.h>
+#endif
 
 #define MAX_GET_EVENTS 100
 
@@ -51,7 +56,9 @@ struct EdContext
 #if USE_LIBEVENT
 	event_base *eventBase;
 #endif
-
+#if USE_SSL
+	SSL_CTX *sslCtx;
+#endif
 	// for debugging
 	int evt_alloc_cnt;
 	int timer_alloc_cnt;

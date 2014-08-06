@@ -4,7 +4,6 @@
  *  Created on: Jun 11, 2014
  *      Author: khkim
  */
-
 #define DBG_LEVEL DBG_WARN
 #define DBGTAG "edsck"
 
@@ -83,7 +82,22 @@ int EdSocket::bindSock(int port, const char* addr)
 		openSock(SOCK_TYPE_TCP);
 	}
 
-	if (mType == SOCK_TYPE_UNIXSTREAM || mType == SOCK_TYPE_UNIXDGRAM)
+
+	if (mType == SOCK_TYPE_TCP || mType == SOCK_TYPE_UDP)
+	{
+		struct sockaddr_in inaddr;
+		inaddr.sin_family = AF_INET;
+		inaddr.sin_port = htons(port);
+		inaddr.sin_addr.s_addr = inet_addr(addr);
+		retVal = bind(mFd, (struct sockaddr*) &inaddr, sizeof(inaddr));
+		if (!retVal)
+		{
+			mIsBinded = true;
+			registerEvent(EVT_READ);
+		}
+	}
+#if 0
+	else if (mType == SOCK_TYPE_UNIXSTREAM || mType == SOCK_TYPE_UNIXDGRAM)
 	{
 		struct sockaddr_un uaddr;
 		uaddr.sun_family = AF_UNIX;
@@ -93,21 +107,15 @@ int EdSocket::bindSock(int port, const char* addr)
 		if (!retVal)
 			mIsBinded = true;
 	}
+#endif
 	else
 	{
-		struct sockaddr_in inaddr;
-		inaddr.sin_family = AF_INET;
-		inaddr.sin_port = htons(port);
-		inaddr.sin_addr.s_addr = inet_addr(addr);
-		retVal = bind(mFd, (struct sockaddr*) &inaddr, sizeof(inaddr));
-		if (!retVal)
-			mIsBinded = true;
-		registerEvent(EVT_READ);
+		retVal = -1;
 	}
 	return retVal;
 }
 
-void EdSocket::close(void)
+void EdSocket::close()
 {
 	if (mFd >= 0)
 	{
@@ -128,12 +136,12 @@ int EdSocket::connect(const char* ipaddr, int port)
 		uint32_t ip = inet_addr(ipaddr);
 		return connect(ip, port);
 	}
+#if 0
 	else if (mType == SOCK_TYPE_UNIXSTREAM || mType == SOCK_TYPE_UNIXDGRAM)
 	{
-#if 0
 		// TODO: connect unix socket
-#endif
 	}
+#endif
 
 	return -1;
 }
@@ -173,10 +181,12 @@ int EdSocket::openSock(int type)
 		fd = socket(AF_INET, SOCK_STREAM, 0);
 	else if (type == SOCK_TYPE_UDP)
 		fd = socket(AF_INET, SOCK_DGRAM, 0);
+#if 0
 	else if (type == SOCK_TYPE_UNIXDGRAM)
 		fd = socket(AF_UNIX, SOCK_DGRAM, 0);
 	else if (type == SOCK_TYPE_UNIXSTREAM)
 		fd = socket(AF_UNIX, SOCK_STREAM, 0);
+#endif
 	else
 	{
 		dbge("### invalid socket type=%d", type);

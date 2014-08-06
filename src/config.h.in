@@ -1,1 +1,2 @@
 #define USE_LIBEVENT %(USE_LIBEVENT)d
+#define USE_SSL %(USE_SSL)d
