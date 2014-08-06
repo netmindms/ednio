@@ -27,11 +27,7 @@ EdSSLSocket::EdSSLSocket()
 
 EdSSLSocket::~EdSSLSocket()
 {
-	if (mSSL)
-	{
-		SSL_free(mSSL);
-		mSSL = NULL;
-	}
+	close();
 }
 
 void EdSSLSocket::OnRead()
@@ -52,7 +48,7 @@ void EdSSLSocket::OnConnected()
 void EdSSLSocket::OnDisconnected()
 {
 	dbgd("socket disconnected...");
-	sslClose();
+	close();
 
 	if (mSSLCallback)
 		mSSLCallback->IOnSSLSocket(this, SSL_EVENT_DISCONNECTED);
@@ -61,19 +57,11 @@ void EdSSLSocket::OnDisconnected()
 void EdSSLSocket::startHandshake()
 {
 	dbgd("start handshake...");
-	mSSLCtx = getContext()->sslCtx;
 
 	if (mSSL == NULL && mSessionConencted == false)
 	{
-
 		mSSL = SSL_new(mSSLCtx);
 		SSL_set_fd(mSSL, getFd());
-/*
-		int cret = SSL_connect(mSSL);
-		int err = SSL_get_error(mSSL, cret);
-		changeSSLSockEvent(err, false);
-		dbgd("     start ssl_connect, cret=%d, err=%d", cret, err);
-		*/
 		procSSLConnect();
 	}
 }
@@ -96,7 +84,7 @@ void EdSSLSocket::changeSSLSockEvent(int err, bool bwrite)
 	}
 }
 
-int EdSSLSocket::sslRecv(void* buf, int bufsize)
+int EdSSLSocket::recv(void* buf, int bufsize)
 {
 
 	int rret = SSL_read(mSSL, buf, bufsize);
@@ -174,7 +162,7 @@ void EdSSLSocket::setSSLCallback(ISSLSocketCb* cb)
 	mSSLCallback = cb;
 }
 
-int EdSSLSocket::sslSend(const void* buf, int bufsize)
+int EdSSLSocket::send(const void* buf, int bufsize)
 {
 	int wret = SSL_write(mSSL, buf, bufsize);
 	if (wret <= 0)
@@ -186,19 +174,28 @@ int EdSSLSocket::sslSend(const void* buf, int bufsize)
 	return wret;
 }
 
-void EdSSLSocket::sslClose()
+void EdSSLSocket::close()
 {
 	if (mSSL)
 	{
+		dbgd("ssl close, free ssl=%p, state=%d", mSSL,SSL_state(mSSL));
 		SSL_shutdown(mSSL);
 		SSL_free(mSSL);
 		mSSL = NULL;
+		mSSLCtx = NULL;
+		mSessionConencted = false;
 	}
-	close();
+	EdSocket::close();
 
 }
 
-int EdSSLSocket::sslConnect(const char* ipaddr, int port)
+int EdSSLSocket::connect(const char* ipaddr, int port)
+{
+	uint32_t ip = inet_addr(ipaddr);
+	return connect(ip, port);
+}
+
+int EdSSLSocket::connect(uint32_t ip, int port)
 {
 	if (EdSSLIsInit() == false)
 	{
@@ -206,13 +203,13 @@ int EdSSLSocket::sslConnect(const char* ipaddr, int port)
 		assert(0);
 		return -10000;
 	}
-	return connect(ipaddr, port);
+	return EdSocket::connect(ip, port);
 }
 
 void EdSSLSocket::procSSLConnect(void)
 {
 	int cret;
-	if(mIsSSLServer==false)
+	if (mIsSSLServer == false)
 		cret = SSL_connect(mSSL);
 	else
 		cret = SSL_accept(mSSL);
@@ -244,7 +241,7 @@ void EdSSLSocket::procSSLConnect(void)
 		else
 		{
 			changeSSLSockEvent(err, false);
-			if (err == SSL_ERROR_ZERO_RETURN || err == SSL_ERROR_SYSCALL )
+			if (err == SSL_ERROR_ZERO_RETURN || err == SSL_ERROR_SYSCALL)
 			{
 				postReserveDisconnect();
 			}
@@ -252,21 +249,28 @@ void EdSSLSocket::procSSLConnect(void)
 	}
 }
 
-
 void EdSSLSocket::openSSLChildSock(int fd, SSL_CTX* psslctx)
 {
 	openChildSock(fd);
 	mIsSSLServer = true;
 	mSSLCtx = psslctx;
-	//mSSLCtx = SSL_CTX_new(TLSv1_server_method());
-//	int ret;
-//	ret = SSL_CTX_use_certificate_file(mSSLCtx, "/home/netmind/testkey/netsvr.crt", SSL_FILETYPE_PEM);
-//	dbgd("set cert file, ret=%d", ret);
-//	ret = SSL_CTX_use_PrivateKey_file(mSSLCtx, "/home/netmind/testkey/testkey.key", SSL_FILETYPE_PEM);
-//	dbgd("set key file, ret=%d", ret);
 	mSSL = SSL_new(mSSLCtx);
 	SSL_set_fd(mSSL, fd);
 
+}
+
+int EdSSLSocket::openSSLClientSock(SSL_CTX* pctx)
+{
+	int fd = openSock(SOCK_TYPE_TCP);
+	if (fd < 0)
+		return fd;
+	mSSLCtx = pctx;
+	mIsSSLServer = false;
+	return fd;
+}
+
+void EdSSLSocket::sslAccept()
+{
 	procSSLConnect();
 }
 

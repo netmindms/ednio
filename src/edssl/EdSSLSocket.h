@@ -45,7 +45,11 @@ public:
 	virtual void OnSSLDisconnected();
 	virtual void OnSSLRead();
 
-	int sslConnect(const char *ipaddr, int port=443);
+	/**
+	 * @brief Connect to SSL server.
+	 */
+	int connect(const char *ipaddr, int port);
+	int connect(uint32_t ip, int port);
 
 	/**
 	 * @brief Read data from ssl connection
@@ -54,13 +58,22 @@ public:
 	 * @param bufsize Buffer size
 	 * @return Read read count
 	 */
-	int sslRecv(void* buf, int bufsize);
-	int sslSend(const void* buf, int bufsize);
+
+	void sslAccept();
+
+	int recv(void* buf, int size);
+
+	/**
+	 * @brief send packet to server.
+	 * @remark You should call this method after ssl session connected.
+	 * @return Data count to be sent.
+	 */
+	int send(const void* buf, int size);
 
 	/**
 	 * @brief Close ssl connection.
 	 */
-	void sslClose();
+	void close();
 
 	/**
 	 * @brief Get a openssl session.
@@ -69,8 +82,16 @@ public:
 	SSL *getSSL();
 	SSL_CTX* getSSLContext();
 
+	int openSSLClientSock(SSL_CTX *pctx);
+
+	/**
+	 * @brief Open a socket for incoming ssl connection.
+	 */
 	void openSSLChildSock(int fd, SSL_CTX* psslctx);
 
+	/**
+	 * @brief Set ssl event callback.
+	 */
 	void setSSLCallback(ISSLSocketCb *cb);
 
 private:
@@ -78,6 +99,8 @@ private:
 	void procSSLRead(void);
 	void procSSLConnect(void);
 	void changeSSLSockEvent(int err, bool bwrite);
+
+
 private:
 	SSL *mSSL;
 	SSL_CTX *mSSLCtx;

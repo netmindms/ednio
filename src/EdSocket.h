@@ -21,9 +21,10 @@ namespace edft
 
 #define SOCK_TYPE_TCP 0
 #define SOCK_TYPE_UDP 1
+#if 0
 #define SOCK_TYPE_UNIXSTREAM 2
 #define SOCK_TYPE_UNIXDGRAM 3
-
+#endif
 
 typedef enum
 {
@@ -80,7 +81,7 @@ public:
 	/**
 	 * @brief Disconnect conneciton or close socket.
 	 */
-	void close(void);
+	void close();
 
 	/**
 	 * @brief listen socket.

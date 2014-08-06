@@ -12,6 +12,8 @@
 #include <openssl/ossl_typ.h>
 #include <openssl/ssl.h>
 
+#include "EdSSLSocket.h"
+
 namespace edft
 {
 
@@ -31,6 +33,7 @@ public:
 	//virtual ~EdSSL();
 
 	static SSL_CTX* buildServerCtx(int sslmethod, const char* certfile, const char* privkeyfile);
+	static SSL_CTX* buildClientCtx(int ver);
 	static void freeCtx(SSL_CTX* pctx);
 };
 
