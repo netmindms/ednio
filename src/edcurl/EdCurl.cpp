@@ -37,13 +37,15 @@ void EdCurl::IOnTimerEvent(EdTimer* ptimer)
 {
 	int runhandles;
 	dbgd("time out...");
-	curl_multi_socket_action(mCurlm, mFd, CURL_SOCKET_TIMEOUT, &runhandles);
+	curl_multi_socket_action(mCurlm, CURL_SOCKET_TIMEOUT, 0, &runhandles);
+	check_multi_info();
 }
 
 void EdCurl::OnEventRead()
 {
 	int runhandles;
 	curl_multi_socket_action(mCurlm, mFd, CURL_CSELECT_IN, &runhandles);
+	check_multi_info();
 }
 
 void EdCurl::OnEventWrite()
@@ -51,6 +53,7 @@ void EdCurl::OnEventWrite()
 	//logd("on event write...");
 	int runhandles;
 	curl_multi_socket_action(mCurlm, mFd, CURL_CSELECT_OUT, &runhandles);
+	check_multi_info();
 }
 
 void EdCurl::open()
@@ -82,7 +85,6 @@ int EdCurl::multi_timer_cb(CURLM* multi, long timeout_ms, void* userp)
 	EdCurl *pcurl = (EdCurl*) userp;
 	dbgd("multimer callback...ms=%ld", timeout_ms);
 	pcurl->mCurlTimer.set(timeout_ms);
-	pcurl->check_multi_info();
 	return 0;
 }
 
@@ -144,8 +146,6 @@ int EdCurl::sockCb(CURL* e, curl_socket_t s, int what)
 	{
 		deregisterEvent();
 	}
-
-	check_multi_info();
 
 	return 0;
 }
@@ -264,7 +264,7 @@ void EdCurl::check_multi_info()
 		if(msg->msg == CURLMSG_DONE)
 		{
 			curl_multi_remove_handle(mCurlm, msg->easy_handle);
-			//curl_easy_cleanup(msg->easy_handle);
+			curl_easy_cleanup(msg->easy_handle);
 		}
 	}
 }
