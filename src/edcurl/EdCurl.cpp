@@ -57,7 +57,6 @@ void EdCurl::open()
 {
 	setDefaultContext();
 
-	mCurlTimer.setDefaultContext();
 	mCurlTimer.setCallback(this);
 
 	if (_tCurlM == NULL)
@@ -82,8 +81,8 @@ int EdCurl::multi_timer_cb(CURLM* multi, long timeout_ms, void* userp)
 {
 	EdCurl *pcurl = (EdCurl*) userp;
 	dbgd("multimer callback...ms=%ld", timeout_ms);
-	pcurl->mCurlTimer.kill();
 	pcurl->mCurlTimer.set(timeout_ms);
+	pcurl->check_multi_info();
 	return 0;
 }
 
@@ -103,13 +102,15 @@ int EdCurl::request(const char* url)
 	curl_easy_setopt(meCurl, CURLOPT_WRITEDATA, (void*)this);
 
 	// for retrieving headers
-	//curl_easy_setopt(meCurl, CURLOPT_HEADER, (void*)true);
+	//curl_easy_setopt(meCurl, CURLOPT_HEADER, true);
 	curl_easy_setopt(meCurl, CURLOPT_HEADERFUNCTION,  header_cb);
-	curl_easy_setopt(meCurl, CURLOPT_WRITEHEADER, this);
+	//curl_easy_setopt(meCurl, CURLOPT_WRITEHEADER, this);
+	curl_easy_setopt(meCurl, CURLOPT_HEADERDATA, this);
 
 	curl_multi_add_handle(mCurlm, meCurl);
 	int run_handles;
-	curl_multi_socket_action(mCurlm, 0, CURL_SOCKET_TIMEOUT, &run_handles);
+	curl_multi_socket_action(mCurlm, CURL_SOCKET_TIMEOUT, 0, &run_handles);
+	dbgd("new curl=%p", meCurl);
 	return 0;
 }
 
@@ -120,9 +121,7 @@ int EdCurl::sockCb(CURL* e, curl_socket_t s, int what)
 
 	if (mIsReg == false)
 	{
-		setDefaultContext();
 		setFd(s);
-
 	}
 
 	if (what == CURL_POLL_NONE)
@@ -146,6 +145,8 @@ int EdCurl::sockCb(CURL* e, curl_socket_t s, int what)
 		deregisterEvent();
 	}
 
+	check_multi_info();
+
 	return 0;
 }
 
@@ -163,12 +164,19 @@ size_t EdCurl::body_cb(void* ptr, size_t size, size_t nmemb, void* user)
 	return curl->OnBodyData(ptr, size, nmemb);
 }
 
+/*
+ * header callback is called not only for original header but also for trailer of chunked-encoding transfering.
+ * must separate between orignal header and trailer of body.
+ */
 size_t EdCurl::header_cb(void* buffer, size_t size, size_t nmemb, void* userp)
 {
 	EdCurl *curl = (EdCurl*)userp;
 
 	dbgd("header: size=%d, n=%d", size, nmemb);
-
+	char buf[512];
+	memcpy(buf, buffer, size*nmemb);
+	buf[size*nmemb]=0;
+	dbgd("    str=%s", buf);
 
 #if 0
 
@@ -220,6 +228,7 @@ int EdCurl::OnBodyData(void* ptr, size_t size, size_t nmemb)
 
 void EdCurl::close()
 {
+	dbgd("close.......");
 	if(meCurl) {
 		curl_easy_cleanup(meCurl);
 		meCurl = NULL;
@@ -240,6 +249,23 @@ const char* EdCurl::getRespHeader(char* name)
 	} catch(out_of_range &range_err) {
 
 		return NULL;
+	}
+}
+
+
+void EdCurl::check_multi_info()
+{
+	int msgcount;
+	CURLMsg* msg;
+	dbgd("check complete msg");
+	for(msg = curl_multi_info_read(mCurlm, &msgcount);msg;)
+	{
+		dbgd("msg ptr=%p, msg=%d, curl=%p, cnt=%d", msg, msg->msg, msg->easy_handle, msgcount);
+		if(msg->msg == CURLMSG_DONE)
+		{
+			curl_multi_remove_handle(mCurlm, msg->easy_handle);
+			//curl_easy_cleanup(msg->easy_handle);
+		}
 	}
 }
 

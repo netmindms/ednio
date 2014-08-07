@@ -31,6 +31,8 @@ public:
 	virtual void OnEventRead();
 	virtual void OnEventWrite();
 
+	//virtual void OnHeaderComplete();
+
 	void open();
 	void close();
 	int request(const char* url);
@@ -45,6 +47,7 @@ public:
 
 private:
 	char* clean_str(char *str);
+	void check_multi_info();
 
 private:
 	unordered_map<string, string> mRespHeaders;
