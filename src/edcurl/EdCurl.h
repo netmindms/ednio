@@ -37,8 +37,6 @@ public:
 	void setCallback(ICurlStatusCb* cb);
 	CURL* getCurl();
 	CURLM* getMultiCurl();
-	//void OnEventRead();
-	//void OnEventWrite();
 	virtual void OnHeaderComplete();
 	virtual void OnBodyData(void *buf, int len);
 	virtual void OnCurlEnd(int errcode);
@@ -50,9 +48,7 @@ private:
 	bool mIsRespHeaderComp;
 	static size_t header_cb(void* buffer, size_t size, size_t nmemb, void* userp);
 	static size_t body_cb(void* ptr, size_t size, size_t nmemb, void* user);
-	//int curlSockCb(int fd, void *psock, int what);
 	void procCurlDone(int result);
-	//void setEvent(int evt);
 };
 
 

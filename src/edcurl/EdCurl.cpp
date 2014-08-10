@@ -34,11 +34,11 @@ void EdCurl::open(EdMultiCurl* pm)
 	curl_easy_setopt(mCurl, CURLOPT_PRIVATE, this);
 	curl_easy_setopt(mCurl, CURLOPT_HEADERFUNCTION, header_cb);
 	curl_easy_setopt(mCurl, CURLOPT_WRITEHEADER, this);
-	//curl_easy_setopt(mCurl, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP);
-//	curl_easy_setopt(mCurl, CURLOPT_WRITEFUNCTION, body_cb);
-//	curl_easy_setopt(mCurl, CURLOPT_WRITEDATA, (void* )this);
 
-//curl_easy_setopt(mCurl, CURLOPT_FOLLOWLOCATION, 1);
+	curl_easy_setopt(mCurl, CURLOPT_WRITEFUNCTION, body_cb);
+	curl_easy_setopt(mCurl, CURLOPT_WRITEDATA, (void* )this);
+
+	//curl_easy_setopt(mCurl, CURLOPT_FOLLOWLOCATION, 1);
 
 	mEdMultiCurl = pm;
 	//pm->addCurl(this);
@@ -64,10 +64,11 @@ size_t EdCurl::header_cb(void* buffer, size_t size, size_t nmemb, void* userp)
 		pcurl->OnHeaderComplete();
 	}
 
-	char buf[512];
-	memcpy(buf, buffer, size * nmemb);
-	buf[size * nmemb] = 0;
-	dbgd("    str=%s", buf);
+//	char buf[512];
+//	memcpy(buf, buffer, size * nmemb);
+//	buf[size * nmemb] = 0;
+//	dbgd("    str=%s", buf);
+	return len;
 
 #if 0
 
@@ -107,17 +108,16 @@ size_t EdCurl::header_cb(void* buffer, size_t size, size_t nmemb, void* userp)
 	//dbgv("header name=%s, val=%s", dest, val);
 
 	//dbgv("    header=%s", hs.c_str());
-#endif
 	return nmemb * size;
+#endif
 }
 
 size_t EdCurl::body_cb(void* ptr, size_t size, size_t nmemb, void* user)
 {
-	EdCurl* curl = (EdCurl*) user;
-	char *buf;
+	EdCurl* pcurl = (EdCurl*) user;
 	size_t len = size * nmemb;
 	dbgd("body cb, len=%d", len);
-	OnBodyData(ptr, len);
+	pcurl->OnBodyData(ptr, len);
 	return len;
 }
 
