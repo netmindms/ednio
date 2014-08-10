@@ -15,6 +15,8 @@
 #include <curl/curl.h>
 #include "../EdEvent.h"
 #include "../EdTimer.h"
+#include "../EdObjList.h"
+#include "EdCurlSocket.h"
 
 namespace edft {
 
@@ -22,19 +24,19 @@ using namespace std;
 
 class EdCurl;
 
-class EdMultiCurl: public EdEvent, public EdTimer::ITimerCb
+class EdMultiCurl:  public EdTimer::ITimerCb
 {
 	friend class EdCurl;
+	friend class EdCurlSocket;
 public:
 	EdMultiCurl();
 	virtual ~EdMultiCurl();
 	static int curl_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *sockp);
+	int dgCurlSockCb(CURL *e, curl_socket_t s, int what, void *cbp, void *sockp);
+
 	static int multi_timer_cb(CURLM *multi, long timeout_ms, void *userp);
 	virtual void IOnTimerEvent(EdTimer* ptimer);
-	virtual void OnEventRead();
-	virtual void OnEventWrite();
 
-	//virtual void OnHeaderComplete();
 	void addCurl(EdCurl* pcurl);
 	void open();
 	void close();
@@ -42,27 +44,23 @@ public:
 	void setEvent(int evt);
 	int sockCb(CURL* e, curl_socket_t s, int what);
 	static void closeCurl();
-	static size_t body_cb(void* ptr, size_t size, size_t nmemb, void* user);
-	static size_t header_cb(void *buffer, size_t size, size_t nmemb, void *userp);
-	virtual int OnBodyData(void* ptr, size_t size, size_t nmemb);
-
 	const char* getRespHeader(char *name);
 
 private:
 	char* clean_str(char *str);
 	void check_multi_info();
+	void procEventRead(int fd);
+	void procEventWrite(int fd);
 
 private:
 	unordered_map<string, string> mRespHeaders;
+	EdObjList<EdCurlSocket> mSockList;
 
 protected:
 	EdTimer mCurlTimer;
 	CURLM *mCurlm;
-	CURL *meCurl;
-	curl_socket_t mCurlSockFd;
+
 };
-
-
 
 }
 

@@ -10,6 +10,7 @@
 #include "config.h"
 #include <pthread.h>
 #include "edslog.h"
+#include "EdType.h"
 #include "EdMutex.h"
 
 namespace edft

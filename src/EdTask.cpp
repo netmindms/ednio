@@ -6,7 +6,7 @@
  */
 #include "config.h"
 
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_VERBOSE
 #define DBGTAG "etask"
 
 
@@ -646,6 +646,7 @@ int EdTask::esMain(EdContext* psys)
 				pevt->evtcb(pevt, pevt->fd, EVT_READ);
 			if(pevt->isReg==false)
 				goto __release_event__;
+
 
 			if( (epv->events & EPOLLRDHUP) || (epv->events & EPOLLHUP) || (epv->events & EPOLLERR))
 				pevt->evtcb(pevt, pevt->fd, EVT_HANGUP);
