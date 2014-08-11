@@ -14,6 +14,7 @@ This provides as follwing features.
 - Easy non block socket API
 - Easy Timer API that notify expiration asynchronously.
 - Easy non block mode pipe API
+- Support non block, asynchronous wrapper API of openssl, curl.
 
 How to build
 ------------
@@ -29,6 +30,9 @@ After you install scons, you just enter follwing command on top folder of source
 
 	$ scons
 
+To include non-block, asynchronous mode wrapper API of famous some libraries, run as follwing.
+
+	$ scons ssl=true curl=true libevent=true
 
 Typical Usage
 -------------
@@ -87,9 +91,7 @@ EdEvent classes(EdSocket, EdTimer, EdPipe) refer context object stored in thread
 
 ToDo
 ----
-- Support Non Block Mode SSL Socket 
-- Support Non Block Mode libcurl
-- Support Non Block Mode DB Client.
+- Support some DB APIs for non block mode.
 
 
 
