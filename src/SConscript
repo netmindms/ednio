@@ -15,6 +15,11 @@ def gen_configh(target, source, env):
 	else:
 		defs['USE_SSL'] = 0		
 		
+	if TopEnv['USE_CURL'] == 'true':
+		defs['USE_CURL'] = 1
+	else:
+		defs['USE_CURL'] = 0	
+		
 	infile = file(str(source[0]), 'r')
 	cbuf = infile.read() % defs 
 	cfgfile = file(str(target[0]), 'w')
@@ -33,6 +38,7 @@ needlibs += ['pthread', 'rt' ]
 
 if TopEnv['USE_LIBEVENT'] == 'true':
 	needlibs += ['event']
+	
 
 TopEnv['LIBS'] = needlibs	
 print 'needlibs == ',  needlibs
@@ -42,6 +48,9 @@ subobj = []
 if TopEnv['USE_SSL'] == 'true':
 	subobj = SConscript('edssl/SConscript')
 
+if TopEnv['USE_CURL'] == 'true':
+	subobj = SConscript('edcurl/SConscript')
+	
 obj = curobj + subobj
 
 Return('obj')

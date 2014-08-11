@@ -7,6 +7,8 @@
 
 #ifndef EDCURLSOCKET_H_
 #define EDCURLSOCKET_H_
+#include "../config.h"
+
 #include <curl/curl.h>
 #include "../EdEvent.h"
 

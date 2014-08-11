@@ -7,11 +7,17 @@
 
 #ifndef EDCURL_H_
 #define EDCURL_H_
+#include "../config.h"
+
+#include <string>
+#include <unordered_map>
 #include <curl/curl.h>
 //#include "EdMultiCurl.h"
 #include "../EdEvent.h"
 #include "../EdObjList.h"
 #include "EdCurlSocket.h"
+
+using namespace std;
 
 namespace edft
 {
@@ -22,10 +28,13 @@ class EdCurl
 friend class EdMultiCurl;
 
 public:
-	class ICurlStatusCb {
+	class ICurlCb {
 	public:
 		virtual void IOnCurlStatus(EdCurl* pcurl, int status)=0;
+		virtual void IOnCurlHeader(EdCurl* pcurl)=0;
+		virtual void IOnCurlBody(EdCurl* pcurl, void* ptr, int size)=0;
 	};
+
 public:
 	EdCurl();
 	virtual ~EdCurl();
@@ -34,19 +43,24 @@ public:
 	int request(const char* url);
 	int request();
 	void close();
-	void setCallback(ICurlStatusCb* cb);
+	void setCallback(ICurlCb* cb);
 	CURL* getCurl();
 	CURLM* getMultiCurl();
-	virtual void OnHeaderComplete();
-	virtual void OnBodyData(void *buf, int len);
+	virtual void OnCurlHeader();
+	virtual void OnCurlBody(void *buf, int len);
 	virtual void OnCurlEnd(int errcode);
+	char* convCodeToStr(char *buf, int code);
+	const char* getHeader(const char *name);
+	int getResponseCode();
 
 private:
 	EdMultiCurl *mEdMultiCurl;
-	ICurlStatusCb *mCallback;
+	ICurlCb *mCallback;
 	CURL* mCurl;
 	bool mIsRespHeaderComp;
+	unordered_map<string, string> mHeaderList;
 	static size_t header_cb(void* buffer, size_t size, size_t nmemb, void* userp);
+	size_t dgheader_cb(char* buffer, size_t size, size_t nmemb, void* userp);
 	static size_t body_cb(void* ptr, size_t size, size_t nmemb, void* user);
 	void procCurlDone(int result);
 };

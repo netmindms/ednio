@@ -8,6 +8,8 @@
 
 #define DBGTAG "appcl"
 #define DBG_LEVEL DBG_DEBUG
+#include <string>
+#include <algorithm>
 
 #include "edslog.h"
 #include "EdNio.h"
@@ -21,7 +23,7 @@
 using namespace std;
 using namespace edft;
 
-class MainTask: public EdTask, public EdCurl::ICurlStatusCb
+class MainTask: public EdTask, public EdCurl::ICurlCb
 {
 	EdMultiCurl* multi;
 	EdCurl *edcurl;
@@ -29,6 +31,7 @@ class MainTask: public EdTask, public EdCurl::ICurlStatusCb
 	{
 		if (pmsg->msgid == EDM_INIT)
 		{
+
 			multi = new EdMultiCurl;
 			dbgd("new multi=%p", multi);
 			multi->open();
@@ -36,11 +39,12 @@ class MainTask: public EdTask, public EdCurl::ICurlStatusCb
 			dbgd("new alloc curl=%p", edcurl);
 			edcurl->setCallback(this);
 			edcurl->open(multi);
-			//edcurl->request("http://www.google.com");
-			//edcurl->request("http://www.naver.com");
-			edcurl->request("http://www.yahoo.com");
-			//edcurl->request("http://127.0.0.1");
-			//setTimer(1, 1, 1);
+			CURL *curl = edcurl->getCurl();
+			curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
+			//edcurl->setUrl("http://127.0.0.1");
+			edcurl->setUrl("http://www.google.com");
+			edcurl->request();
+			edcurl->request("http://www.google.com");
 
 		}
 		else if (pmsg->msgid == EDM_CLOSE)
@@ -65,6 +69,21 @@ class MainTask: public EdTask, public EdCurl::ICurlStatusCb
 		dbgd("curl result, code=%d", status);
 		pcurl->close();
 		delete pcurl;
+		edcurl = NULL;
+	}
+	virtual void IOnCurlHeader(EdCurl* pcurl)
+	{
+		dbgd("response code=%03d", pcurl->getResponseCode());
+
+		const char *val = pcurl->getHeader("Content-Type");
+		if(val)
+			dbgd("Content-Type=%s", val);
+
+
+	}
+	virtual void IOnCurlBody(EdCurl* pcurl, void* ptr, int size)
+	{
+		dbgd("body data, cnt=%d", size);
 	}
 
 };

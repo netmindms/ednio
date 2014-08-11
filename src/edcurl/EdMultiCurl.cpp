@@ -5,7 +5,7 @@
  *      Author: netmind
  */
 
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 #define DBGTAG "mcurl"
 
 #include <stdexcept>
@@ -55,73 +55,16 @@ int EdMultiCurl::curl_sock_cb(CURL* e, curl_socket_t s, int what, void* cbp, voi
 	EdMultiCurl *mc = (EdMultiCurl*) cbp;
 	mc->dgCurlSockCb(e, s, what, cbp, sockp);
 	return 0;
-#if 0
-	EdCurl *pcurl = NULL;
-	curl_easy_getinfo(e, CURLINFO_PRIVATE, (char* )&pcurl);
-
-	EdCurlSocket* cs = (EdCurlSocket*) sockp;
-	if (sockp)
-	{
-		cs = mc->mSockList.allocObj();
-		mc->mSockList.push_back(cs);
-		dbgd("new curl sock, fd=%d, curlsock=%d", s, cs);
-		curl_multi_assign(mc->mCurlm, s, cs);
-	}
-
-	dbgd("curl sock cb, s=%d, what=%d, e=%p, curl=%p", s, what, e, pcurl);
-	cs->curlSockCb(what);
-	return 0;
-#endif
-
 }
 
 int EdMultiCurl::multi_timer_cb(CURLM* multi, long timeout_ms, void* userp)
 {
 	EdMultiCurl *pmulti = (EdMultiCurl*) userp;
-	dbgd("multimer callback...ms=%ld", timeout_ms);
+	dbgd("curl timer callback...ms=%ld, curl_user=%p", timeout_ms, userp);
 	pmulti->mCurlTimer.set(timeout_ms);
 	return 0;
 }
 
-#if 0
-int EdMultiCurl::sockCb(CURL* e, curl_socket_t s, int what)
-{
-
-	mCurlSockFd = s;
-
-	if (mIsReg == false)
-	{
-		setFd(s);
-	}
-
-	if (what == CURL_POLL_NONE)
-	{
-		dbgd("fd=%d, curl poll none...", s);
-	}
-	else if (what == CURL_POLL_IN)
-	{
-		dbgd("fd=%d, curl poll in...", s);
-		setEvent(EVT_READ);
-	}
-	else if (what == CURL_POLL_OUT)
-	{
-		dbgd("fd=%d, curl poll out...", s);
-		setEvent(EVT_WRITE);
-	}
-	else if (what == CURL_POLL_INOUT)
-	{
-		dbgd("fd=%d, curl poll inout...", s);
-		setEvent(EVT_WRITE | EVT_READ);
-	}
-	else if (what == CURL_POLL_REMOVE)
-	{
-		dbgd("fd=%d, curl poll remove...", s);
-		deregisterEvent();
-	}
-
-	return 0;
-}
-#endif
 
 void EdMultiCurl::close()
 {
@@ -135,39 +78,25 @@ void EdMultiCurl::close()
 	mCurlTimer.kill();
 }
 
-const char* EdMultiCurl::getRespHeader(char* name)
-{
-//	string ps = mRespHeaders.A
-//	if(ps) {
-//		return ps->c_str();
-//	}
-//	else
-//		return NULL;
-	try
-	{
-		string &s = mRespHeaders.at(name);
-		return s.c_str();
-	} catch (out_of_range &range_err)
-	{
-
-		return NULL;
-	}
-}
-
 void EdMultiCurl::check_multi_info()
 {
 	int msgcount;
 	CURLMsg* msg;
 	while ((msg = curl_multi_info_read(mCurlm, &msgcount)))
 	{
-		dbgv("msg ptr=%p, msg=%d, curl=%p, cnt=%d", msg, msg->msg, msg->easy_handle, msgcount);
+		dbgv("check curl msg ptr=%p, msg=%d, curl=%p, cnt=%d", msg, msg->msg, msg->easy_handle, msgcount);
 		if (msg->msg == CURLMSG_DONE)
 		{
-			curl_multi_remove_handle(mCurlm, msg->easy_handle);
 			EdCurl *pcurl = NULL;
 			curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, (char* )&pcurl);
+			int curlcode = msg->data.result;
+
+			// Warning: After removing easy handle from multihandle, msg is unavailable.
+			// Therefore, you must not access the curlmsg since that.
+			curl_multi_remove_handle(mCurlm, msg->easy_handle);
 			if (pcurl)
-				pcurl->procCurlDone(msg->data.result);
+				pcurl->procCurlDone(curlcode);
+
 		}
 	}
 }

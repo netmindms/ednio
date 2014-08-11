@@ -5,7 +5,7 @@
  *      Author: netmind
  */
 #define DBGTAG "cusck"
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 #include "EdCurlSocket.h"
 #include "EdMultiCurl.h"
 #include "../edslog.h"
@@ -31,7 +31,6 @@ void EdCurlSocket::setEvent(int eventflag)
 
 void EdCurlSocket::OnEventRead()
 {
-	int runhandles;
 	mEdMultiCurl->procEventRead(mFd);
 }
 

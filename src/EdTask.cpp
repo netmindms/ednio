@@ -6,7 +6,7 @@
  */
 #include "config.h"
 
-#define DBG_LEVEL DBG_VERBOSE
+#define DBG_LEVEL DBG_WARN
 #define DBGTAG "etask"
 
 

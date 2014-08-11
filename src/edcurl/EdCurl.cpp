@@ -5,7 +5,10 @@
  *      Author: netmind
  */
 #define DBGTAG "edcrl"
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
+
+#include <string.h>
+
 #include "EdCurl.h"
 #include "EdMultiCurl.h"
 #include "../edslog.h"
@@ -21,6 +24,7 @@ EdCurl::EdCurl()
 	mCurl = NULL;
 	mEdMultiCurl = NULL;
 	mIsRespHeaderComp = false;
+	mCallback = NULL;
 }
 
 EdCurl::~EdCurl()
@@ -41,7 +45,6 @@ void EdCurl::open(EdMultiCurl* pm)
 	//curl_easy_setopt(mCurl, CURLOPT_FOLLOWLOCATION, 1);
 
 	mEdMultiCurl = pm;
-	//pm->addCurl(this);
 }
 
 int EdCurl::request(const char* url)
@@ -53,71 +56,15 @@ int EdCurl::request(const char* url)
 size_t EdCurl::header_cb(void* buffer, size_t size, size_t nmemb, void* userp)
 {
 	EdCurl *pcurl = (EdCurl*) userp;
-	dbgd("header: size=%d, n=%d", size, nmemb);
-	size_t len = size * nmemb;
-
-	if (pcurl->mIsRespHeaderComp == true)
-		return len;
-	if (len <= 2)
-	{
-		pcurl->mIsRespHeaderComp = true;
-		pcurl->OnHeaderComplete();
-	}
-
-//	char buf[512];
-//	memcpy(buf, buffer, size * nmemb);
-//	buf[size * nmemb] = 0;
-//	dbgd("    str=%s", buf);
-	return len;
-
-#if 0
-
-	size_t len = size * nmemb;
-	char *bufname = (char*)malloc(len);
-	char *bufval = (char*)malloc(len);
-	char *tbuf = (char*)malloc(len);
-	*bufname = 0;
-	*bufval = 0;
-
-	char delc;
-	char *ptr;
-	int datalen;
-	memcpy(tbuf, buffer, len);
-	ptr = tbuf;
-	ptr = krstrtoken(bufname, ptr, ":\r\n", &delc, &datalen, len-1);
-	if(delc==':' && ptr)
-	{
-		//mRespHeaders[dest] =
-		char *rp=bufname;
-		for(rp=bufname+datalen-1;*rp==' ';rp--);
-		*(rp+1) = 0;
-
-		for(;*ptr == ' ';ptr++);
-		ptr = krstrtoken(bufval, ptr, "\r\n", &delc, &datalen, len-1);
-		curl->mRespHeaders[bufname] = bufval;
-	}
-	else
-	{
-		if(*bufname)
-		curl->mRespHeaders["resp"] = bufname;
-	}
-	free(bufname);
-	free(bufval);
-	free(tbuf);
-
-	//dbgv("header name=%s, val=%s", dest, val);
-
-	//dbgv("    header=%s", hs.c_str());
-	return nmemb * size;
-#endif
+	return pcurl->dgheader_cb((char*)buffer, size, nmemb, userp);
 }
 
 size_t EdCurl::body_cb(void* ptr, size_t size, size_t nmemb, void* user)
 {
 	EdCurl* pcurl = (EdCurl*) user;
 	size_t len = size * nmemb;
-	dbgd("body cb, len=%d", len);
-	pcurl->OnBodyData(ptr, len);
+	dbgd("curl body callback, size=%d, curl=%p", len, (void*)pcurl);
+	pcurl->OnCurlBody(ptr, len);
 	return len;
 }
 
@@ -134,9 +81,11 @@ void EdCurl::close()
 		curl_easy_cleanup(mCurl);
 		mCurl = NULL;
 	}
+
+	mHeaderList.clear();
 }
 
-void EdCurl::setCallback(ICurlStatusCb* cb)
+void EdCurl::setCallback(ICurlCb* cb)
 {
 	mCallback = cb;
 }
@@ -151,9 +100,15 @@ CURLM* EdCurl::getMultiCurl()
 	return mEdMultiCurl;
 }
 
-void EdCurl::OnHeaderComplete()
+void EdCurl::OnCurlHeader()
 {
-	dbgd("OnHeaderComplete...");
+	if(mCallback)
+		mCallback->IOnCurlHeader(this);
+//	dbgd("OnHeaderComplete...");
+//	long code;
+//	curl_easy_getinfo(mCurl, CURLINFO_RESPONSE_CODE, &code);
+//	char codes[4];
+//	dbgd("   resp code=%s", convCodeToStr(codes, code));
 }
 
 void EdCurl::OnCurlEnd(int errcode)
@@ -161,9 +116,10 @@ void EdCurl::OnCurlEnd(int errcode)
 	dbgd("OnCurlEnd...");
 }
 
-void EdCurl::OnBodyData(void* buf, int len)
+void EdCurl::OnCurlBody(void* buf, int len)
 {
-
+	if(mCallback)
+		mCallback->IOnCurlBody(this, buf, len);
 }
 
 void EdCurl::setUrl(const char* url)
@@ -173,17 +129,93 @@ void EdCurl::setUrl(const char* url)
 
 int EdCurl::request()
 {
-	int run_handles;
 	//curl_multi_socket_action(mMCurl->mCurlm, CURL_SOCKET_TIMEOUT, 0, &run_handles);
 	mEdMultiCurl->addCurl(this);
-	dbgd("new curl=%p, runhandle=%d", mCurl, run_handles);
+	dbgd("new curl=%p", mCurl);
 	return 0;
+}
+
+const char* EdCurl::getHeader(const char* name)
+{
+	string n(name);
+	std::transform(n.begin(), n.end(),n.begin(), ::toupper);
+
+	auto itr = mHeaderList.find(n);
+	if(itr != mHeaderList.end())
+		return itr->second.c_str();
+	else
+		return NULL;
+}
+
+int EdCurl::getResponseCode()
+{
+	long code;
+	curl_easy_getinfo(mCurl, CURLINFO_RESPONSE_CODE, &code);
+	return (int)code;
 }
 
 void EdCurl::procCurlDone(int result)
 {
-	dbgd("curl done..........result=%d", result);
+	dbgd("curl result msg=%d", result);
 	OnCurlEnd(result);
+}
+
+
+char* EdCurl::convCodeToStr(char* buf, int code)
+{
+	int i,s,m;
+	for(i=0,s=code;i<3;i++)
+	{
+		m=s%10;
+		s /= 10;
+		buf[2-i] = '0'+m;
+	}
+	buf[3] = 0;
+	return buf;
+}
+
+
+size_t EdCurl::dgheader_cb(char* buffer, size_t size, size_t nmemb, void* userp)
+{
+	dbgv("header: size=%d, n=%d", size, nmemb);
+	size_t len = size * nmemb;
+
+	if (mIsRespHeaderComp == true)
+		return len;
+
+	if (len <= 2)
+	{
+		dbgd("header end match");
+		mIsRespHeaderComp = true;
+		OnCurlHeader();
+	}
+	else
+	{
+		char* name_end = buffer;
+		char* start_val;
+		name_end = strchr(buffer, ':');
+		if(!name_end)
+			goto parser_end;
+
+		start_val = name_end+1;
+		for(;*start_val==' ';start_val++);
+
+		// trim name
+		for(name_end--;*name_end==' ';name_end--);
+		string hd_name(buffer, name_end-buffer+1);
+		std::transform(hd_name.begin(), hd_name.end(),hd_name.begin(), ::toupper);
+
+		// trim header val
+		char* val_end = buffer+len-1;
+		for(;*val_end=='\r' || *val_end=='\n';val_end--);
+		string hd_val(start_val, val_end+1);
+
+		mHeaderList[hd_name] = hd_val;
+		dbgd("Header, name=%s, val=%s", hd_name.c_str(), hd_val.c_str());
+
+	}
+parser_end:
+	return len;
 }
 
 } /* namespace edft */

@@ -8,6 +8,7 @@ import os
 TopEnv = Environment()
 TopEnv['USE_LIBEVENT'] = ARGUMENTS.get('libevent', 'false')
 TopEnv['USE_SSL'] = ARGUMENTS.get('ssl', 'false')
+TopEnv['USE_CURL'] = ARGUMENTS.get('curl', 'false')
 
 TopEnv['LIBS']= []
 
