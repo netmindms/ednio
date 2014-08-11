@@ -3,7 +3,7 @@
 // Author      :
 // Version     :
 // Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
+// Description : Asynchronous Curl Example with libednio
 //============================================================================
 
 #define DBGTAG "appcl"
@@ -32,19 +32,23 @@ class MainTask: public EdTask, public EdCurl::ICurlCb
 		if (pmsg->msgid == EDM_INIT)
 		{
 
+			// create multi curl
 			multi = new EdMultiCurl;
-			dbgd("new multi=%p", multi);
 			multi->open();
+
+			// create single curl to register to mutli curl
 			edcurl = new EdCurl();
-			dbgd("new alloc curl=%p", edcurl);
+			// To get headers and body data and curl status, set call back.
 			edcurl->setCallback(this);
 			edcurl->open(multi);
-			CURL *curl = edcurl->getCurl();
-			curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
-			//edcurl->setUrl("http://127.0.0.1");
-			edcurl->setUrl("http://www.google.com");
+
+			// You may set your specific curl option by getting curl handle.
+			//CURL *curl = edcurl->getCurl();
+			//curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
+
+			// set url
+			edcurl->setUrl("http://127.0.0.1");
 			edcurl->request();
-			edcurl->request("http://www.google.com");
 
 		}
 		else if (pmsg->msgid == EDM_CLOSE)
@@ -53,17 +57,18 @@ class MainTask: public EdTask, public EdCurl::ICurlCb
 				edcurl->close();
 			}
 			delete edcurl;
+
+			if(multi) {
+				multi->close();
+			}
 			delete multi;
 		}
-		else if(pmsg->msgid == EDM_TIMER)
-		{
-			dbgd("cancel timer.......");
-			killTimer(1);
-			edcurl->close();
-		}
+
 		return 0;
 	}
 
+
+	// implements ICurlCb interface abstract functions.
 	virtual void IOnCurlStatus(EdCurl* pcurl, int status)
 	{
 		dbgd("curl result, code=%d", status);
