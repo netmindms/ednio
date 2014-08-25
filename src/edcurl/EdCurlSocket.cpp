@@ -40,6 +40,12 @@ void EdCurlSocket::OnEventWrite()
 	mEdMultiCurl->procEventWrite(mFd);
 }
 
+void EdCurlSocket::OnEventHangup()
+{
+	mEdMultiCurl->procEventErr(mFd);
+}
+
+
 void EdCurlSocket::open(EdMultiCurl* edmcurl, int fd)
 {
 	mEdMultiCurl = edmcurl;
@@ -74,5 +80,7 @@ void EdCurlSocket::curlSockCb(int what)
 		deregisterEvent();
 	}
 }
+
+
 
 } // namespace edft

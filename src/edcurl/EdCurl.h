@@ -52,12 +52,16 @@ public:
 	char* convCodeToStr(char *buf, int code);
 	const char* getHeader(const char *name);
 	int getResponseCode();
+	void setUser(void* user);
+	void* getUser();
 
 private:
 	EdMultiCurl *mEdMultiCurl;
 	ICurlCb *mCallback;
 	CURL* mCurl;
 	bool mIsRespHeaderComp;
+	void* mUser;
+
 	unordered_map<string, string> mHeaderList;
 	static size_t header_cb(void* buffer, size_t size, size_t nmemb, void* userp);
 	size_t dgheader_cb(char* buffer, size_t size, size_t nmemb, void* userp);

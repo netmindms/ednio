@@ -586,7 +586,7 @@ edevt_t* EdTask::regEdEvent(int fd, uint32_t events, EVENTCB cb, void* user)
 
 	mCtx.evt_count++;
 
-	dbgd("    evt=%p, esevent=%p", pevt, pevt->user);
+	dbgd("    evt=%p, esevent=%p, events=%0x", pevt, pevt->user, events);
 
 	int ret = epoll_ctl(mCtx.epfd, EPOLL_CTL_ADD, fd, &event);
 	if (ret)

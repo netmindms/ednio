@@ -180,6 +180,7 @@ public:
 	void cleanupAllTimer();
 
 
+
 public:
 	virtual int OnEventProc(EdMsg* pmsg);
 

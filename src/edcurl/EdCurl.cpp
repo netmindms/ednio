@@ -5,7 +5,7 @@
  *      Author: netmind
  */
 #define DBGTAG "edcrl"
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 
 #include <string.h>
 
@@ -35,6 +35,7 @@ EdCurl::~EdCurl()
 void EdCurl::open(EdMultiCurl* pm)
 {
 	mCurl = curl_easy_init();
+	//curl_easy_setopt(mCurl, CURLOPT_VERBOSE, 1);
 	curl_easy_setopt(mCurl, CURLOPT_PRIVATE, this);
 	curl_easy_setopt(mCurl, CURLOPT_HEADERFUNCTION, header_cb);
 	curl_easy_setopt(mCurl, CURLOPT_WRITEHEADER, this);
@@ -72,7 +73,7 @@ void EdCurl::close()
 {
 	if (mEdMultiCurl)
 	{
-		curl_multi_remove_handle(mEdMultiCurl, mCurl);
+		curl_multi_remove_handle(mEdMultiCurl->getMultiCurl(), mCurl);
 		mEdMultiCurl = NULL;
 	}
 
@@ -97,7 +98,7 @@ CURL* EdCurl::getCurl()
 
 CURLM* EdCurl::getMultiCurl()
 {
-	return mEdMultiCurl;
+	return mEdMultiCurl->getMultiCurl();
 }
 
 void EdCurl::OnCurlHeader()
@@ -114,6 +115,8 @@ void EdCurl::OnCurlHeader()
 void EdCurl::OnCurlEnd(int errcode)
 {
 	dbgd("OnCurlEnd...");
+	if(mCallback != NULL)
+		mCallback->IOnCurlStatus(this, errcode);
 }
 
 void EdCurl::OnCurlBody(void* buf, int len)
@@ -129,9 +132,9 @@ void EdCurl::setUrl(const char* url)
 
 int EdCurl::request()
 {
-	//curl_multi_socket_action(mMCurl->mCurlm, CURL_SOCKET_TIMEOUT, 0, &run_handles);
-	mEdMultiCurl->addCurl(this);
 	dbgd("new curl=%p", mCurl);
+	mEdMultiCurl->startSingleCurl(this);
+
 	return 0;
 }
 
@@ -152,6 +155,16 @@ int EdCurl::getResponseCode()
 	long code;
 	curl_easy_getinfo(mCurl, CURLINFO_RESPONSE_CODE, &code);
 	return (int)code;
+}
+
+void EdCurl::setUser(void* user)
+{
+	mUser = user;
+}
+
+void* EdCurl::getUser()
+{
+	return mUser;
 }
 
 void EdCurl::procCurlDone(int result)

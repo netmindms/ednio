@@ -5,7 +5,7 @@
  *      Author: netmind
  */
 
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 #define DBGTAG "mcurl"
 
 #include <stdexcept>
@@ -101,11 +101,13 @@ void EdMultiCurl::check_multi_info()
 	}
 }
 
-void EdMultiCurl::addCurl(EdCurl* pcurl)
+void EdMultiCurl::startSingleCurl(EdCurl* pcurl)
 {
 	curl_multi_add_handle(mCurlm, pcurl->mCurl);
 	int run_handles;
-	curl_multi_socket_action(mCurlm, CURL_SOCKET_TIMEOUT, 0, &run_handles);
+	CURLMcode  code = curl_multi_socket_action(mCurlm, CURL_SOCKET_TIMEOUT, 0, &run_handles);
+	dbgd("action code=%d", code);
+	check_multi_info();
 }
 
 void EdMultiCurl::procEventRead(int fd)
@@ -124,6 +126,13 @@ void EdMultiCurl::procEventWrite(int fd)
 	check_multi_info();
 }
 
+void EdMultiCurl::procEventErr(int fd)
+{
+	int runhandles;
+	curl_multi_socket_action(mCurlm, fd, CURL_CSELECT_ERR, &runhandles);
+}
+
+
 int EdMultiCurl::dgCurlSockCb(CURL* e, curl_socket_t s, int what, void* cbp, void* sockp)
 {
 	EdCurl *pcurl = NULL;
@@ -135,7 +144,7 @@ int EdMultiCurl::dgCurlSockCb(CURL* e, curl_socket_t s, int what, void* cbp, voi
 		cs = mSockList.allocObj();
 		cs->open(this, s);
 		mSockList.push_back(cs);
-		dbgd("new curl sock, fd=%d, curlsock=%d", s, cs);
+		dbgd("new curl sock, fd=%d, curlsock=%x", s, cs);
 		curl_multi_assign(mCurlm, s, cs);
 	}
 
@@ -149,5 +158,13 @@ int EdMultiCurl::dgCurlSockCb(CURL* e, curl_socket_t s, int what, void* cbp, voi
 	}
 	return 0;
 }
+
+
+CURLM* EdMultiCurl::getMultiCurl()
+{
+	return mCurlm;
+}
+
+
 
 } // namespae edft

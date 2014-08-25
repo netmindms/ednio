@@ -28,29 +28,32 @@ class EdMultiCurl:  public EdTimer::ITimerCb
 {
 	friend class EdCurl;
 	friend class EdCurlSocket;
+
 public:
 	EdMultiCurl();
 	virtual ~EdMultiCurl();
-	static int curl_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *sockp);
-	int dgCurlSockCb(CURL *e, curl_socket_t s, int what, void *cbp, void *sockp);
 
-	static int multi_timer_cb(CURLM *multi, long timeout_ms, void *userp);
 	virtual void IOnTimerEvent(EdTimer* ptimer);
 
-	void addCurl(EdCurl* pcurl);
 	void open();
 	void close();
 	int request(const char* url);
-	void setEvent(int evt);
-	int sockCb(CURL* e, curl_socket_t s, int what);
-	static void closeCurl();
 	const char* getRespHeader(char *name);
+	CURLM* getMultiCurl();
 
 private:
 	char* clean_str(char *str);
+	void startSingleCurl(EdCurl* pcurl);
 	void check_multi_info();
+	void setEvent(int evt);
+	int sockCb(CURL* e, curl_socket_t s, int what);
+	static void closeCurl();
+	static int multi_timer_cb(CURLM *multi, long timeout_ms, void *userp);
+	static int curl_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *sockp);
+	int dgCurlSockCb(CURL *e, curl_socket_t s, int what, void *cbp, void *sockp);
 	void procEventRead(int fd);
 	void procEventWrite(int fd);
+	void procEventErr(int fd);
 
 private:
 	unordered_map<string, string> mRespHeaders;

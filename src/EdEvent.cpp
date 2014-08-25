@@ -44,7 +44,7 @@ void EdEvent::OnEventHangup(void)
 {
 }
 
-void EdEvent::registerEvent(uint16_t flag)
+void EdEvent::registerEvent(uint32_t flag)
 {
 	if (mIsReg == true)
 		return;
@@ -149,7 +149,7 @@ void EdEvent::libevent_cb(int fd, short flags, void* arg)
 }
 #endif
 
-void EdEvent::changeEvent(uint16_t flags)
+void EdEvent::changeEvent(uint32_t flags)
 {
 	if (mContext->mode == MODE_EDEV)
 	{

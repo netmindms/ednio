@@ -23,8 +23,10 @@ public:
 	virtual ~EdCurlSocket();
 	void open(EdMultiCurl* edmcurl, int fd);
 	void setEvent(int eventflag);
-	void OnEventRead();
-	void OnEventWrite();
+	virtual void OnEventRead();
+	virtual void OnEventWrite();
+	virtual void OnEventHangup();
+
 private:
 	EdMultiCurl *mEdMultiCurl;
 	void curlSockCb(int what);

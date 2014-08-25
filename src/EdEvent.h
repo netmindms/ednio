@@ -92,7 +92,7 @@ public:
 	 * @brief Register fd with interested events on event monitor(epoll_wait)
 	 * @param flag monitored event. some events can be bitwised OR(ex, EVT_READ|EVT_WRITE)
 	 */
-	void registerEvent(uint16_t flag = EVT_READ);
+	void registerEvent(uint32_t flag = EVT_READ);
 
 	/**
 	 * @brief Deregister fd on event monitor.
@@ -102,7 +102,7 @@ public:
 	/**
 	 * @brief Change monitored events. fd must be registered in advance before using this function.
 	 */
-	void changeEvent(uint16_t flags);
+	void changeEvent(uint32_t flags);
 
 	/**
 	 * @brief Get user specific data. This data is set by setUser().
