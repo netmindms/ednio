@@ -5,7 +5,7 @@
  *      Author: khkim
  */
 
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 #define DBGTAG "edevt"
 #include <string.h>
 #include "EdEvent.h"
@@ -30,6 +30,7 @@ EdEvent::EdEvent(EdContext* ctx)
 EdEvent::~EdEvent()
 {
 	deregisterEvent();
+	dbgd("dest : edevent...");
 }
 
 void EdEvent::OnEventRead(void)

@@ -4,9 +4,12 @@
  *  Created on: Jun 10, 2014
  *      Author: khkim
  */
+#define DBGTAG "epipe"
+#define DBG_LEVEL DBG_DEBUG
 
 #include <unistd.h>
 #include "EdPipe.h"
+#include "edslog.h"
 
 namespace edft
 {
@@ -20,6 +23,7 @@ EdPipe::EdPipe()
 EdPipe::~EdPipe()
 {
 	close();
+	dbgd("dest : pipe...");
 }
 
 void EdPipe::OnEventRead(void)

@@ -29,6 +29,7 @@ EdCurl::EdCurl()
 
 EdCurl::~EdCurl()
 {
+	dbge("###### dest curl.....");
 	close();
 }
 

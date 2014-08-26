@@ -6,7 +6,7 @@
  */
 #include "config.h"
 
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 #define DBGTAG "etask"
 
 
@@ -28,7 +28,7 @@
 #include "EdTask.h"
 #include "edslog.h"
 #include "EdEvent.h"
-
+#include "edcurl/EdCurl.h"
 
 namespace edft
 {
@@ -662,6 +662,7 @@ __release_event__:
 			// check if event is dereg.
 			cleanUpEventResource();
 		}
+		freeReservedObjs();
 	}
 	psys->opened = 0;
 	usleep(1);
@@ -807,6 +808,29 @@ void EdTask::cleanUpEventResource()
 		freeEvent(pevt);
 		pevt = mDummyEvtList.pop_front();
 	}
+}
+
+
+void EdTask::reserveFree(void* obj)
+{
+	mReserveFreeList.push_back(obj);
+}
+
+
+void EdTask::freeReservedObjs()
+{
+	void* obj;
+	do {
+		obj = mReserveFreeList.front();
+		if(obj) {
+			dbgd("## delete p=%p", obj);
+			delete obj;
+			mReserveFreeList.pop_front();
+		}
+		else {
+			break;
+		}
+	} while(true);
 }
 
 } // namespace edft
