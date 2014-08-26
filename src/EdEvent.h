@@ -17,6 +17,7 @@
 #endif
 
 #include "EdContext.h"
+#include "EdObject.h"
 
 
 namespace edft
@@ -39,7 +40,7 @@ class EdTask;
  * @class EdEvent
  * @brief Base Event Object class for monitoring events.
  */
-class EdEvent
+class EdEvent : EdObject
 {
 public:
 	EdEvent();
