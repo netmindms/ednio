@@ -12,23 +12,12 @@ namespace edft
 
 EdObject::EdObject()
 {
-	// TODO Auto-generated constructor stub
-
+	mIsFree = false;
 }
 
 EdObject::~EdObject()
 {
-	// TODO Auto-generated destructor stub
-}
 
-void EdObject::lock()
-{
-	mMutex.lock();
-}
-
-void EdObject::unlock()
-{
-	mMutex.unlock();
 }
 
 } /* namespace edft */

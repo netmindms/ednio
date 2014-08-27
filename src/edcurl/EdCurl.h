@@ -16,14 +16,14 @@
 #include "../EdEvent.h"
 #include "../EdObjList.h"
 #include "EdCurlSocket.h"
-
+#include "../EdObject.h"
 using namespace std;
 
 namespace edft
 {
 class EdMultiCurl;
 
-class EdCurl
+class EdCurl : public EdObject
 {
 friend class EdMultiCurl;
 

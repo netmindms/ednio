@@ -9,20 +9,18 @@
 #define EDOBJECT_H_
 #include "config.h"
 
-#include "EdMutex.h"
 
 namespace edft
 {
 
 class EdObject
 {
+	friend class EdTask;
 public:
 	EdObject();
 	virtual ~EdObject();
-	void lock();
-	void unlock();
 private:
-	EdMutex mMutex;
+	bool mIsFree;
 };
 
 } /* namespace edft */

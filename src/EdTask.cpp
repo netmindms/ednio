@@ -153,11 +153,7 @@ int EdTask::postEdMsg(u16 msgid, u64 data)
 		pmsg->msgid = msgid;
 		pmsg->data = data;
 		pmsg->sync = 0;
-#ifdef MSGLIST_ED
 		mQuedMsgs.push_back(pmsg);
-#else
-		mQuedMsgs.push_back(pmsg);
-#endif
 		ret = write(mMsgFd, &t, sizeof(t));
 		ret = (ret == 8) ? 0 : -2;
 	}
@@ -210,11 +206,7 @@ int EdTask::sendEdMsg(u16 msgid, u64 data)
 		pmsg->result = 0;
 
 		pthread_mutex_lock(&mutex);
-#ifdef MSGLIST_ED
 		mQuedMsgs.push_back(pmsg);
-#else
-		mQuedMsgs.push_back(pmsg);
-#endif
 		mMsgMutex.unlock();
 
 		ret = write(mMsgFd, &t, sizeof(t));
@@ -264,13 +256,8 @@ void EdTask::initMsg()
 {
 	for (int i = 0; i < mMaxMsqQueSize; i++)
 	{
-#ifdef MSGLIST_ED
 		EdMsg* pmsg = mEmptyMsgs.allocObj();
 		mEmptyMsgs.push_back(pmsg);
-#else
-		EdMsg* pmsg = new EdMsg;
-		mEmptyMsgs.push_back(pmsg);
-#endif
 	}
 	dbgd("msg que size=%d", mEmptyMsgs.size());
 	dbgd("    msg que num=%d", mMaxMsqQueSize);
@@ -286,7 +273,6 @@ void EdTask::closeMsg()
 		mMsgFd = -1;
 	}
 
-#ifdef MSGLIST_ED
 	EdMsg* pmsg;
 	if(mQuedMsgs.size() > 0) {
 		dbgw("#### qued msg exist......cnt=%d", mQuedMsgs.size());
@@ -314,23 +300,6 @@ void EdTask::closeMsg()
 		else
 			break;
 	}
-
-
-#else
-	if (mQuedMsgs.size() != 0)
-	{
-		dbgw("#### qued msg exist......cnt=%d", mQuedMsgs.size());
-		for (auto itr = mQuedMsgs.begin(); itr != mQuedMsgs.end(); itr++)
-		{
-			delete (*itr);
-		}
-	}
-
-	for (auto itr = mEmptyMsgs.begin(); itr != mEmptyMsgs.end(); itr++)
-	{
-		delete (*itr);
-	}
-#endif
 }
 
 int EdTask::setTimer(u32 id, u32 msec, u32 inittime)
@@ -398,15 +367,7 @@ void EdTask::dispatchMsgs(int cnt)
 	{
 		EdMsg *pmsg;
 		mMsgMutex.lock();
-#ifdef MSGLIST_ED
 		pmsg = mQuedMsgs.pop_front();
-#else
-		if (!mQuedMsgs.empty())
-		{
-			pmsg = mQuedMsgs.front();
-			mQuedMsgs.pop_front();
-		}
-#endif
 		mMsgMutex.unlock();
 		if (pmsg)
 		{
@@ -777,18 +738,7 @@ int EdTask::changeEdEvent(edevt_t* pevt, uint32_t event)
 EdMsg* EdTask::allocMsgObj()
 {
 	EdMsg *pmsg;
-#ifdef MSGLIST_ED
 	pmsg = mEmptyMsgs.pop_front();
-
-#else
-	if (!mEmptyMsgs.empty())
-	{
-		pmsg = mEmptyMsgs.front();
-		mEmptyMsgs.pop_front();
-	}
-	else
-		pmsg = NULL;
-#endif
 	return pmsg;
 }
 
@@ -811,15 +761,16 @@ void EdTask::cleanUpEventResource()
 }
 
 
-void EdTask::reserveFree(void* obj)
+void EdTask::reserveFree(EdObject* obj)
 {
+	obj->mIsFree = true;
 	mReserveFreeList.push_back(obj);
 }
 
 
 void EdTask::freeReservedObjs()
 {
-	void* obj;
+	EdObject* obj;
 	do {
 		obj = mReserveFreeList.front();
 		if(obj) {
