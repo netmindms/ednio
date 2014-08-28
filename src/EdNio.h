@@ -16,12 +16,16 @@
 #include "EdPipe.h"
 #include "EdTimer.h"
 
+namespace edft {
+
 const char* EdNioGetVer();
 int EdNioInit();
+EdTask* getCurrentTask();
 
 #if USE_SSL
 int EdSSLInit();
 bool EdSSLIsInit();
 #endif
 
+}
 #endif /* EDNIO_H_ */

@@ -9,9 +9,7 @@
 #define EDOBJECT_H_
 #include "config.h"
 
-
-namespace edft
-{
+namespace edft {
 
 class EdObject
 {

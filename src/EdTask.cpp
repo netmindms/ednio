@@ -9,7 +9,6 @@
 #define DBG_LEVEL DBG_DEBUG
 #define DBGTAG "etask"
 
-
 #if USE_LIBEVENT
 #include <event2/util.h>
 #include <event2/event.h>
@@ -25,10 +24,12 @@
 #include <string.h>
 #include <fcntl.h>
 
+#include "EdNio.h"
 #include "EdTask.h"
 #include "edslog.h"
 #include "EdEvent.h"
 #include "edcurl/EdCurl.h"
+#include "EdEventFd.h"
 
 namespace edft
 {
@@ -54,11 +55,22 @@ EdTask::~EdTask()
 	closeMsg();
 }
 
+void* EdTask::task_thread(void* arg)
+{
+	EdTask* ptask = (EdTask*) arg;
+	ptask->taskProc();
+	return NULL;
+}
+
 int EdTask::run(int mode)
 {
 
 	initMsg();
 	mRunMode = mode;
+#if 1
+	pthread_create(&mTid, NULL, task_thread, this);
+	return sendMsg(EDM_INIT);
+#else
 	if (mode == MODE_EDEV)
 	{
 		pthread_create(&mTid, NULL, esev_thread, this);
@@ -75,6 +87,7 @@ int EdTask::run(int mode)
 		return -1;
 #endif
 	}
+#endif
 }
 
 void EdTask::wait(void)
@@ -106,36 +119,48 @@ void* EdTask::esev_thread(void* arg)
 
 }
 
-
 #if USE_LIBEVENT
 void* EdTask::libevent_thread(void* arg)
 {
 	dbgd("libevent thread proc start...");
 	EdTask *ptask = (EdTask*) arg;
 	EdContext* pctx = &ptask->mCtx;
-	_tEdContext = &ptask->mCtx;
+	ptask->libeventMain(pctx);
+	return NULL;
+}
 
-	ptask->esOpen(ptask);
+void EdTask::libeventMain(EdContext* pctx)
+{
+	_tEdTask = this;
+	_tEdContext = &mCtx;
+
+	esOpen(this);
 
 	pctx->eventBase = event_base_new();
-	ptask->mLibMsgEvent = event_new(pctx->eventBase, ptask->mMsgFd, EV_READ | EV_PERSIST, libevent_cb, (void*) ptask);
-	event_add(ptask->mLibMsgEvent, NULL);
+	mLibMsgEvent = event_new(pctx->eventBase, mMsgFd, EV_READ | EV_PERSIST, libevent_cb, (void*) this);
+	event_add(mLibMsgEvent, NULL);
 	//event_base_dispatch(_gEdContext.eventBase);
+
+	mFreeEvent = new FreeEvent;
+	mFreeEvent->open();
+
 	event_base_loop(pctx->eventBase, 0);
-	ptask->cleanupAllTimer();
-	event_del(ptask->mLibMsgEvent);
-	event_free(ptask->mLibMsgEvent);
-	ptask->mLibMsgEvent = NULL;
-	ptask->callMsgClose();
+	cleanupAllTimer();
+	event_del(mLibMsgEvent);
+	event_free(mLibMsgEvent);
+	mLibMsgEvent = NULL;
+	callMsgClose();
+	dbgd("free obj list, cnt=%d", mReserveFreeList.size());
+
+	mFreeEvent->close();
+	delete mFreeEvent;
 
 	event_base_free(pctx->eventBase);
 	pctx->eventBase = NULL;
 
-	ptask->esClose(pctx);
-	return NULL;
+	esClose(pctx);
 }
 #endif
-
 
 int EdTask::postEdMsg(u16 msgid, u64 data)
 {
@@ -274,12 +299,13 @@ void EdTask::closeMsg()
 	}
 
 	EdMsg* pmsg;
-	if(mQuedMsgs.size() > 0) {
+	if (mQuedMsgs.size() > 0)
+	{
 		dbgw("#### qued msg exist......cnt=%d", mQuedMsgs.size());
-		for(;;)
+		for (;;)
 		{
 			pmsg = mQuedMsgs.pop_front();
-			if(pmsg)
+			if (pmsg)
 			{
 				EdObjList<EdMsg>::freeObj(pmsg);
 			}
@@ -289,11 +315,11 @@ void EdTask::closeMsg()
 
 	}
 
-	for(;;)
+	for (;;)
 	{
 
 		pmsg = mEmptyMsgs.pop_front();
-		if(pmsg)
+		if (pmsg)
 		{
 			EdObjList<EdMsg>::freeObj(pmsg);
 		}
@@ -464,6 +490,7 @@ void EdTask::callMsgClose()
 	EdMsg msg;
 	msg.msgid = EDM_CLOSE;
 	OnEventProc(&msg);
+	freeReservedObjs();
 }
 
 #if USE_LIBEVENT
@@ -505,8 +532,7 @@ int EdTask::esOpen(void* user)
 #endif
 #endif
 
-
-	if(mCtx.mode == MODE_EDEV)
+	if (mCtx.mode == MODE_EDEV)
 	{
 		mCtx.epfd = epoll_create(10);
 		if (!mCtx.epfd)
@@ -520,8 +546,6 @@ int EdTask::esOpen(void* user)
 	mCtx.evt_count = 0;
 
 	mCtx.user = user;
-
-
 
 	mCtx.opened = 1;
 	dbgd("=== es opened...");
@@ -560,11 +584,10 @@ edevt_t* EdTask::regEdEvent(int fd, uint32_t events, EVENTCB cb, void* user)
 	pevt->isReg = true;
 	mEvtList.push_back(pevt);
 
-	dbgv("== reg event, fd=%d, event_obj=%p, event=%d, count=%d, ret=%d ", fd,	pevt, events, mEvtList.size(), ret);
+	dbgv("== reg event, fd=%d, event_obj=%p, event=%d, count=%d, ret=%d ", fd, pevt, events, mEvtList.size(), ret);
 
 	return pevt;
 }
-
 
 edevt_t* EdTask::allocEvent(EdContext* psys)
 {
@@ -603,23 +626,22 @@ int EdTask::esMain(EdContext* psys)
 			edevt_t* pevt = (edevt_t*) epv->data.ptr;
 			dbgv("event data.ptr=%p, pevtuser=%p, event=%0x", pevt, pevt->user, epv->events);
 
-			if(epv->events & EPOLLIN)
+			if (epv->events & EPOLLIN)
 				pevt->evtcb(pevt, pevt->fd, EVT_READ);
-			if(pevt->isReg==false)
+			if (pevt->isReg == false)
 				goto __release_event__;
 
-
-			if( (epv->events & EPOLLRDHUP) || (epv->events & EPOLLHUP) || (epv->events & EPOLLERR))
+			if ((epv->events & EPOLLRDHUP) || (epv->events & EPOLLHUP) || (epv->events & EPOLLERR))
 				pevt->evtcb(pevt, pevt->fd, EVT_HANGUP);
-			if(pevt->isReg==false)
+			if (pevt->isReg == false)
 				goto __release_event__;
 
-			if(epv->events & EPOLLOUT)
+			if (epv->events & EPOLLOUT)
 				pevt->evtcb(pevt, pevt->fd, EVT_WRITE);
-			if(pevt->isReg==false)
+			if (pevt->isReg == false)
 				goto __release_event__;
 
-__release_event__:
+			__release_event__:
 			// check if event is dereg.
 			cleanUpEventResource();
 		}
@@ -629,6 +651,76 @@ __release_event__:
 	usleep(1);
 
 	return 0;
+}
+
+void EdTask::taskProc()
+{
+	dbgd("start thread miain......");
+	_tEdTask = this;
+	EdContext* pctx = &mCtx;
+	_tEdContext = pctx;
+	esOpen(this);
+	if (mRunMode == MODE_EDEV)
+	{
+		edEventLoop(pctx);
+	}
+#if USE_LIBEVENT
+	else
+	{
+		libeventLoop(pctx);
+	}
+#endif
+
+	cleanupAllTimer();
+	esClose(pctx);
+	_tEdContext = NULL;
+}
+
+void EdTask::edEventLoop(EdContext* pctx)
+{
+	mEdMsgEvt = regEdEvent(mMsgFd, EVT_READ, msgevent_cb, this);
+	// main event loop
+	esMain(pctx);
+	callMsgClose();
+
+	deregEdEvent(mEdMsgEvt);
+	cleanUpEventResource();
+	if (mEvtList.size() > 0)
+	{
+		dbge("##### There are still active events..count=%d, Missing closing events???", mEvtList.size());
+		for (edevt_t* pevt = mEvtList.pop_front(); pevt;)
+		{
+			dbge("  missed fd: %d", pevt->fd);
+			pevt = mEvtList.pop_front();
+		}
+		assert(0);
+	}
+
+
+}
+
+void EdTask::libeventLoop(EdContext* pctx)
+{
+	pctx->eventBase = event_base_new();
+	mLibMsgEvent = event_new(pctx->eventBase, mMsgFd, EV_READ | EV_PERSIST, libevent_cb, (void*) this);
+	event_add(mLibMsgEvent, NULL);
+	//event_base_dispatch(_gEdContext.eventBase);
+
+	mFreeEvent = new FreeEvent;
+	mFreeEvent->open();
+
+	event_base_loop(pctx->eventBase, 0);
+	callMsgClose();
+	event_del(mLibMsgEvent);
+	event_free(mLibMsgEvent);
+	mLibMsgEvent = NULL;
+
+	dbgd("free obj list, cnt=%d", mReserveFreeList.size());
+	mFreeEvent->close();
+	delete mFreeEvent;
+
+	event_base_free(pctx->eventBase);
+	pctx->eventBase = NULL;
 }
 
 void EdTask::threadMain()
@@ -654,10 +746,10 @@ void EdTask::threadMain()
 	dbgd("After EDM_CLOSE, free remaining event resource, size=%d", mDummyEvtList.size());
 	cleanUpEventResource();
 
-	if(mEvtList.size()>0)
+	if (mEvtList.size() > 0)
 	{
 		dbge("##### There are still active events..count=%d, Missing closing events???", mEvtList.size());
-		for(edevt_t* pevt=mEvtList.pop_front();pevt;)
+		for (edevt_t* pevt = mEvtList.pop_front(); pevt;)
 		{
 			dbge("  missed fd: %d", pevt->fd);
 			pevt = mEvtList.pop_front();
@@ -669,7 +761,6 @@ void EdTask::threadMain()
 
 	_tEdContext = NULL;
 }
-
 
 void EdTask::deregEdEvent(edevt_t* pevt)
 {
@@ -690,9 +781,9 @@ void EdTask::deregEdEvent(edevt_t* pevt)
 
 void EdTask::esClose(EdContext* pctx)
 {
-	if(pctx->mode == MODE_EDEV)
+	if (pctx->mode == MODE_EDEV)
 	{
-		if(pctx->epfd > 0)
+		if (pctx->epfd > 0)
 			close(pctx->epfd);
 		pctx->epfd = -1;
 	}
@@ -730,8 +821,7 @@ int EdTask::changeEdEvent(edevt_t* pevt, uint32_t event)
 	ev.events = event;
 	ev.data.ptr = pevt;
 	ret = epoll_ctl(pevt->pEdCtx->epfd, EPOLL_CTL_MOD, pevt->fd, &ev);
-	dbgv("== change event, fd=%d, cb=%p, user=%p, event=%0x, ret=%d", pevt->fd, pevt->evtcb,
-			pevt->user, event, ret);
+	dbgv("== change event, fd=%d, cb=%p, user=%p, event=%0x, ret=%d", pevt->fd, pevt->evtcb, pevt->user, event, ret);
 	return ret;
 }
 
@@ -742,17 +832,15 @@ EdMsg* EdTask::allocMsgObj()
 	return pmsg;
 }
 
-
 void EdTask::setSendMsgResult(EdMsg* pmsg, int code)
 {
 	pmsg->result = code;
 }
 
-
 void EdTask::cleanUpEventResource()
 {
 	edevt_t* pevt;
-	for(pevt = mDummyEvtList.pop_front();pevt;)
+	for (pevt = mDummyEvtList.pop_front(); pevt;)
 	{
 		dbgd("free event resource=%p", pevt);
 		freeEvent(pevt);
@@ -760,28 +848,47 @@ void EdTask::cleanUpEventResource()
 	}
 }
 
-
 void EdTask::reserveFree(EdObject* obj)
 {
-	obj->mIsFree = true;
-	mReserveFreeList.push_back(obj);
+	dbgd("reserve free obj=%x", obj);
+	if (obj->mIsFree == false)
+	{
+		obj->mIsFree = true;
+		mReserveFreeList.push_back(obj);
+		if (mRunMode == MODE_LIBEVENT)
+		{
+			mFreeEvent->set();
+		}
+	}
 }
-
 
 void EdTask::freeReservedObjs()
 {
 	EdObject* obj;
-	do {
-		obj = mReserveFreeList.front();
-		if(obj) {
-			dbgd("## delete p=%p", obj);
-			delete obj;
+	do
+	{
+		dbgd("  remain free=%d", mReserveFreeList.size());
+		if (mReserveFreeList.empty() == false)
+		{
+			obj = mReserveFreeList.front();
 			mReserveFreeList.pop_front();
+			delete obj;
+			dbgd("## delete p=%x", obj);
 		}
-		else {
+		else
+		{
 			break;
 		}
-	} while(true);
+	} while (true);
 }
+
+void EdTask::FreeEvent::OnEventFd(int cnt)
+{
+	dbgd("OnEventFd: cleanup reserved free objs, task=%x", getCurrentTask());
+	getCurrentTask()->freeReservedObjs();
+}
+
+
+
 
 } // namespace edft

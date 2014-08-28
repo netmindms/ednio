@@ -7,8 +7,7 @@
 
 #include "EdObject.h"
 
-namespace edft
-{
+namespace edft {
 
 EdObject::EdObject()
 {

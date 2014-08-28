@@ -40,7 +40,7 @@ class EdTask;
  * @class EdEvent
  * @brief Base Event Object class for monitoring events.
  */
-class EdEvent : EdObject
+class EdEvent : public EdObject
 {
 public:
 	EdEvent();

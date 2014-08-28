@@ -103,13 +103,6 @@ void testcurl()
 
 int main()
 {
-	EdCurl* curl = new EdCurl;
-	void *ptr = curl;
-	delete ptr;
-	return 0;
-
-
-
 	EdNioInit();
 	testcurl();
 	return 0;

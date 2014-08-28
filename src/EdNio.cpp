@@ -14,8 +14,10 @@
 #include <openssl/ossl_typ.h>
 #include <openssl/ssl.h>
 #endif
-
+#include "EdTask.h"
 #include <signal.h>
+
+namespace edft {
 
 #if USE_SSL
 bool _gSSLIsInit=false;
@@ -30,6 +32,11 @@ int EdNioInit()
 {
 	signal(SIGPIPE, SIG_IGN);
 	return 0;
+}
+
+EdTask* getCurrentTask()
+{
+	return _tEdTask;
 }
 
 #if USE_SSL
@@ -47,3 +54,5 @@ bool EdSSLIsInit()
 	return _gSSLIsInit;
 }
 #endif
+
+}

@@ -17,6 +17,7 @@
 #include "EdTimer.h"
 #include "EdMutex.h"
 #include "EdObjList.h"
+#include "EdEventFd.h"
 
 #define MSGLIST_ED
 
@@ -177,6 +178,7 @@ public:
 
 	void reserveFree(EdObject* obj);
 
+
 public:
 	virtual int OnEventProc(EdMsg* pmsg);
 
@@ -206,6 +208,9 @@ private:
 	void esClose(EdContext* psys);
 
 	void threadMain();
+	void taskProc();
+	void edEventLoop(EdContext* pctx);
+	void libeventLoop(EdContext* pctx);
 
 	void initMsg();
 	void closeMsg();
@@ -215,6 +220,7 @@ private:
 	void callMsgClose();
 	void cleanUpEventResource();
 	void freeReservedObjs();
+
 
 protected:
 	/**
@@ -227,15 +233,25 @@ protected:
 private:
 	static void* esev_thread(void* arg);
 	static void msgevent_cb(edevt_t* pevt, int fd, int events);
+	static void* task_thread(void* arg);
 
 private:
 #if USE_LIBEVENT
+
+	class FreeEvent : public EdEventFd {
+		virtual void OnEventFd(int cnt);
+	};
+	FreeEvent *mFreeEvent;
+
 	event *mLibMsgEvent;
+
 	static void* libevent_thread(void* arg);
 	static void libevent_cb(evutil_socket_t, short, void *);
+	void libeventMain(EdContext* pctx);
 #endif
 };
 
 } // namespace edft
+
 
 #endif /* EDTASK_H_ */
