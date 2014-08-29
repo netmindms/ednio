@@ -44,7 +44,7 @@ typedef struct
 friend class EdTask;
 private:
 	int sync;
-	int result;
+	int *psend_result;
 	pthread_cond_t *pmsg_sig;
 	pthread_mutex_t *pmsg_sync_mutex;
 } EdMsg;

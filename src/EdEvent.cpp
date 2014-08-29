@@ -5,7 +5,7 @@
  *      Author: khkim
  */
 
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 #define DBGTAG "edevt"
 #include <string.h>
 #include "EdEvent.h"

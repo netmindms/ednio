@@ -6,7 +6,7 @@
  */
 #include "config.h"
 
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 #define DBGTAG "etask"
 
 #if USE_LIBEVENT
@@ -52,7 +52,7 @@ EdTask::EdTask(int nmsgq)
 
 EdTask::~EdTask()
 {
-	closeMsg();
+	//closeMsg();
 }
 
 void* EdTask::task_thread(void* arg)
@@ -166,6 +166,12 @@ int EdTask::postEdMsg(u16 msgid, u64 data)
 {
 
 	mMsgMutex.lock();
+	if (mMsgFd < 0)
+	{
+		dbgw("### send message fail : msg fd invalid...");
+		mMsgMutex.unlock();
+		return -1;
+	}
 
 	int ret = 0;
 
@@ -210,6 +216,12 @@ int EdTask::postObj(u16 msgid, void *obj)
 int EdTask::sendEdMsg(u16 msgid, u64 data)
 {
 	mMsgMutex.lock();
+	if (mMsgFd < 0)
+	{
+		dbgw("### send message fail : msg fd invalid...");
+		mMsgMutex.unlock();
+		return -1;
+	}
 
 	int ret;
 	EdMsg *pmsg;
@@ -224,11 +236,12 @@ int EdTask::sendEdMsg(u16 msgid, u64 data)
 		pmsg->pmsg_sig = &cond;
 
 		uint64_t t = 1;
+		int result;
 		pmsg->msgid = msgid;
 
 		pmsg->data = data;
 		pmsg->sync = 1;
-		pmsg->result = 0;
+		pmsg->psend_result = &result;
 
 		pthread_mutex_lock(&mutex);
 		mQuedMsgs.push_back(pmsg);
@@ -237,9 +250,10 @@ int EdTask::sendEdMsg(u16 msgid, u64 data)
 		ret = write(mMsgFd, &t, sizeof(t));
 		if (ret == 8)
 		{
+			dbgd("send cond waiting....");
 			pthread_cond_wait(&cond, &mutex);
 			pthread_mutex_unlock(&mutex);
-			ret = pmsg->result;
+			ret = result;
 		}
 		else
 		{
@@ -291,6 +305,7 @@ void EdTask::initMsg()
 
 void EdTask::closeMsg()
 {
+	mMsgMutex.lock();
 	dbgv("close task msg, task=%p, empty=%d, qued=%d", this, mEmptyMsgs.size(), mQuedMsgs.size());
 	if (mMsgFd >= 0)
 	{
@@ -307,7 +322,14 @@ void EdTask::closeMsg()
 			pmsg = mQuedMsgs.pop_front();
 			if (pmsg)
 			{
-				EdObjList<EdMsg>::freeObj(pmsg);
+				if (pmsg->sync)
+				{
+					pthread_mutex_lock(pmsg->pmsg_sync_mutex);
+					*pmsg->psend_result = -1000;
+					pthread_cond_signal(pmsg->pmsg_sig);
+					pthread_mutex_unlock(pmsg->pmsg_sync_mutex);
+				}
+				mEmptyMsgs.push_back(pmsg);
 			}
 			else
 				break;
@@ -326,6 +348,7 @@ void EdTask::closeMsg()
 		else
 			break;
 	}
+	mMsgMutex.unlock();
 }
 
 int EdTask::setTimer(u32 id, u32 msec, u32 inittime)
@@ -395,7 +418,7 @@ void EdTask::dispatchMsgs(int cnt)
 		mMsgMutex.lock();
 		pmsg = mQuedMsgs.pop_front();
 		mMsgMutex.unlock();
-		if (pmsg)
+		if (pmsg != NULL)
 		{
 			if (pmsg->msgid == EDM_EXIT)
 			{
@@ -406,7 +429,7 @@ void EdTask::dispatchMsgs(int cnt)
 					event_base_loopexit(mCtx.eventBase, NULL);
 				}
 #endif
-				dbgd("EM_EXIT message .... event loop will be exited....");
+				dbgd("EDM_EXIT message .... event loop will be exited....");
 			}
 			else
 			{
@@ -424,6 +447,7 @@ void EdTask::dispatchMsgs(int cnt)
 			mMsgMutex.lock();
 			mEmptyMsgs.push_back(pmsg);
 			mMsgMutex.unlock();
+
 		}
 		else
 		{
@@ -670,7 +694,7 @@ void EdTask::taskProc()
 		libeventLoop(pctx);
 	}
 #endif
-
+	closeMsg();
 	cleanupAllTimer();
 	esClose(pctx);
 	_tEdContext = NULL;
@@ -696,9 +720,9 @@ void EdTask::edEventLoop(EdContext* pctx)
 		assert(0);
 	}
 
-
 }
 
+#if USE_LIBEVENT
 void EdTask::libeventLoop(EdContext* pctx)
 {
 	pctx->eventBase = event_base_new();
@@ -722,6 +746,7 @@ void EdTask::libeventLoop(EdContext* pctx)
 	event_base_free(pctx->eventBase);
 	pctx->eventBase = NULL;
 }
+#endif
 
 void EdTask::threadMain()
 {
@@ -834,7 +859,7 @@ EdMsg* EdTask::allocMsgObj()
 
 void EdTask::setSendMsgResult(EdMsg* pmsg, int code)
 {
-	pmsg->result = code;
+	*pmsg->psend_result = code;
 }
 
 void EdTask::cleanUpEventResource()
@@ -887,8 +912,5 @@ void EdTask::FreeEvent::OnEventFd(int cnt)
 	dbgd("OnEventFd: cleanup reserved free objs, task=%x", getCurrentTask());
 	getCurrentTask()->freeReservedObjs();
 }
-
-
-
 
 } // namespace edft
