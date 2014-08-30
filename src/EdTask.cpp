@@ -880,10 +880,12 @@ void EdTask::reserveFree(EdObject* obj)
 	{
 		obj->mIsFree = true;
 		mReserveFreeList.push_back(obj);
+#if USE_LIBEVENT
 		if (mRunMode == MODE_LIBEVENT)
 		{
 			mFreeEvent->set();
 		}
+#endif
 	}
 }
 
@@ -907,10 +909,12 @@ void EdTask::freeReservedObjs()
 	} while (true);
 }
 
+#if USE_LIBEVENT
 void EdTask::FreeEvent::OnEventFd(int cnt)
 {
 	dbgd("OnEventFd: cleanup reserved free objs, task=%x", getCurrentTask());
 	getCurrentTask()->freeReservedObjs();
 }
+#endif
 
 } // namespace edft
