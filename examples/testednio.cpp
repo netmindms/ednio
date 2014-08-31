@@ -204,7 +204,6 @@ void testtimer(int mode)
 	dbgd("<<<< Timer test OK\n");
 }
 
-
 /*
  * Test scenario for Curl
  */
@@ -212,10 +211,52 @@ void testcurl(int mode)
 {
 #define CONNECT_TIMEOUT 5
 #define TEST_DURATION (CONNECT_TIMEOUT+1)
+#define LOAD_COUNT 400
+
 	enum
 	{
-		TS_NORMAL = EDM_USER + 1, TS_TIMEOUT, TS_NOTFOUND, TS_REUSE,
+		TS_NORMAL = EDM_USER + 1, TS_TIMEOUT, TS_NOTFOUND, TS_REUSE, TS_LOAD, LOAD_RESULT,
 	};
+	class CurlTest;
+	class LoadCurl: public EdCurl
+	{
+	public:
+		int curlid;
+		long recvLen;
+
+		EdTask *mTask;
+		LoadCurl(EdTask *task) {
+			curlid = -1;
+			mTask = task;
+			recvLen = 0;
+		}
+		virtual void OnCurlEnd(int status)
+		{
+
+			mTask->postMsg(LOAD_RESULT, curlid, 0);
+			if(status != 0)
+			{
+				dbgd("%d: ### Fail: status error, status=%d", curlid, status);
+				assert(0);
+			}
+			dbgd("%d: status check ok", curlid);
+
+			long t = getContentLength();
+			if(t != recvLen) {
+				dbgd("%d: recv data len check error...., recvlen=%ld, content-len=%ld", recvLen, t);
+				assert(0);
+			}
+			dbgd("%d: body len check Ok", curlid);
+			close();
+			delete this;
+		}
+
+		virtual void OnCurlBody(void *buf, int len) {
+			recvLen += len;
+		}
+
+	};
+
 	class CurlTest: public EdTask, public EdCurl::ICurlResult, public EdCurl::ICurlBody
 	{
 
@@ -224,16 +265,24 @@ void testcurl(int mode)
 		EdCurl mAbnormalCurl;
 		EdCurl *mCurlNotFound;
 		EdCurl *mReuseCurl;
+		LoadCurl *mLoadCurl[1000];
+		int mLoadEndCnt;
+
 		int mReuseCnt;
+		long mRecvDataSize;
 
 		std::list<int> mTestList;
 
-		void nextTest() {
-			if(mTestList.size() > 0) {
+		void nextTest()
+		{
+			if (mTestList.size() > 0)
+			{
 				int s = mTestList.front();
 				mTestList.pop_front();
 				postMsg(s);
-			} else {
+			}
+			else
+			{
 				postExit();
 			}
 		}
@@ -248,10 +297,11 @@ void testcurl(int mode)
 				mMainCurl = new EdMultiCurl;
 				mMainCurl->open();
 
-				//mTestList.push_back(TS_NORMAL);
-				//mTestList.push_back(TS_NOTFOUND);
+				mTestList.push_back(TS_NORMAL);
+				mTestList.push_back(TS_NOTFOUND);
 				mTestList.push_back(TS_REUSE);
-				//mTestList.push_back(TS_TIMEOUT);
+				mTestList.push_back(TS_TIMEOUT);
+				mTestList.push_back(TS_LOAD);
 
 				nextTest();
 			}
@@ -270,6 +320,7 @@ void testcurl(int mode)
 			else if (pmsg->msgid == TS_NORMAL)
 			{
 				dbgd("== Start normal curl test.........");
+				mRecvDataSize = 0;
 				mLocalCurl = new EdCurl;
 				mLocalCurl->setOnCurlListener(this, this);
 				mLocalCurl->open(mMainCurl);
@@ -306,6 +357,30 @@ void testcurl(int mode)
 				mReuseCurl->open(mMainCurl);
 				mReuseCurl->request("http://curl.haxx.se");
 			}
+			else if (pmsg->msgid == TS_LOAD)
+			{
+				int cnn=LOAD_COUNT;
+				mLoadEndCnt = 0;
+				dbgd("== Start load test, try count=%d", cnn);
+				int i;
+				for (i = 0; i < cnn; i++)
+				{
+					mLoadCurl[i] = new LoadCurl(this);
+					mLoadCurl[i]->setOnCurlListener(this, this);
+					mLoadCurl[i]->open(mMainCurl);
+					mLoadCurl[i]->curlid = i;
+					mLoadCurl[i]->request("http://curl.haxx.se");
+				}
+				dbgd("    try %d request...", cnn);
+			}
+			else if(pmsg->msgid == LOAD_RESULT) {
+				mLoadEndCnt++;
+				if(mLoadEndCnt == LOAD_COUNT) {
+					dbgd("all curl end...");
+					dbgd("== End load test");
+					nextTest();
+				}
+			}
 			return 0;
 		}
 
@@ -320,7 +395,15 @@ void testcurl(int mode)
 					dbgd("### Fail: This curl is expected with normal status code but error status");
 					assert(status == 0);
 				}
-				dbgd("    %s : %s", "[curl-normal]", "Expected Result. OK.......");
+				long len = pcurl->getContentLength();
+				if (len != mRecvDataSize)
+				{
+					dbgd("### Fail: content length not match");
+					assert(0);
+				}
+				dbgd("Content length check OK..., len=%ld", mRecvDataSize);
+
+				dbgd("[curl-normal] : Expected Result. OK.......");
 				pcurl->close();
 				delete mLocalCurl;
 				mLocalCurl = NULL;
@@ -378,7 +461,8 @@ void testcurl(int mode)
 				{
 					dbgd("== End reuse curl test....\n\n");
 					mReuseCurl->close();
-					delete mReuseCurl; mReuseCurl = NULL;
+					delete mReuseCurl;
+					mReuseCurl = NULL;
 					nextTest();
 				}
 			}
@@ -398,13 +482,16 @@ void testcurl(int mode)
 		{
 			if (pcurl == mLocalCurl)
 			{
-				char* buf = (char*) malloc(size + 1);
-				assert(buf != NULL);
-				dbgd("body size = %d", size);
-				memcpy(buf, ptr, size);
-				buf[size] = 0;
-				dbgd("    body: \n%s", buf);
-				free(buf);
+				mRecvDataSize += size;
+				/*
+				 char* buf = (char*) malloc(size + 1);
+				 assert(buf != NULL);
+				 dbgd("body size = %d", size);
+				 memcpy(buf, ptr, size);
+				 buf[size] = 0;
+				 dbgd("    body: \n%s", buf);
+				 free(buf);
+				 */
 			}
 		}
 	};
@@ -421,11 +508,11 @@ int main()
 {
 
 	EdNioInit();
-	for (int i = 0; i < 1; i++)
+	for (int i = 0; i < 2; i++)
 	{
-		//testmsg(i);
-		//testtimer(i);
-		testcurl(0);
+		testmsg(i);
+		testtimer(i);
+		testcurl(i);
 	}
 	return 0;
 }

@@ -306,4 +306,16 @@ void EdCurl::setCurlCallback()
 	curl_easy_setopt(mCurl, CURLOPT_WRITEDATA, (void* )this);
 }
 
+
+long EdCurl::getContentLength()
+{
+	const char* ptr = getHeader("Content-Length");
+	if(ptr != NULL)
+	{
+		return atol(ptr);
+	}
+	else
+		return 0;
+}
+
 } /* namespace edft */

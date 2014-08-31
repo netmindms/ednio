@@ -79,6 +79,7 @@ public:
 	virtual void OnCurlEnd(int errcode);
 	char* convCodeToStr(char *buf, int code);
 	const char* getHeader(const char *name);
+	long getContentLength();
 	int getResponseCode();
 	void setUser(void* user);
 	void* getUser();
