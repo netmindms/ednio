@@ -173,7 +173,7 @@ public:
 	 * @brief Set socket interface callback.
 	 * @param cb
 	 */
-	void setCallback(ISocketCb *cb);
+	void setOnListener(ISocketCb *cb);
 	ISocketCb* getCallback();
 	void setNoTimewait();
 private:

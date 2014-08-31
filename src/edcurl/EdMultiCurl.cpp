@@ -5,7 +5,7 @@
  *      Author: netmind
  */
 
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 #define DBGTAG "mcurl"
 
 #include <stdexcept>
@@ -41,7 +41,7 @@ void EdMultiCurl::IOnTimerEvent(EdTimer* ptimer)
 
 void EdMultiCurl::open()
 {
-	mCurlTimer.setCallback(this);
+	mCurlTimer.setOnListener(this);
 
 	mCurlm = curl_multi_init();
 	curl_multi_setopt(mCurlm, CURLMOPT_SOCKETFUNCTION, curl_sock_cb);
@@ -148,7 +148,7 @@ int EdMultiCurl::dgCurlSockCb(CURL* e, curl_socket_t s, int what, void* cbp, voi
 		curl_multi_assign(mCurlm, s, cs);
 	}
 
-	dbgd("curl sock cb, s=%d, what=%d, e=%p, curl=%p", s, what, e, pcurl);
+	dbgd("curl request sock op, s=%d, what=%d, e=%p, curl=%p", s, what, e, pcurl);
 	cs->curlSockCb(what);
 	if(what == CURL_POLL_REMOVE)
 	{

@@ -31,7 +31,7 @@ public:
 	int close();
 
 	void set();
-	void setCallback(IEventFdCallback* cb);
+	void setOnListener(IEventFdCallback* cb);
 
 private:
 	IEventFdCallback* mCallback;

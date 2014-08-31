@@ -58,7 +58,7 @@ public:
 	 * @brief Set timer callback interface called when is expired.
 	 * @param itimer ITimerCb interface instance.
 	 */
-	void setCallback(ITimerCb *itimer);
+	void setOnListener(ITimerCb *itimer);
 
 	/**
 	 * @brief Test whether timer is running.

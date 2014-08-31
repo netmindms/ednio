@@ -29,7 +29,7 @@ EdTimer::~EdTimer()
 	kill();
 }
 
-void EdTimer::setCallback(ITimerCb* itimer)
+void EdTimer::setOnListener(ITimerCb* itimer)
 {
 	dbgd("setcallback, cb = %p", itimer);
 	miCallback = itimer;

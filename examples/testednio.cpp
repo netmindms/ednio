@@ -41,7 +41,7 @@ void testtask()
 
 		void go()
 		{
-			mtTimer->setCallback(this);
+			mtTimer->setOnListener(this);
 			mtTimer->set(1000);
 		}
 
@@ -158,7 +158,7 @@ void testtimer(int mode)
 				dbgd("  timer test init");
 				mExpCnt = 0;
 				mTimer = new EdTimer;
-				mTimer->setCallback(this);
+				mTimer->setOnListener(this);
 				mTimer->set(100);
 				setTimer(1, 3000);
 				period = EdTime::msecTime();
@@ -205,70 +205,206 @@ void testtimer(int mode)
 }
 
 
-
+/*
+ * Test scenario for Curl
+ */
 void testcurl(int mode)
 {
-	class CurlTest : public EdTask, public EdCurl::ICurlCb {
+#define CONNECT_TIMEOUT 5
+#define TEST_DURATION (CONNECT_TIMEOUT+1)
+	enum
+	{
+		TS_NORMAL = EDM_USER + 1, TS_TIMEOUT, TS_NOTFOUND, TS_REUSE,
+	};
+	class CurlTest: public EdTask, public EdCurl::ICurlResult, public EdCurl::ICurlBody
+	{
+
 		EdMultiCurl *mMainCurl;
 		EdCurl *mLocalCurl;
 		EdCurl mAbnormalCurl;
+		EdCurl *mCurlNotFound;
+		EdCurl *mReuseCurl;
+		int mReuseCnt;
 
-		virtual int OnEventProc(EdMsg* pmsg) {
-			if(pmsg->msgid == EDM_INIT) {
+		std::list<int> mTestList;
+
+		void nextTest() {
+			if(mTestList.size() > 0) {
+				int s = mTestList.front();
+				mTestList.pop_front();
+				postMsg(s);
+			} else {
+				postExit();
+			}
+		}
+
+		virtual int OnEventProc(EdMsg* pmsg)
+		{
+			if (pmsg->msgid == EDM_INIT)
+			{
+				mCurlNotFound = NULL;
+				mLocalCurl = NULL;
+
 				mMainCurl = new EdMultiCurl;
 				mMainCurl->open();
-				mLocalCurl = new EdCurl;
-				mLocalCurl->setCallback(this);
-				mLocalCurl->open(mMainCurl);
-				mLocalCurl->request("127.0.0.1");
 
-				mAbnormalCurl.setCallback(this);
-				mAbnormalCurl.open(mMainCurl);
-				mAbnormalCurl.request("211.211.211.211");
-				dbgd("    request abnormal curl=%x", &mAbnormalCurl);
-				dbgd("      this is not going to be connected...");
+				//mTestList.push_back(TS_NORMAL);
+				//mTestList.push_back(TS_NOTFOUND);
+				mTestList.push_back(TS_REUSE);
+				//mTestList.push_back(TS_TIMEOUT);
 
-			} else if(pmsg->msgid == EDM_CLOSE) {
+				nextTest();
+			}
+			else if (pmsg->msgid == EDM_CLOSE)
+			{
 				assert(mLocalCurl == NULL);
 				mMainCurl->close();
 				delete mMainCurl;
+				dbgd("curl test closed...");
+			}
+			else if (pmsg->msgid == EDM_TIMER)
+			{
+				killTimer(pmsg->p1);
+				postExit();
+			}
+			else if (pmsg->msgid == TS_NORMAL)
+			{
+				dbgd("== Start normal curl test.........");
+				mLocalCurl = new EdCurl;
+				mLocalCurl->setOnCurlListener(this, this);
+				mLocalCurl->open(mMainCurl);
+				mLocalCurl->request("http://curl.haxx.se");
+
+			}
+			else if (pmsg->msgid == TS_NOTFOUND)
+			{
+				dbgd("== Start notfound curl test.........");
+				mCurlNotFound = new EdCurl;
+				mCurlNotFound->setOnCurlListener(this);
+				mCurlNotFound->setUser((void*) "[curl-notfound]");
+				mCurlNotFound->open(mMainCurl);
+				mCurlNotFound->request("http://localhost/asdfasdfas");
+
+			}
+			else if (pmsg->msgid == TS_TIMEOUT)
+			{
+				dbgd("== Start timeout curl test.........");
+				mAbnormalCurl.setOnCurlListener(this);
+				mAbnormalCurl.setUser((void*) "[curl-notconnected]");
+				mAbnormalCurl.open(mMainCurl);
+				mAbnormalCurl.request("211.211.211.211", CONNECT_TIMEOUT);
+				dbgd("request abnormal curl=%lx", &mAbnormalCurl);
+				dbgd("this is not going to be connected...");
+
+			}
+			else if (pmsg->msgid == TS_REUSE)
+			{
+				dbgd("== Start reuse curl test....");
+				mReuseCnt = 0;
+				mReuseCurl = new EdCurl;
+				mReuseCurl->setOnCurlListener(this);
+				mReuseCurl->open(mMainCurl);
+				mReuseCurl->request("http://curl.haxx.se");
 			}
 			return 0;
 		}
 
-		virtual void IOnCurlStatus(EdCurl* pcurl, int status) {
+		virtual void IOnCurlResult(EdCurl* pcurl, int status)
+		{
 
 			dbgd("curl status = %d, curl=%x", status, pcurl);
-			if(pcurl == mLocalCurl) {
-				dbgd("   ### Fail !!!, For this curl, status must not be reported...");
-				assert(0);
-			} else if(pcurl == &mAbnormalCurl) {
-				dbgd("   abnormal curl status reported...");
-				if(status == 0)
+			if (pcurl == mLocalCurl)
+			{
+				if (status != 0)
+				{
+					dbgd("### Fail: This curl is expected with normal status code but error status");
+					assert(status == 0);
+				}
+				dbgd("    %s : %s", "[curl-normal]", "Expected Result. OK.......");
+				pcurl->close();
+				delete mLocalCurl;
+				mLocalCurl = NULL;
+				dbgd("== End normal curl test...\n\n");
+
+				nextTest();
+			}
+			else if (pcurl == mCurlNotFound)
+			{
+				dbgd("%s result: %d", (char* )pcurl->getUser(), pcurl->getResponseCode());
+				int code = pcurl->getResponseCode();
+				if (code != 404)
+				{
+					dbgd("### Fail: 404 response expected, buf code = %d", code);
+					assert(0);
+				}
+				dbgd("    Not Found Test OK.");
+				pcurl->close();
+				delete pcurl;
+				mCurlNotFound = NULL;
+				dbgd("== End notfound curl test...\n\n");
+
+				nextTest();
+			}
+			else if (pcurl == &mAbnormalCurl)
+			{
+				dbgd("abnormal curl status reported...code=%d", status);
+				if (status == 0)
 				{
 					dbgd("    ### Fail : For this curl, status must be abnormal...");
 					assert(status != 0);
 				}
+				dbgd("    %s : %s", (char* )pcurl->getUser(), "Expected Result. OK");
 				pcurl->close();
-			} else {
+				dbgd("== End time out curl test...\n\n");
+
+				nextTest();
+			}
+			else if (pcurl == mReuseCurl)
+			{
+				if (status != 0)
+				{
+					dbgd("### Reuse Test Fail: curl response is not normal. status=%d", status);
+					assert(0);
+				}
+
+				mReuseCnt++;
+				if (mReuseCnt < 5)
+				{
+					pcurl->reset();
+					dbgd("start new requesting by reusing current curl..., cnt=%d", mReuseCnt);
+					pcurl->request("curl.haxx.se");
+				}
+				else
+				{
+					dbgd("== End reuse curl test....\n\n");
+					mReuseCurl->close();
+					delete mReuseCurl; mReuseCurl = NULL;
+					nextTest();
+				}
+			}
+
+			else
+			{
 				assert(0);
 			}
 		}
 
-		virtual void IOnCurlHeader(EdCurl* pcurl) {
+		virtual void IOnCurlHeader(EdCurl* pcurl)
+		{
 
 		}
 
-		virtual void IOnCurlBody(EdCurl* pcurl, void* ptr, int size) {
-			if(pcurl == mLocalCurl) {
-				char* buf = (char*)malloc(size+1);
+		virtual void IOnCurlBody(EdCurl* pcurl, void* ptr, int size)
+		{
+			if (pcurl == mLocalCurl)
+			{
+				char* buf = (char*) malloc(size + 1);
 				assert(buf != NULL);
 				dbgd("body size = %d", size);
 				memcpy(buf, ptr, size);
 				buf[size] = 0;
 				dbgd("    body: \n%s", buf);
-				pcurl->close();
-				delete mLocalCurl;mLocalCurl=NULL;
+				free(buf);
 			}
 		}
 	};
@@ -281,17 +417,15 @@ void testcurl(int mode)
 	dbgd("<<<< Curl Test OK");
 }
 
-
 int main()
 {
 
 	EdNioInit();
-	//testtask();
-	for(int i=0;i<2;i++)
+	for (int i = 0; i < 1; i++)
 	{
-		testmsg(i);
-		testtimer(i);
-		testcurl(i);
+		//testmsg(i);
+		//testtimer(i);
+		testcurl(0);
 	}
 	return 0;
 }

@@ -74,7 +74,7 @@ void EdEventFd::OnEventFd(int cnt)
 	}
 }
 
-void EdEventFd::setCallback(IEventFdCallback* cb)
+void EdEventFd::setOnListener(IEventFdCallback* cb)
 {
 	mCallback = cb;
 }

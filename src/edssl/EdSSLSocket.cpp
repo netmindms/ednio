@@ -157,7 +157,7 @@ void EdSSLSocket::OnSSLRead()
 		mSSLCallback->IOnSSLSocket(this, SSL_EVENT_READ);
 }
 
-void EdSSLSocket::setSSLCallback(ISSLSocketCb* cb)
+void EdSSLSocket::setOnSSLListener(ISSLSocketCb* cb)
 {
 	mSSLCallback = cb;
 }

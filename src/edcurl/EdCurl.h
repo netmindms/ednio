@@ -17,33 +17,61 @@
 #include "../EdObjList.h"
 #include "EdCurlSocket.h"
 #include "../EdObject.h"
+#include "../EdTimer.h"
+
 using namespace std;
 
 namespace edft
 {
+
+enum {
+	EDCURL_IDLE=0,
+	EDCURL_REQUESTING,
+	EDCURL_RESPONSED,
+	EDCURL_COMPLETE,
+};
+
 class EdMultiCurl;
 
-class EdCurl : public EdObject
+class EdCurl : public EdObject, public EdTimer::ITimerCb
 {
 friend class EdMultiCurl;
 
 public:
+/*
 	class ICurlCb {
 	public:
 		virtual void IOnCurlStatus(EdCurl* pcurl, int status)=0;
 		virtual void IOnCurlHeader(EdCurl* pcurl)=0;
 		virtual void IOnCurlBody(EdCurl* pcurl, void* ptr, int size)=0;
 	};
+*/
+	class ICurlResult {
+	public:
+		virtual void IOnCurlResult(EdCurl* pcurl, int status)=0;
+	};
+	class ICurlHeader {
+	public:
+		virtual void IOnCurlHeader(EdCurl* pcurl)=0;
+	};
+	class ICurlBody {
+	public:
+		virtual void IOnCurlBody(EdCurl* pcurl, void* ptr, int size)=0;
+	};
+
 
 public:
 	EdCurl();
 	virtual ~EdCurl();
 	void open(EdMultiCurl* pm);
 	void setUrl(const char* url);
-	int request(const char* url);
-	int request();
+	int request(const char* url, int cnn_timeout_sec=30);
+	int request(int cnn_timeout_sec=30);
 	void close();
-	void setCallback(ICurlCb* cb);
+	void reset();
+	//void setOnListener(ICurlCb* cb);
+	void setOnCurlListener(ICurlResult* iresult, ICurlBody* ibody=NULL, ICurlHeader* iheader=NULL);
+
 	CURL* getCurl();
 	CURLM* getMultiCurl();
 	virtual void OnCurlHeader();
@@ -54,12 +82,21 @@ public:
 	int getResponseCode();
 	void setUser(void* user);
 	void* getUser();
+private:
+	virtual void IOnTimerEvent(EdTimer* ptimer);
 
 private:
+	int mStatus;
 	EdMultiCurl *mEdMultiCurl;
-	ICurlCb *mCallback;
+	ICurlResult* mOnResult;
+	ICurlBody* mOnBody;
+	ICurlHeader* mOnHeader;
+	EdTimer* mRespTimer;
+
 	CURL* mCurl;
 	bool mIsRespHeaderComp;
+
+
 	void* mUser;
 
 	unordered_map<string, string> mHeaderList;
@@ -67,6 +104,7 @@ private:
 	size_t dgheader_cb(char* buffer, size_t size, size_t nmemb, void* userp);
 	static size_t body_cb(void* ptr, size_t size, size_t nmemb, void* user);
 	void procCurlDone(int result);
+	void setCurlCallback();
 };
 
 

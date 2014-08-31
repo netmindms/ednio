@@ -47,7 +47,7 @@ void EdSocket::acceptSock(EdSocket* pchild, ISocketCb *cb)
 	int fd = accept();
 	pchild->openChildSock(fd);
 	if (cb)
-		pchild->setCallback(cb);
+		pchild->setOnListener(cb);
 #if 0
 	struct sockaddr_in inaddr;
 	int ret;
@@ -59,7 +59,7 @@ void EdSocket::acceptSock(EdSocket* pchild, ISocketCb *cb)
 	{
 		pchild->setContext(mContext);
 		if (cb)
-		pchild->setCallback(cb);
+		pchild->setOnListener(cb);
 		pchild->setFd(fd);
 		pchild->mStatus = SOCK_STATUS_CONNECTED;
 		pchild->registerEvent(EVT_READ);
@@ -427,7 +427,7 @@ void EdSocket::getPeerAddr(char* ipaddr, u16* port)
 	*port = ntohs(addr.sin_port);
 }
 
-void EdSocket::setCallback(ISocketCb* cb)
+void EdSocket::setOnListener(ISocketCb* cb)
 {
 	mSockCallback = cb;
 	dbgv("setcb, cb=%p, msockcallback=%p", cb, mSockCallback);

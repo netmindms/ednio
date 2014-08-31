@@ -92,7 +92,7 @@ public:
 	/**
 	 * @brief Set ssl event callback.
 	 */
-	void setSSLCallback(ISSLSocketCb *cb);
+	void setOnSSLListener(ISSLSocketCb *cb);
 
 private:
 	void startHandshake();

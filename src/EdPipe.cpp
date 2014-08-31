@@ -75,7 +75,7 @@ int EdPipe::recv(void* buf, int size)
 	return read(mRecvFd, buf, size);
 }
 
-void EdPipe::setCallback(IPipeCb* cb)
+void EdPipe::setOnListener(IPipeCb* cb)
 {
 	mPipeCb = cb;
 }

@@ -26,7 +26,7 @@ public:
 	void close();
 	int send(const void *buf, int size);
 	int recv(void *buf, int size);
-	void setCallback(IPipeCb *cb);
+	void setOnListener(IPipeCb *cb);
 
 private:
 	int mSendFd, mRecvFd;
