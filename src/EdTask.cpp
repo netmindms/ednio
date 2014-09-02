@@ -883,7 +883,7 @@ void EdTask::reserveFree(EdObject* obj)
 #if USE_LIBEVENT
 		if (mRunMode == MODE_LIBEVENT)
 		{
-			mFreeEvent->set();
+			mFreeEvent->raise();
 		}
 #endif
 	}
