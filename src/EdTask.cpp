@@ -650,6 +650,8 @@ int EdTask::esMain(EdContext* psys)
 			edevt_t* pevt = (edevt_t*) epv->data.ptr;
 			dbgv("event data.ptr=%p, pevtuser=%p, event=%0x", pevt, pevt->user, epv->events);
 
+			if(pevt->isReg == false)
+				goto __release_event__;
 			if (epv->events & EPOLLIN)
 				pevt->evtcb(pevt, pevt->fd, EVT_READ);
 			if (pevt->isReg == false)
