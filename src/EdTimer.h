@@ -33,9 +33,8 @@ private:
 
 
 private:
-	uint32_t mInterval;
 	uint64_t mHitCount;
-
+	struct itimerspec mTimerSpec;
 public:
 	/**
 	 * @brief Start timer with specified interval mtime.
@@ -43,6 +42,8 @@ public:
 	 * @param first_msec Initial expiration time interval.
 	 */
 	void set(u32 mtime, u32 first_msec=0);
+
+	void setUsec(u64 usec, u64 first_usec=0);
 
 	/**
 	 * @brief Reset timer.

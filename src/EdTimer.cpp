@@ -7,7 +7,6 @@
 #define DBGTAG "estmr"
 #define DBG_LEVEL DBG_WARN
 
-
 #include <string.h>
 #include "EdTimer.h"
 #include "edslog.h"
@@ -17,11 +16,9 @@ namespace edft
 
 EdTimer::EdTimer()
 {
-	mInterval = 0;
 	mHitCount = 0;
 	miCallback = NULL;
 	mUser = NULL;
-
 }
 
 EdTimer::~EdTimer()
@@ -35,29 +32,27 @@ void EdTimer::setOnListener(ITimerCb* itimer)
 	miCallback = itimer;
 }
 
-void EdTimer::set(u32 msec, u32 first_msec)
+void EdTimer::setUsec(u64 usec, u64 first_usec)
 {
-	if (mFd < 0)
+	if (getFd() < 0)
 	{
 		int fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
 		setFd(fd);
 		registerEvent(EVT_READ);
 	}
 
+	mTimerSpec.it_interval.tv_sec = usec / 1000000;
+	mTimerSpec.it_interval.tv_nsec = (usec % 1000000) * 1000;
+	u64 iusec = (first_usec == 0) ? usec : first_usec;
+	mTimerSpec.it_value.tv_sec = iusec / 1000000;
+	mTimerSpec.it_value.tv_nsec = (iusec % 1000000) * 1000;
 
-	mInterval = msec;
+	timerfd_settime(getFd(), 0, &mTimerSpec, NULL);
+}
 
-	struct itimerspec newtm;
-
-	newtm.it_interval.tv_sec = msec / 1000;
-	newtm.it_interval.tv_nsec = (msec % 1000) * 1000 * 1000;
-
-	u32 imsec = (first_msec==0) ? msec:first_msec;
-	newtm.it_value.tv_sec = imsec / 1000;
-	newtm.it_value.tv_nsec = (imsec % 1000) * 1000 * 1000;
-
-	timerfd_settime(mFd, 0, &newtm, NULL);
-
+void EdTimer::set(u32 msec, u32 first_msec)
+{
+	setUsec(msec * 1000, first_msec*1000);
 }
 
 void EdTimer::kill(void)
@@ -97,20 +92,15 @@ void EdTimer::pause(void)
 
 void EdTimer::resume(void)
 {
-	struct itimerspec ts;
-	ts.it_interval.tv_sec = mInterval / 1000;
-	ts.it_interval.tv_nsec = (mInterval % 1000) * 1000 * 1000;
-	ts.it_value.tv_sec = mInterval / 1000;
-	ts.it_value.tv_nsec = ts.it_interval.tv_nsec;
-	timerfd_settime(mFd, 0, &ts, NULL);
+	timerfd_settime(getFd(), 0, &mTimerSpec, NULL);
 }
 
 void EdTimer::OnEventRead(void)
 {
-	int rcnt = read(mFd, (void*) &mHitCount, sizeof(mHitCount));
+	int rcnt = read(getFd(), (void*) &mHitCount, sizeof(mHitCount));
 	if (rcnt < 8)
 		dbge("#### Error: timer....");
 	OnTimer();
 }
 
-}
+} // namespace edft
