@@ -19,6 +19,30 @@
 using namespace std;
 using namespace edft;
 
+class TestTask: public EdTask
+{
+	std::list<int> mTestList;
+public:
+	void nextTest()
+	{
+		if (mTestList.size() > 0)
+		{
+			int s = mTestList.front();
+			mTestList.pop_front();
+			postMsg(s);
+		}
+		else
+		{
+			postExit();
+		}
+	}
+
+	void addTest(int t)
+	{
+		mTestList.push_back(t);
+	}
+};
+
 void testtask()
 {
 	class MyEvent: public EdEvent, public EdTimer::ITimerCb
@@ -146,23 +170,31 @@ void testmsg(int mode)
 
 void testtimer(int mode)
 {
-	class TimerTest: public EdTask, public EdTimer::ITimerCb
+#define NORMAL_TIMER_INTERVAL 50 // ms
+#define USEC_TIMER_INTERVAL 1 // 1 us
+	enum
 	{
-		EdTimer *mTimer;
+		TS_NORMAL_TIMER = EDM_USER + 1, TS_USEC_TIMER,
+	};
+	class TimerTest: public TestTask, public EdTimer::ITimerCb
+	{
+		std::list<int> mTestList;
+
+		EdTimer *mTimer, *mTimerUsec;
 		u32 period;
 		int mExpCnt;
+		int mMsecTargetCnt;
+		u64 mUsecCnt, mHitCount;
+		u32 usec_starttime;
+
 		virtual int OnEventProc(EdMsg* pmsg)
 		{
 			if (pmsg->msgid == EDM_INIT)
 			{
 				dbgd("  timer test init");
-				mExpCnt = 0;
-				mTimer = new EdTimer;
-				mTimer->setOnListener(this);
-				mTimer->set(100);
-				setTimer(1, 3000);
-				period = EdTime::msecTime();
-
+				addTest(TS_NORMAL_TIMER);
+				addTest(TS_USEC_TIMER);
+				nextTest();
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
@@ -170,12 +202,32 @@ void testtimer(int mode)
 				assert(mTimer == NULL);
 
 			}
+			else if (pmsg->msgid == TS_NORMAL_TIMER)
+			{
+				mExpCnt = 0;
+
+				mTimer = new EdTimer;
+				mTimer->setOnListener(this);
+				mTimer->set(NORMAL_TIMER_INTERVAL);
+				period = EdTime::msecTime();
+			}
+			else if (pmsg->msgid == TS_USEC_TIMER)
+			{
+				mUsecCnt = 0;
+				mHitCount = 0;
+				mTimerUsec = new EdTimer;
+				mTimerUsec->setOnListener(this);
+				usec_starttime = EdTime::msecTime();
+				dbgd("== start usec timer test, period=1 sec, interval=%d usec", USEC_TIMER_INTERVAL);
+				mTimerUsec->setUsec(USEC_TIMER_INTERVAL);
+			}
 			else if (pmsg->msgid == EDM_TIMER)
 			{
-				killTimer(1);
-				u32 t = EdTime::msecTime();
-				dbgd("    task timer expire, time=%d", t - period);
-				postExit();
+				if (pmsg->p1 == 1)
+				{
+
+				}
+
 			}
 		}
 
@@ -185,13 +237,51 @@ void testtimer(int mode)
 			if (ptimer == mTimer)
 			{
 				mExpCnt++;
-				if (mExpCnt >= 10)
+				if (mExpCnt == 1000 / NORMAL_TIMER_INTERVAL)
 				{
-					dbgd("timer exp cnt=%d", mExpCnt);
-					ptimer->kill();
-					delete ptimer;
+					int dt = EdTime::msecTime() - period;
+					dbgd("    task timer expire, duration=%d", dt);
+					if(dt > 1000+10) {
+						dbgd("### Fail: timer delayed, duration=%d", dt);
+						assert(0);
+					}
+
+					mTimer->kill();
+					dbgd(" normal timer test OK, duration=%d", dt);
+					delete mTimer;
 					mTimer = NULL;
+					nextTest();
 				}
+				else if (mExpCnt > 1000 / NORMAL_TIMER_INTERVAL)
+				{
+					dbgd("### Fail : timer expire count error, expect=%d, real=%d", 1000/NORMAL_TIMER_INTERVAL, mExpCnt);
+					assert(0);
+				}
+			}
+			else if (ptimer == mTimerUsec)
+			{
+				mUsecCnt++;
+				mHitCount += ptimer->getHitCount();
+				u32 targetcnt = 1000000 / USEC_TIMER_INTERVAL;
+				if (mHitCount >= targetcnt)
+				{
+					u32 t = EdTime::msecTime();
+					if (t - usec_starttime > 1000+10)
+					{
+						dbgd("### Fail: usec timer time over!!!, period=%d", t - usec_starttime);
+						assert(0);
+					}
+					dbgd("usec timer test OK, durationt=%d msec, hit=%d, usec_count=%d", t - usec_starttime, mHitCount, mUsecCnt);
+					mTimerUsec->kill();
+					delete mTimerUsec;
+					mTimerUsec = NULL;
+					nextTest();
+				}
+
+			}
+			else
+			{
+				assert(0);
 			}
 		}
 	};
@@ -225,7 +315,8 @@ void testcurl(int mode)
 		long recvLen;
 
 		EdTask *mTask;
-		LoadCurl(EdTask *task) {
+		LoadCurl(EdTask *task)
+		{
 			curlid = -1;
 			mTask = task;
 			recvLen = 0;
@@ -234,7 +325,7 @@ void testcurl(int mode)
 		{
 
 			mTask->postMsg(LOAD_RESULT, curlid, 0);
-			if(status != 0)
+			if (status != 0)
 			{
 				dbgd("%d: ### Fail: status error, status=%d", curlid, status);
 				assert(0);
@@ -242,7 +333,8 @@ void testcurl(int mode)
 			dbgd("%d: status check ok", curlid);
 
 			long t = getContentLength();
-			if(t != recvLen) {
+			if (t != recvLen)
+			{
 				dbgd("%d: recv data len check error...., recvlen=%ld, content-len=%ld", recvLen, t);
 				assert(0);
 			}
@@ -251,7 +343,8 @@ void testcurl(int mode)
 			delete this;
 		}
 
-		virtual void OnCurlBody(void *buf, int len) {
+		virtual void OnCurlBody(void *buf, int len)
+		{
 			recvLen += len;
 		}
 
@@ -272,7 +365,6 @@ void testcurl(int mode)
 		long mRecvDataSize;
 
 		std::list<int> mTestList;
-
 		void nextTest()
 		{
 			if (mTestList.size() > 0)
@@ -359,7 +451,7 @@ void testcurl(int mode)
 			}
 			else if (pmsg->msgid == TS_LOAD)
 			{
-				int cnn=LOAD_COUNT;
+				int cnn = LOAD_COUNT;
 				mLoadEndCnt = 0;
 				dbgd("== Start load test, try count=%d", cnn);
 				int i;
@@ -373,9 +465,11 @@ void testcurl(int mode)
 				}
 				dbgd("    try %d request...", cnn);
 			}
-			else if(pmsg->msgid == LOAD_RESULT) {
+			else if (pmsg->msgid == LOAD_RESULT)
+			{
 				mLoadEndCnt++;
-				if(mLoadEndCnt == LOAD_COUNT) {
+				if (mLoadEndCnt == LOAD_COUNT)
+				{
 					dbgd("all curl end...");
 					dbgd("== End load test");
 					nextTest();
@@ -510,9 +604,9 @@ int main()
 	EdNioInit();
 	for (int i = 0; i < 2; i++)
 	{
-		testmsg(i);
+		//testmsg(i);
 		testtimer(i);
-		testcurl(i);
+		//testcurl(i);
 	}
 	return 0;
 }
