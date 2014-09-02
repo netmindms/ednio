@@ -16,7 +16,7 @@ namespace edft
 
 EdEventFd::EdEventFd()
 {
-	mCallback = NULL;
+	mOnListener = NULL;
 
 }
 
@@ -51,7 +51,7 @@ int EdEventFd::open()
 	}
 }
 
-int EdEventFd::close()
+void EdEventFd::close()
 {
 	if (getFd() >= 0)
 	{
@@ -60,23 +60,29 @@ int EdEventFd::close()
 	}
 }
 
-void EdEventFd::set()
+int EdEventFd::raise()
 {
 	uint64_t cnt = 1;
-	write(getFd(), &cnt, 8);
+	ssize_t wcnt = write(getFd(), &cnt, 8);
+	if(wcnt == 8) {
+		return 0;
+	} else {
+		return -1;
+	}
+
 }
 
 void EdEventFd::OnEventFd(int cnt)
 {
-	if (mCallback != NULL)
+	if (mOnListener != NULL)
 	{
-		mCallback->IOnEventFd((int) cnt);
+		mOnListener->IOnEventFd(this, (int) cnt);
 	}
 }
 
-void EdEventFd::setOnListener(IEventFdCallback* cb)
+void EdEventFd::setOnListener(IEventFd* cb)
 {
-	mCallback = cb;
+	mOnListener = cb;
 }
 
 } /* namespace edft */

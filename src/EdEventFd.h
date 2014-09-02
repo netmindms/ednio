@@ -17,9 +17,9 @@ namespace edft
 class EdEventFd : public EdEvent
 {
 public:
-	class IEventFdCallback {
+	class IEventFd {
 	public:
-		virtual void IOnEventFd(int cnt)=0;
+		virtual void IOnEventFd(EdEventFd *pefd, int cnt)=0;
 	};
 public:
 	EdEventFd();
@@ -28,13 +28,13 @@ public:
 	virtual void OnEventFd(int cnt);
 
 	int open();
-	int close();
+	void close();
 
-	void set();
-	void setOnListener(IEventFdCallback* cb);
+	int raise();
+	void setOnListener(IEventFd* cb);
 
 private:
-	IEventFdCallback* mCallback;
+	IEventFd* mOnListener;
 };
 
 } /* namespace edft */
