@@ -77,7 +77,7 @@ private:
 	};
 
 	int mMaxMsqQueSize;
-	unordered_map<u32, TaskTimer*> mTimerMap;
+	std::unordered_map<u32, TaskTimer*> mTimerMap;
 
 	int mRunMode;
 
@@ -96,6 +96,16 @@ public:
 	 * @return 0 success
 	 */
 	int run(int mode = 0);
+
+	/**
+	 * @brief Run a task with event loop in current thread.
+	 * @remark This method does not make an additional thread for event loop. Event looping is in calling thread.
+	 * @param mode If mode is 0, EdTask run with libednio specific event loop. In case of mode 1, EdTask run with libevent compatible mode.
+	 * @warning To enable libevent compatible mode, libednio must be built with USE_LIBEVENT definition.
+	 * @return 0 success
+	 */
+	int runMain(int mode = 0);
+
 
 	/**
 	 * @brief A task has other task terminated.

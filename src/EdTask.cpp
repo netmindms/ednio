@@ -90,6 +90,16 @@ int EdTask::run(int mode)
 #endif
 }
 
+int EdTask::runMain(int mode)
+{
+	initMsg();
+	mRunMode = mode;
+	mTid = pthread_self();
+	postMsg(EDM_INIT);
+	task_thread((void*)this);
+	return 0;
+}
+
 void EdTask::wait(void)
 {
 	pthread_join(mTid, NULL);
@@ -918,5 +928,8 @@ void EdTask::FreeEvent::OnEventFd(int cnt)
 	getCurrentTask()->freeReservedObjs();
 }
 #endif
+
+
+
 
 } // namespace edft
