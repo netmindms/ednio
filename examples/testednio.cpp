@@ -5,9 +5,12 @@
 // Copyright   : Your copyright notice
 // Description : Hello World in C++, Ansi-style
 //============================================================================
-  
+
 #define DBGTAG "main0"
 #define DBG_LEVEL DBG_DEBUG
+
+#include <sys/types.h>
+#include <dirent.h>
 
 #include "EdNio.h"
 #include "EdTask.h"
@@ -18,6 +21,42 @@
 
 using namespace std;
 using namespace edft;
+
+long _gStartFds;
+
+int get_num_fds()
+{
+	int fd_count;
+	char buf[64];
+	struct dirent *dp;
+
+	snprintf(buf, 256, "/proc/%i/fd/", getpid());
+
+	fd_count = 0;
+	DIR *dir = opendir(buf);
+	while ((dp = readdir(dir)) != NULL)
+	{
+		fd_count++;
+	}
+	closedir(dir);
+	return fd_count;
+}
+
+void fdcheck_start()
+{
+	_gStartFds = get_num_fds();
+
+}
+
+void fdcheck_end()
+{
+	long fdn = get_num_fds();
+	if (_gStartFds != fdn)
+	{
+		dbgd("### Fail: fd count check error, start=%ld, end=%ld", _gStartFds, fdn);
+		assert(0);
+	}
+}
 
 class TestTask: public EdTask
 {
@@ -161,11 +200,13 @@ void testmsg(int mode)
 		}
 	};
 
-	MsgTestTask msgtask;
+	fdcheck_start();
 	dbgd(">>>> Test: Message, mode=%d", mode);
+	MsgTestTask msgtask;
 	msgtask.run(mode);
 	msgtask.wait();
 	dbgd("<<<< Message Test OK\n");
+	fdcheck_end();
 }
 
 void testtimer(int mode)
@@ -241,7 +282,8 @@ void testtimer(int mode)
 				{
 					int dt = EdTime::msecTime() - period;
 					dbgd("    task timer expire, duration=%d", dt);
-					if(dt > 1000+10) {
+					if (dt > 1000 + 10)
+					{
 						dbgd("### Fail: timer delayed, duration=%d", dt);
 						assert(0);
 					}
@@ -266,7 +308,7 @@ void testtimer(int mode)
 				if (mHitCount >= targetcnt)
 				{
 					u32 t = EdTime::msecTime();
-					if (t - usec_starttime > 1000+10)
+					if (t - usec_starttime > 1000 + 10)
 					{
 						dbgd("### Fail: usec timer time over!!!, period=%d", t - usec_starttime);
 						assert(0);
@@ -287,10 +329,12 @@ void testtimer(int mode)
 	};
 
 	dbgd(">>>> Test: Timer, mode=%d", mode);
+	fdcheck_start();
 	auto task = new TimerTest;
 	task->run(mode);
 	task->wait();
 	delete task;
+	fdcheck_end();
 	dbgd("<<<< Timer test OK\n");
 }
 
@@ -301,7 +345,7 @@ void testcurl(int mode)
 {
 #define CONNECT_TIMEOUT 5
 #define TEST_DURATION (CONNECT_TIMEOUT+1)
-#define LOAD_COUNT 400
+#define LOAD_COUNT 100
 
 	enum
 	{
@@ -416,7 +460,7 @@ void testcurl(int mode)
 				mLocalCurl = new EdCurl;
 				mLocalCurl->setOnCurlListener(this, this);
 				mLocalCurl->open(mMainCurl);
-				mLocalCurl->request("http://curl.haxx.se");
+				mLocalCurl->request("http://localhost");
 
 			}
 			else if (pmsg->msgid == TS_NOTFOUND)
@@ -447,7 +491,7 @@ void testcurl(int mode)
 				mReuseCurl = new EdCurl;
 				mReuseCurl->setOnCurlListener(this);
 				mReuseCurl->open(mMainCurl);
-				mReuseCurl->request("http://curl.haxx.se");
+				mReuseCurl->request("http://localhost");
 			}
 			else if (pmsg->msgid == TS_LOAD)
 			{
@@ -461,7 +505,7 @@ void testcurl(int mode)
 					mLoadCurl[i]->setOnCurlListener(this, this);
 					mLoadCurl[i]->open(mMainCurl);
 					mLoadCurl[i]->curlid = i;
-					mLoadCurl[i]->request("http://curl.haxx.se");
+					mLoadCurl[i]->request("http://localhost");
 				}
 				dbgd("    try %d request...", cnn);
 			}
@@ -549,7 +593,7 @@ void testcurl(int mode)
 				{
 					pcurl->reset();
 					dbgd("start new requesting by reusing current curl..., cnt=%d", mReuseCnt);
-					pcurl->request("curl.haxx.se");
+					pcurl->request("http://localhost");
 				}
 				else
 				{
@@ -591,11 +635,107 @@ void testcurl(int mode)
 	};
 
 	dbgd(">>>> Test: Curl, mode=%d", mode);
+	fdcheck_start();
 	auto task = new CurlTest;
 	task->run();
 	task->wait();
 	delete task;
-	dbgd("<<<< Curl Test OK");
+	fdcheck_end();
+	dbgd("<<<< Curl Test OK\n");
+}
+
+void testreservefree(int mode)
+{
+	enum
+	{
+		TS_SIMPLE_FREE = EDM_USER + 1,
+	};
+	class ReserveFreeTest: public TestTask, public EdEventFd::IEventFd, public EdTimer::ITimerCb
+	{
+		// simple free test
+		EdEventFd* mEv;
+		EdTimer* mTimer;
+		std::list<int> mTestList;
+		u64 mEventCnt;
+
+		void nextTest()
+		{
+			if (mTestList.size() > 0)
+			{
+				int s = mTestList.front();
+				mTestList.pop_front();
+				postMsg(s);
+			}
+			else
+			{
+				postExit();
+			}
+		}
+
+		virtual int OnEventProc(EdMsg* pmsg)
+		{
+
+			if (pmsg->msgid == EDM_INIT)
+			{
+				mTestList.push_back(TS_SIMPLE_FREE);
+
+				nextTest();
+			}
+			else if (pmsg->msgid == EDM_CLOSE)
+			{
+
+			}
+			else if (pmsg->msgid == TS_SIMPLE_FREE)
+			{
+				mEventCnt = 0;
+
+				mEv = new EdEventFd;
+				mEv->setOnListener(this);
+				mEv->open();
+				mEv->raise();
+
+				mTimer = new EdTimer;
+				mTimer->setOnListener(this);
+				mTimer->set(1000);
+
+			}
+			return 0;
+		}
+
+		virtual void IOnEventFd(EdEventFd *pefd, int cnt)
+		{
+			if (pefd == mEv)
+			{
+				mEventCnt++;
+				pefd->raise();
+			}
+		}
+
+		virtual void IOnTimerEvent(EdTimer* ptimer)
+		{
+			if(ptimer == mTimer)
+			{
+				dbgd("timer on, raise cnt=%ld", mEventCnt);
+				ptimer->kill();
+				mEv->close();
+
+				reserveFree(ptimer);
+				reserveFree(mEv);
+				dbgd("reserved free objs...");
+				nextTest();
+			}
+		}
+
+	};
+
+	dbgd(">>>> Test: ReserveFree, mode=%d", mode);
+	fdcheck_start();
+	auto task = new ReserveFreeTest;
+	task->run();
+	task->wait();
+	delete task;
+	fdcheck_end();
+	dbgd("<<<< Reserve Free Test OK");
 }
 
 int main()
@@ -604,9 +744,10 @@ int main()
 	EdNioInit();
 	for (int i = 0; i < 2; i++)
 	{
-		//testmsg(i);
+		testmsg(i);
 		testtimer(i);
-		//testcurl(i);
+		testcurl(i);
+		testreservefree(i);
 	}
 	return 0;
 }
