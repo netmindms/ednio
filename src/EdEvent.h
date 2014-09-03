@@ -51,7 +51,11 @@ public:
 protected:
 	EdContext *mContext;
 	int mFd;
-	void *mUser;
+	union {
+		void *mUser;
+		uint64_t mUserLong;
+		uint32_t mUserInt;
+	};
 	bool mIsReg;
 	EdTask* mTask;
 
@@ -114,6 +118,10 @@ public:
 	 */
 	void setUser(void *user);
 
+	uint64_t getUserLong();
+	void setUserLong(uint64_t data);
+	uint32_t getUserInt();
+	void setUserInt(uint32_t data);
 
 	EdContext *getContext();
 

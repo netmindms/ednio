@@ -233,4 +233,26 @@ int EdEvent::getFd()
 }
 
 
+
+uint64_t EdEvent::getUserLong()
+{
+	return mUserLong;
+}
+
+void EdEvent::setUserLong(uint64_t data)
+{
+	mUserLong = data;
+}
+
+
+uint32_t EdEvent::getUserInt()
+{
+	return mUserInt;
+}
+
+void EdEvent::setUserInt(uint32_t data)
+{
+	mUserInt = data;
+}
+
 } /* namespace edft */
