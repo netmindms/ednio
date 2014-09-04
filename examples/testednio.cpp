@@ -713,7 +713,7 @@ void testreservefree(int mode)
 
 		virtual void IOnTimerEvent(EdTimer* ptimer)
 		{
-			if(ptimer == mTimer)
+			if (ptimer == mTimer)
 			{
 				dbgd("timer on, raise cnt=%ld", mEventCnt);
 				ptimer->kill();
@@ -738,16 +738,111 @@ void testreservefree(int mode)
 	dbgd("<<<< Reserve Free Test OK");
 }
 
+
+void testMultiTaskInstance(int mode)
+{
+#define TASK_INSTANCE_NUM 16
+	enum {UM_TASK_START=EDM_USER+1, };
+	class MultiTestTask: public TestTask
+	{
+
+	public:
+		int mHitCnt;
+
+		u64 getHitCount() {
+			return mHitCnt;
+		}
+		virtual int OnEventProc(EdMsg* pmsg)
+		{
+			if(pmsg->msgid == EDM_INIT)
+			{
+
+			}
+			else if(pmsg->msgid == EDM_CLOSE)
+			{
+
+			}
+			else if(pmsg->msgid == UM_TASK_START)
+			{
+				class efd : public EdEventFd, public EdTimer::ITimerCb {
+					u64 mOnCnt;
+					EdTimer timer;
+					int mId;
+					u32 mStartTime;
+					MultiTestTask* mTask;
+				public:
+					efd(MultiTestTask* ptask) {
+						mOnCnt = 0;
+						mHitCnt = 0;
+						mId = -1;
+						mTask = ptask;
+					}
+					void start(int id) {
+						dbgd("== Start task, id=%d", id);
+						mId = id;
+						timer.setOnListener(this);
+						timer.set(1000);
+						open();
+						raise();
+						mStartTime = EdTime::msecTime();
+					}
+					void OnEventFd(int cnt) {
+						mOnCnt++;
+						mTask->mHitCnt += cnt;
+						raise();
+					}
+
+					void IOnTimerEvent(EdTimer* ptimer) {
+						u32 t = EdTime::msecTime();
+						dbgd("[%2d] : end-time=%d, on-count=%ld, hit-count=%ld", mId, t-mStartTime, mOnCnt, mTask->mHitCnt);
+						ptimer->kill();
+						close();
+						dbgd("    end.....");
+						getCurrentTask()->postExit();
+						delete this;
+
+					}
+				};
+				efd *pfd = new efd(this);
+				pfd->start(pmsg->p1);
+			}
+			return 0;
+		}
+	};
+
+	dbgd(">>>> Test: Multi task instance, mode=%d", mode);
+	fdcheck_start();
+	MultiTestTask task[TASK_INSTANCE_NUM];
+	for (int i = 0; i < TASK_INSTANCE_NUM; i++)
+	{
+		task[i].run();
+		task[i].postMsg(UM_TASK_START, i);
+	}
+
+	int totalhit=0;
+	for (int i = 0; i < TASK_INSTANCE_NUM; i++)
+	{
+		task[i].wait();
+		totalhit += task[i].getHitCount();
+	}
+
+	fdcheck_end();
+	dbgd("<<<< Multi task instance OK");
+
+}
+
 int main()
 {
 
 	EdNioInit();
 	for (int i = 0; i < 2; i++)
 	{
-		testmsg(i);
-		testtimer(i);
-		testcurl(i);
-		testreservefree(i);
+		testMultiTaskInstance(i);
+
+//		testmsg(i);
+//		testtimer(i);
+//		testcurl(i);
+//		testreservefree(i);
 	}
 	return 0;
 }
