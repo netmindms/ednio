@@ -219,8 +219,6 @@ void testtimer(int mode)
 	};
 	class TimerTest: public TestTask, public EdTimer::ITimerCb
 	{
-		std::list<int> mTestList;
-
 		EdTimer *mTimer, *mTimerUsec;
 		u32 period;
 		int mExpCnt;
@@ -241,7 +239,6 @@ void testtimer(int mode)
 			{
 				dbgd("  timer test closing");
 				assert(mTimer == NULL);
-
 			}
 			else if (pmsg->msgid == TS_NORMAL_TIMER)
 			{
@@ -649,41 +646,26 @@ void testreservefree(int mode)
 	enum
 	{
 		TS_SIMPLE_FREE = EDM_USER + 1,
+		TS_SELF_FREE,
 	};
 	class ReserveFreeTest: public TestTask, public EdEventFd::IEventFd, public EdTimer::ITimerCb
 	{
 		// simple free test
 		EdEventFd* mEv;
 		EdTimer* mTimer;
-		std::list<int> mTestList;
 		u64 mEventCnt;
-
-		void nextTest()
-		{
-			if (mTestList.size() > 0)
-			{
-				int s = mTestList.front();
-				mTestList.pop_front();
-				postMsg(s);
-			}
-			else
-			{
-				postExit();
-			}
-		}
 
 		virtual int OnEventProc(EdMsg* pmsg)
 		{
-
 			if (pmsg->msgid == EDM_INIT)
 			{
-				mTestList.push_back(TS_SIMPLE_FREE);
-
+				addTest(TS_SIMPLE_FREE);
+				addTest(TS_SELF_FREE);
 				nextTest();
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
-
+				dbgd("Reserve free test closed...");
 			}
 			else if (pmsg->msgid == TS_SIMPLE_FREE)
 			{
@@ -699,6 +681,24 @@ void testreservefree(int mode)
 				mTimer->set(1000);
 
 			}
+			else if(pmsg->msgid == TS_SELF_FREE)
+			{
+				class ti : public EdTimer::ITimerCb {
+					virtual void IOnTimerEvent(EdTimer* ptimer) {
+						dbgd("self free test timer on");
+						ptimer->kill();
+						getCurrentTask()->reserveFree(ptimer);
+						//delete ptimer;
+						dbgd("free reserved for self free timer");
+						((ReserveFreeTest*)getCurrentTask())->nextTest();
+						delete this;
+					}
+				};
+				dbgd("== Start self free object test...");
+				EdTimer* mt = new EdTimer;
+				mt->setOnListener(new ti);
+				mt->set(100);
+			}
 			return 0;
 		}
 
@@ -713,12 +713,11 @@ void testreservefree(int mode)
 
 		virtual void IOnTimerEvent(EdTimer* ptimer)
 		{
-			if (ptimer == mTimer)
+			if(ptimer == mTimer)
 			{
 				dbgd("timer on, raise cnt=%ld", mEventCnt);
 				ptimer->kill();
 				mEv->close();
-
 				reserveFree(ptimer);
 				reserveFree(mEv);
 				dbgd("reserved free objs...");
@@ -735,9 +734,32 @@ void testreservefree(int mode)
 	task->wait();
 	delete task;
 	fdcheck_end();
-	dbgd("<<<< Reserve Free Test OK");
+	dbgd("<<<< Reserve Free Test OK\n\n");
 }
 
+void testMainThreadTask(int mode) {
+	class MainThreadTask: public EdTask {
+		virtual int OnEventProc(EdMsg *pmsg) {
+			if(pmsg->msgid == EDM_INIT) {
+				dbgd("task init event");
+				postMsg(EDM_USER);
+				postExit();
+			} else if(pmsg->msgid == EDM_CLOSE) {
+				dbgd("task close event");
+			} else if(pmsg->msgid == EDM_USER) {
+				dbgd("user event msg");
+			}
+			return 0;
+		}
+	};
+
+	dbgd("== Start main thread task test...");
+	fdcheck_start();
+	MainThreadTask task;
+	task.runMain(mode);
+	fdcheck_end();
+	dbgd("== End main thread task test...\n\n");
+}
 
 void testMultiTaskInstance(int mode)
 {
@@ -837,12 +859,12 @@ int main()
 	EdNioInit();
 	for (int i = 0; i < 2; i++)
 	{
-		testMultiTaskInstance(i);
-
-//		testmsg(i);
-//		testtimer(i);
-//		testcurl(i);
-//		testreservefree(i);
+testMultiTaskInstance(i);
+		testreservefree(i);
+		testtimer(i);
+		testMainThreadTask(i);
+		testmsg(i);
+		testcurl(i);
 	}
 	return 0;
 }
