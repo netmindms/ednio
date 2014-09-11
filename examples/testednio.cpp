@@ -3,7 +3,7 @@
 // Author      : 
 // Version     :
 // Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
+// Description : Test Driven Development for ednio
 //============================================================================
 
 #define DBGTAG "main0"
@@ -18,6 +18,38 @@
 #include "EdTime.h"
 #include "edcurl/EdCurl.h"
 #include "edcurl/EdMultiCurl.h"
+#include "http/EdHttpServer.h"
+#include "http/EdHttpWriter.h"
+#include "http/EdHttpTask.h"
+#include "http/EdHttpStringReader.h"
+#include "http/EdHttpStringWriter.h"
+#include "http/EsHttpTask.h"
+
+void levlog(int lev, const char *tagid, int line, const char *fmtstr, ...)
+{
+	struct timeval tm;
+	va_list ap;
+
+	gettimeofday(&tm, NULL);
+	struct tm* ptr_time = localtime(&tm.tv_sec);
+
+	char buf[4096];
+
+	int splen = 2 * lev;
+	char spbuf[splen + 1];
+	memset(spbuf, ' ', splen);
+	spbuf[splen] = 0;
+
+	va_start(ap, fmtstr);
+	vsnprintf(buf, 4096 - 1, fmtstr, ap);
+	va_end(ap);
+
+	printf("%02d:%02d:%02d.%02d [%s]:%-5d %s%s\n", ptr_time->tm_hour, ptr_time->tm_min, ptr_time->tm_sec, (int) (tm.tv_usec / 10000), tagid, line, spbuf, buf);
+}
+
+#define logm(...) {levlog(0, "MTEST", __LINE__, __VA_ARGS__); }
+#define logs(...) {levlog(1, "SUB  ", __LINE__, __VA_ARGS__); }
+#define logss(...) { levlog(2, "SUB2 ", __LINE__, __VA_ARGS__);  }
 
 using namespace std;
 using namespace edft;
@@ -53,7 +85,7 @@ void fdcheck_end()
 	long fdn = get_num_fds();
 	if (_gStartFds != fdn)
 	{
-		dbgd("### Fail: fd count check error, start=%ld, end=%ld", _gStartFds, fdn);
+		logm("### Fail: fd count check error, start=%ld, end=%ld", _gStartFds, fdn);
 		assert(0);
 	}
 }
@@ -82,73 +114,6 @@ public:
 	}
 };
 
-void testtask()
-{
-	class MyEvent: public EdEvent, public EdTimer::ITimerCb
-	{
-		EdTimer *mtTimer;
-	public:
-		MyEvent()
-		{
-			dbgd("const MyEvent");
-			mtTimer = new EdTimer;
-
-		}
-		virtual ~MyEvent()
-		{
-			dbgd("dest MyEvent");
-			mtTimer->kill();
-			EdTask* ct = _tEdTask;
-			ct->reserveFree(mtTimer);
-		}
-
-		void go()
-		{
-			mtTimer->setOnListener(this);
-			mtTimer->set(1000);
-		}
-
-		virtual void IOnTimerEvent(EdTimer *ptimer)
-		{
-			dbgd("on timer");
-		}
-	};
-
-	class Task: public EdTask
-	{
-		MyEvent *ev;
-	public:
-		int OnEventProc(EdMsg* msg)
-		{
-			if (msg->msgid == EDM_INIT)
-			{
-				dbgd("this task=%x", this);
-				ev = new MyEvent;
-				ev->go();
-				setTimer(1, 1000);
-
-			}
-			else if (msg->msgid == EDM_CLOSE)
-			{
-				reserveFree(ev);
-			}
-			else if (msg->msgid == EDM_TIMER)
-			{
-				dbgd("on task timer...id=%d", msg->p1);
-				killTimer(1);
-			}
-			return 0;
-		}
-	};
-
-	auto task = new Task;
-	task->run();
-	getchar();
-	task->terminate();
-	delete task;
-	dbgd("========== end");
-}
-
 // message exchanging test
 void testmsg(int mode)
 {
@@ -159,53 +124,113 @@ void testmsg(int mode)
 		{
 			if (pmsg->msgid == EDM_INIT)
 			{
-				dbgd("  child init");
+				logs("child init");
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
-				dbgd("  child close task");
+				logs("child close task");
 			}
 			else
 			{
-				dbgd("  child received msg. id=%d, p1=%x, p2=%x", pmsg->msgid, pmsg->p1, pmsg->p2);
+				logs("child received msg. id=%d, p1=%x, p2=%x", pmsg->msgid, pmsg->p1, pmsg->p2);
 			}
 			return 0;
 		}
 	};
 
-	class MsgTestTask: public EdTask
+	class MsgTestTask: public TestTask
 	{
+		enum
+		{
+			TS_BASIC_MSG = EDM_USER + 1, TS_OBJECT_MSG, TS_BETWEEN_TASK,
+
+			BASIC_MSG = 10000, OBJECT_MSG, CHILD_TASK_END_MSG,
+		};
 		MsgChildTestTask* pchild;
+
+		EdTimer *mTimer;
+
 		virtual int OnEventProc(EdMsg* pmsg)
 		{
 			if (pmsg->msgid == EDM_INIT)
 			{
-				pchild = new MsgChildTestTask;
-				dbgd("  start child task...");
-				pchild->run();
-				postExit();
-				pchild->postMsg(EDM_USER + 1);
+				addTest(TS_BASIC_MSG);
+				addTest(TS_OBJECT_MSG);
+				addTest(TS_BETWEEN_TASK);
+				nextTest();
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
-				dbgd("  msg task closing...");
+				logs("msg task closing...");
+			}
+			else if (pmsg->msgid == TS_BASIC_MSG)
+			{
+				logs("== Start message parameter check...");
+				postMsg(BASIC_MSG, 0xfacdab58, 0x90bc23aa);
+			}
+			else if (pmsg->msgid == BASIC_MSG)
+			{
+				if (pmsg->p1 != 0xfacdab58 || pmsg->p2 != 0x90bc23aa)
+				{
+					logs("### Fail: mesasge parameter check fail");
+					assert(0);
+				}
+				logs("== End message parameter check...OK");
+				nextTest();
+			}
+			else if (pmsg->msgid == TS_OBJECT_MSG)
+			{
+				logs("== Start object message check...");
+				mTimer = new EdTimer;
+				postObj(OBJECT_MSG, (void*) mTimer);
+			}
+			else if (pmsg->msgid == OBJECT_MSG)
+			{
+				if (pmsg->obj != (void*) mTimer)
+				{
+					logs("### Fail: object message check error");
+					assert(0);
+				}
+				delete mTimer;
+				logs("== End object message check...");
+				nextTest();
+			}
+			else if (pmsg->msgid == TS_BETWEEN_TASK)
+			{
+				logs("== Start mesage test between tasks...");
+				pchild = new MsgChildTestTask;
+				logs("start child task...");
+				pchild->run();
+				postMsg(CHILD_TASK_END_MSG);
+				pchild->postMsg(EDM_USER + 1);
+
+			}
+			else if (pmsg->msgid == CHILD_TASK_END_MSG)
+			{
+				logs("post terminating child task");
 				pchild->postExit();
 				usleep(10000);
 				pchild->sendMsg(EDM_USER + 2);
-				dbgd("  waiting child task");
+				logs("waiting child task");
 				pchild->wait();
 				delete pchild;
+				nextTest();
+			}
+			else
+			{
+				logs("### invalid test scenario");
+				assert(0);
 			}
 			return 0;
 		}
 	};
 
 	fdcheck_start();
-	dbgd(">>>> Test: Message, mode=%d", mode);
+	logm(">>>> Test: Message, mode=%d", mode);
 	MsgTestTask msgtask;
 	msgtask.run(mode);
 	msgtask.wait();
-	dbgd("<<<< Message Test OK\n");
+	logm("<<<< Message Test OK\n");
 	fdcheck_end();
 }
 
@@ -230,14 +255,14 @@ void testtimer(int mode)
 		{
 			if (pmsg->msgid == EDM_INIT)
 			{
-				dbgd("  timer test init");
+				logs("  timer test init");
 				addTest(TS_NORMAL_TIMER);
 				addTest(TS_USEC_TIMER);
 				nextTest();
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
-				dbgd("  timer test closing");
+				logs("  timer test closing");
 				assert(mTimer == NULL);
 			}
 			else if (pmsg->msgid == TS_NORMAL_TIMER)
@@ -256,7 +281,7 @@ void testtimer(int mode)
 				mTimerUsec = new EdTimer;
 				mTimerUsec->setOnListener(this);
 				usec_starttime = EdTime::msecTime();
-				dbgd("== start usec timer test, period=1 sec, interval=%d usec", USEC_TIMER_INTERVAL);
+				logs("== start usec timer test, period=1 sec, interval=%d usec", USEC_TIMER_INTERVAL);
 				mTimerUsec->setUsec(USEC_TIMER_INTERVAL);
 			}
 			else if (pmsg->msgid == EDM_TIMER)
@@ -278,22 +303,22 @@ void testtimer(int mode)
 				if (mExpCnt == 1000 / NORMAL_TIMER_INTERVAL)
 				{
 					int dt = EdTime::msecTime() - period;
-					dbgd("    task timer expire, duration=%d", dt);
+					logs("    task timer expire, duration=%d", dt);
 					if (dt > 1000 + 10)
 					{
-						dbgd("### Fail: timer delayed, duration=%d", dt);
+						logs("### Fail: timer delayed, duration=%d", dt);
 						assert(0);
 					}
 
 					mTimer->kill();
-					dbgd(" normal timer test OK, duration=%d", dt);
+					logs(" normal timer test OK, duration=%d", dt);
 					delete mTimer;
 					mTimer = NULL;
 					nextTest();
 				}
 				else if (mExpCnt > 1000 / NORMAL_TIMER_INTERVAL)
 				{
-					dbgd("### Fail : timer expire count error, expect=%d, real=%d", 1000/NORMAL_TIMER_INTERVAL, mExpCnt);
+					logs("### Fail : timer expire count error, expect=%d, real=%d", 1000/NORMAL_TIMER_INTERVAL, mExpCnt);
 					assert(0);
 				}
 			}
@@ -307,10 +332,10 @@ void testtimer(int mode)
 					u32 t = EdTime::msecTime();
 					if (t - usec_starttime > 1000 + 10)
 					{
-						dbgd("### Fail: usec timer time over!!!, period=%d", t - usec_starttime);
+						logs("### Fail: usec timer time over!!!, period=%d", t - usec_starttime);
 						assert(0);
 					}
-					dbgd("usec timer test OK, durationt=%d msec, hit=%d, usec_count=%d", t - usec_starttime, mHitCount, mUsecCnt);
+					logs("usec timer test OK, durationt=%d msec, hit=%d, usec_count=%d", t - usec_starttime, mHitCount, mUsecCnt);
 					mTimerUsec->kill();
 					delete mTimerUsec;
 					mTimerUsec = NULL;
@@ -325,14 +350,14 @@ void testtimer(int mode)
 		}
 	};
 
-	dbgd(">>>> Test: Timer, mode=%d", mode);
+	logm(">>>> Test: Timer, mode=%d", mode);
 	fdcheck_start();
 	auto task = new TimerTest;
 	task->run(mode);
 	task->wait();
 	delete task;
 	fdcheck_end();
-	dbgd("<<<< Timer test OK\n");
+	logm("<<<< Timer test OK\n");
 }
 
 /*
@@ -368,18 +393,18 @@ void testcurl(int mode)
 			mTask->postMsg(LOAD_RESULT, curlid, 0);
 			if (status != 0)
 			{
-				dbgd("%d: ### Fail: status error, status=%d", curlid, status);
+				logs("%d: ### Fail: status error, status=%d", curlid, status);
 				assert(0);
 			}
-			dbgd("%d: status check ok", curlid);
+			logs("%d: status check ok", curlid);
 
 			long t = getContentLength();
 			if (t != recvLen)
 			{
-				dbgd("%d: recv data len check error...., recvlen=%ld, content-len=%ld", recvLen, t);
+				logs("%d: recv data len check error...., recvlen=%ld, content-len=%ld", recvLen, t);
 				assert(0);
 			}
-			dbgd("%d: body len check Ok", curlid);
+			logs("%d: body len check Ok", curlid);
 			close();
 			delete this;
 		}
@@ -443,7 +468,7 @@ void testcurl(int mode)
 				assert(mLocalCurl == NULL);
 				mMainCurl->close();
 				delete mMainCurl;
-				dbgd("curl test closed...");
+				logs("curl test closed...");
 			}
 			else if (pmsg->msgid == EDM_TIMER)
 			{
@@ -452,7 +477,7 @@ void testcurl(int mode)
 			}
 			else if (pmsg->msgid == TS_NORMAL)
 			{
-				dbgd("== Start normal curl test.........");
+				logs("== Start normal curl test.........");
 				mRecvDataSize = 0;
 				mLocalCurl = new EdCurl;
 				mLocalCurl->setOnCurlListener(this, this);
@@ -462,7 +487,7 @@ void testcurl(int mode)
 			}
 			else if (pmsg->msgid == TS_NOTFOUND)
 			{
-				dbgd("== Start notfound curl test.........");
+				logs("== Start notfound curl test.........");
 				mCurlNotFound = new EdCurl;
 				mCurlNotFound->setOnCurlListener(this);
 				mCurlNotFound->setUser((void*) "[curl-notfound]");
@@ -472,18 +497,18 @@ void testcurl(int mode)
 			}
 			else if (pmsg->msgid == TS_TIMEOUT)
 			{
-				dbgd("== Start timeout curl test.........");
+				logs("== Start timeout curl test.........");
 				mAbnormalCurl.setOnCurlListener(this);
 				mAbnormalCurl.setUser((void*) "[curl-notconnected]");
 				mAbnormalCurl.open(mMainCurl);
 				mAbnormalCurl.request("211.211.211.211", CONNECT_TIMEOUT);
-				dbgd("request abnormal curl=%lx", &mAbnormalCurl);
-				dbgd("this is not going to be connected...");
+				logs("request abnormal curl=%lx", &mAbnormalCurl);
+				logs("this is not going to be connected...");
 
 			}
 			else if (pmsg->msgid == TS_REUSE)
 			{
-				dbgd("== Start reuse curl test....");
+				logs("== Start reuse curl test....");
 				mReuseCnt = 0;
 				mReuseCurl = new EdCurl;
 				mReuseCurl->setOnCurlListener(this);
@@ -494,7 +519,7 @@ void testcurl(int mode)
 			{
 				int cnn = LOAD_COUNT;
 				mLoadEndCnt = 0;
-				dbgd("== Start load test, try count=%d", cnn);
+				logs("== Start load test, try count=%d", cnn);
 				int i;
 				for (i = 0; i < cnn; i++)
 				{
@@ -504,15 +529,15 @@ void testcurl(int mode)
 					mLoadCurl[i]->curlid = i;
 					mLoadCurl[i]->request("http://localhost");
 				}
-				dbgd("    try %d request...", cnn);
+				logs("try %d request...", cnn);
 			}
 			else if (pmsg->msgid == LOAD_RESULT)
 			{
 				mLoadEndCnt++;
 				if (mLoadEndCnt == LOAD_COUNT)
 				{
-					dbgd("all curl end...");
-					dbgd("== End load test");
+					logs("all curl end...");
+					logs("== End load test");
 					nextTest();
 				}
 			}
@@ -522,58 +547,58 @@ void testcurl(int mode)
 		virtual void IOnCurlResult(EdCurl* pcurl, int status)
 		{
 
-			dbgd("curl status = %d, curl=%x", status, pcurl);
+			logs("curl status = %d, curl=%x", status, pcurl);
 			if (pcurl == mLocalCurl)
 			{
 				if (status != 0)
 				{
-					dbgd("### Fail: This curl is expected with normal status code but error status");
+					logs("### Fail: This curl is expected with normal status code but error status");
 					assert(status == 0);
 				}
 				long len = pcurl->getContentLength();
 				if (len != mRecvDataSize)
 				{
-					dbgd("### Fail: content length not match");
+					logs("### Fail: content length not match");
 					assert(0);
 				}
-				dbgd("Content length check OK..., len=%ld", mRecvDataSize);
+				logs("Content length check OK..., len=%ld", mRecvDataSize);
 
-				dbgd("[curl-normal] : Expected Result. OK.......");
+				logs("[curl-normal] : Expected Result. OK.......");
 				pcurl->close();
 				delete mLocalCurl;
 				mLocalCurl = NULL;
-				dbgd("== End normal curl test...\n\n");
+				logs("== End normal curl test...\n\n");
 
 				nextTest();
 			}
 			else if (pcurl == mCurlNotFound)
 			{
-				dbgd("%s result: %d", (char* )pcurl->getUser(), pcurl->getResponseCode());
+				logs("%s result: %d", (char* )pcurl->getUser(), pcurl->getResponseCode());
 				int code = pcurl->getResponseCode();
 				if (code != 404)
 				{
-					dbgd("### Fail: 404 response expected, buf code = %d", code);
+					logs("### Fail: 404 response expected, buf code = %d", code);
 					assert(0);
 				}
-				dbgd("    Not Found Test OK.");
+				logs("    Not Found Test OK.");
 				pcurl->close();
 				delete pcurl;
 				mCurlNotFound = NULL;
-				dbgd("== End notfound curl test...\n\n");
+				logs("== End notfound curl test...\n\n");
 
 				nextTest();
 			}
 			else if (pcurl == &mAbnormalCurl)
 			{
-				dbgd("abnormal curl status reported...code=%d", status);
+				logs("abnormal curl status reported...code=%d", status);
 				if (status == 0)
 				{
-					dbgd("    ### Fail : For this curl, status must be abnormal...");
+					logs("    ### Fail : For this curl, status must be abnormal...");
 					assert(status != 0);
 				}
-				dbgd("    %s : %s", (char* )pcurl->getUser(), "Expected Result. OK");
+				logs("    %s : %s", (char* )pcurl->getUser(), "Expected Result. OK");
 				pcurl->close();
-				dbgd("== End time out curl test...\n\n");
+				logs("== End time out curl test...\n\n");
 
 				nextTest();
 			}
@@ -581,7 +606,7 @@ void testcurl(int mode)
 			{
 				if (status != 0)
 				{
-					dbgd("### Reuse Test Fail: curl response is not normal. status=%d", status);
+					logs("### Reuse Test Fail: curl response is not normal. status=%d", status);
 					assert(0);
 				}
 
@@ -589,12 +614,12 @@ void testcurl(int mode)
 				if (mReuseCnt < 5)
 				{
 					pcurl->reset();
-					dbgd("start new requesting by reusing current curl..., cnt=%d", mReuseCnt);
+					logs("start new requesting by reusing current curl..., cnt=%d", mReuseCnt);
 					pcurl->request("http://localhost");
 				}
 				else
 				{
-					dbgd("== End reuse curl test....\n\n");
+					logs("== End reuse curl test....\n\n");
 					mReuseCurl->close();
 					delete mReuseCurl;
 					mReuseCurl = NULL;
@@ -621,32 +646,31 @@ void testcurl(int mode)
 				/*
 				 char* buf = (char*) malloc(size + 1);
 				 assert(buf != NULL);
-				 dbgd("body size = %d", size);
+				 logs("body size = %d", size);
 				 memcpy(buf, ptr, size);
 				 buf[size] = 0;
-				 dbgd("    body: \n%s", buf);
+				 logs("    body: \n%s", buf);
 				 free(buf);
 				 */
 			}
 		}
 	};
 
-	dbgd(">>>> Test: Curl, mode=%d", mode);
+	logm(">>>> Test: Curl, mode=%d", mode);
 	fdcheck_start();
 	auto task = new CurlTest;
 	task->run();
 	task->wait();
 	delete task;
 	fdcheck_end();
-	dbgd("<<<< Curl Test OK\n");
+	logm("<<<< Curl Test OK\n");
 }
 
 void testreservefree(int mode)
 {
 	enum
 	{
-		TS_SIMPLE_FREE = EDM_USER + 1,
-		TS_SELF_FREE,
+		TS_SIMPLE_FREE = EDM_USER + 1, TS_SELF_FREE,
 	};
 	class ReserveFreeTest: public TestTask, public EdEventFd::IEventFd, public EdTimer::ITimerCb
 	{
@@ -665,7 +689,7 @@ void testreservefree(int mode)
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
-				dbgd("Reserve free test closed...");
+				logs("Reserve free test closed...");
 			}
 			else if (pmsg->msgid == TS_SIMPLE_FREE)
 			{
@@ -681,20 +705,22 @@ void testreservefree(int mode)
 				mTimer->set(1000);
 
 			}
-			else if(pmsg->msgid == TS_SELF_FREE)
+			else if (pmsg->msgid == TS_SELF_FREE)
 			{
-				class ti : public EdTimer::ITimerCb {
-					virtual void IOnTimerEvent(EdTimer* ptimer) {
-						dbgd("self free test timer on");
+				class ti: public EdTimer::ITimerCb
+				{
+					virtual void IOnTimerEvent(EdTimer* ptimer)
+					{
+						logs("self free test timer on");
 						ptimer->kill();
 						getCurrentTask()->reserveFree(ptimer);
 						//delete ptimer;
-						dbgd("free reserved for self free timer");
-						((ReserveFreeTest*)getCurrentTask())->nextTest();
+						logs("free reserved for self free timer");
+						((ReserveFreeTest*) getCurrentTask())->nextTest();
 						delete this;
 					}
 				};
-				dbgd("== Start self free object test...");
+				logs("== Start self free object test...");
 				EdTimer* mt = new EdTimer;
 				mt->setOnListener(new ti);
 				mt->set(100);
@@ -713,94 +739,108 @@ void testreservefree(int mode)
 
 		virtual void IOnTimerEvent(EdTimer* ptimer)
 		{
-			if(ptimer == mTimer)
+			if (ptimer == mTimer)
 			{
-				dbgd("timer on, raise cnt=%ld", mEventCnt);
+				logs("timer on, raise cnt=%ld", mEventCnt);
 				ptimer->kill();
 				mEv->close();
 				reserveFree(ptimer);
 				reserveFree(mEv);
-				dbgd("reserved free objs...");
+				logs("reserved free objs...");
 				nextTest();
 			}
 		}
 
 	};
 
-	dbgd(">>>> Test: ReserveFree, mode=%d", mode);
+	logm(">>>> Test: ReserveFree, mode=%d", mode);
 	fdcheck_start();
 	auto task = new ReserveFreeTest;
 	task->run();
 	task->wait();
 	delete task;
 	fdcheck_end();
-	dbgd("<<<< Reserve Free Test OK\n\n");
+	logm("<<<< Reserve Free Test OK\n\n");
 }
 
-void testMainThreadTask(int mode) {
-	class MainThreadTask: public EdTask {
-		virtual int OnEventProc(EdMsg *pmsg) {
-			if(pmsg->msgid == EDM_INIT) {
-				dbgd("task init event");
+void testMainThreadTask(int mode)
+{
+	class MainThreadTask: public EdTask
+	{
+		virtual int OnEventProc(EdMsg *pmsg)
+		{
+			if (pmsg->msgid == EDM_INIT)
+			{
+				logs("task init event");
 				postMsg(EDM_USER);
 				postExit();
-			} else if(pmsg->msgid == EDM_CLOSE) {
-				dbgd("task close event");
-			} else if(pmsg->msgid == EDM_USER) {
-				dbgd("user event msg");
+			}
+			else if (pmsg->msgid == EDM_CLOSE)
+			{
+				logs("task close event");
+			}
+			else if (pmsg->msgid == EDM_USER)
+			{
+				logs("user event msg");
 			}
 			return 0;
 		}
 	};
 
-	dbgd("== Start main thread task test...");
+	logm("== Start main thread task test...");
 	fdcheck_start();
 	MainThreadTask task;
 	task.runMain(mode);
 	fdcheck_end();
-	dbgd("== End main thread task test...\n\n");
+	logm("== End main thread task test...\n\n");
 }
 
 void testMultiTaskInstance(int mode)
 {
-#define TASK_INSTANCE_NUM 16
-	enum {UM_TASK_START=EDM_USER+1, };
+#define TASK_INSTANCE_NUM 10
+	enum
+	{
+		UM_TASK_START = EDM_USER + 1,
+	};
 	class MultiTestTask: public TestTask
 	{
 
 	public:
-		int mHitCnt;
+		long hitCount;
 
-		u64 getHitCount() {
-			return mHitCnt;
+		u64 getHitCount()
+		{
+			return hitCount;
 		}
 		virtual int OnEventProc(EdMsg* pmsg)
 		{
-			if(pmsg->msgid == EDM_INIT)
+			if (pmsg->msgid == EDM_INIT)
+			{
+				hitCount = 0;
+			}
+			else if (pmsg->msgid == EDM_CLOSE)
 			{
 
 			}
-			else if(pmsg->msgid == EDM_CLOSE)
+			else if (pmsg->msgid == UM_TASK_START)
 			{
-
-			}
-			else if(pmsg->msgid == UM_TASK_START)
-			{
-				class efd : public EdEventFd, public EdTimer::ITimerCb {
+				class efd: public EdEventFd, public EdTimer::ITimerCb
+				{
 					u64 mOnCnt;
 					EdTimer timer;
 					int mId;
 					u32 mStartTime;
 					MultiTestTask* mTask;
 				public:
-					efd(MultiTestTask* ptask) {
+					efd(MultiTestTask* ptask)
+					{
 						mOnCnt = 0;
-						mHitCnt = 0;
 						mId = -1;
 						mTask = ptask;
 					}
-					void start(int id) {
-						dbgd("== Start task, id=%d", id);
+					void start(int id)
+					{
+						logs("== Start task, id=%d", id);
 						mId = id;
 						timer.setOnListener(this);
 						timer.set(1000);
@@ -808,18 +848,20 @@ void testMultiTaskInstance(int mode)
 						raise();
 						mStartTime = EdTime::msecTime();
 					}
-					void OnEventFd(int cnt) {
+					void OnEventFd(int cnt)
+					{
 						mOnCnt++;
-						mTask->mHitCnt += cnt;
+						mTask->hitCount += cnt;
 						raise();
 					}
 
-					void IOnTimerEvent(EdTimer* ptimer) {
+					void IOnTimerEvent(EdTimer* ptimer)
+					{
 						u32 t = EdTime::msecTime();
-						dbgd("[%2d] : end-time=%d, on-count=%ld, hit-count=%ld", mId, t-mStartTime, mOnCnt, mTask->mHitCnt);
+						logs("[%2d] : end-time=%d, on-count=%ld, hit-count=%ld", mId, t - mStartTime, mOnCnt, mTask->hitCount);
 						ptimer->kill();
 						close();
-						dbgd("    end.....");
+						logs("end.....");
 						getCurrentTask()->postExit();
 						delete this;
 
@@ -832,7 +874,7 @@ void testMultiTaskInstance(int mode)
 		}
 	};
 
-	dbgd(">>>> Test: Multi task instance, mode=%d", mode);
+	logm(">>>> Test: Multi task instance, mode=%d", mode);
 	fdcheck_start();
 	MultiTestTask task[TASK_INSTANCE_NUM];
 	for (int i = 0; i < TASK_INSTANCE_NUM; i++)
@@ -841,30 +883,137 @@ void testMultiTaskInstance(int mode)
 		task[i].postMsg(UM_TASK_START, i);
 	}
 
-	int totalhit=0;
+	int totalhit = 0;
 	for (int i = 0; i < TASK_INSTANCE_NUM; i++)
 	{
 		task[i].wait();
 		totalhit += task[i].getHitCount();
 	}
-
+	logm("Total hit count=%ld", totalhit);
 	fdcheck_end();
-	dbgd("<<<< Multi task instance OK");
+	logm("<<<< Multi task instance OK\n\n");
 
 }
 
+void testHttpSever(int mode)
+{
+	class MyController: public EdHttpController
+	{
+		virtual void OnRequest()
+		{
+
+		};
+
+		virtual void OnContentRecvComplete() {
+			;
+		};
+		virtual void OnContentSendComplete() {
+			delete this;
+		};
+		virtual void OnComplete() {
+			// TODO controller complete
+		}
+	};
+
+	class MyHttpTask: public EsHttpTask
+	{
+		EdHttpStringWriter *mWriter;
+		EdHttpStringReader *mReader;
+
+		EdHttpController* OnNewRequest(const char* method, const char* url)
+		{
+			if (!strcmp(method, "GET") && !strcmp(url, "userinfo"))
+			{
+				return new MyController;
+			}
+			else
+			{
+				return NULL;
+			}
+		}
+	};
+
+	class HttpTestTask: public TestTask
+	{
+		EdHttpServer mServer;
+		virtual int OnEventProc(EdMsg* pmsg)
+		{
+			if (pmsg->msgid == EDM_INIT)
+			{
+				mServer.open(80);
+				mServer.addTask<MyHttpTask>(1);
+				mServer.start();
+
+			}
+			else if (pmsg->msgid == EDM_CLOSE)
+			{
+				mServer.close();
+			}
+			return 0;
+		}
+	};
+	logm(">>>> Test: Http Server, mode=%d", mode);
+	fdcheck_start();
+	HttpTestTask task;
+	task.runMain(mode);
+	fdcheck_end();
+	logm("<<<< HttpServer OK\n\n");
+
+}
+
+#include "http/http_parser.h"
 int main()
 {
 
-	EdNioInit();
-	for (int i = 0; i < 2; i++)
+	char t[100] = "name=kim&addr=2323";
+	char* p = t;
+	char *tk;
+	tk = strsep(&p, "=&");
+	tk = strsep(&p, "=&");
+
+	char *urlis[] =
+	{ "UF_SCHEMA", "UF_HOST", "UF_PORT", "UF_PATH", "UF_QUERY", "UF_FRAGMENT", "UF_USERINFO" };
+
+	http_parser_url url;
+	//char raw[] = "http://www.yahoo.co.kr:8080/index.html?name=kim&sec=100";
+	char raw[] = "/index.html?name=kim&sec=100";
+	char temp[200];
+	strcpy(temp, raw);
+	char *host, *path, *para;
+	int ur = http_parser_parse_url(temp, strlen(temp), 0, &url);
+	for (int i = 0; i < UF_MAX; i++)
 	{
-testMultiTaskInstance(i);
-		testreservefree(i);
-		testtimer(i);
-		testMainThreadTask(i);
-		testmsg(i);
-		testcurl(i);
+		if (url.field_set & (1 << i))
+		{
+			string f;
+			f.assign(raw + url.field_data[i].off, url.field_data[i].len);
+			dbgd("url parsing: %s = %s", urlis[i], f.c_str());
+			temp[url.field_data[i].off + url.field_data[i].len] = 0;
+			if (i == UF_HOST)
+			{
+				host = temp + url.field_data[i].off;
+			}
+			else if (i == UF_PATH)
+			{
+				path = temp + url.field_data[i].off;
+			}
+			else if (i == UF_QUERY)
+			{
+				para = temp + url.field_data[i].off;
+			}
+		}
+	}
+
+	EdNioInit();
+	for (int i = 0; i < 1; i++)
+	{
+		testHttpSever(i);
+//		testMultiTaskInstance(1);
+//		testreservefree(i);
+//		testtimer(i);
+//		testMainThreadTask(i);
+//		testmsg(i);
+//		testcurl(i);
 	}
 	return 0;
 }
