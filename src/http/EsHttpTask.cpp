@@ -5,8 +5,8 @@
  *      Author: netmind
  */
 
-#define LOG_LEVEL LOG_DEBUG
-#define TAG "htask"
+#define DBG_LEVEL DBG_DEBUG
+#define DBGTAG "htask"
 
 #include "../edslog.h"
 #include "EsHttpTask.h"

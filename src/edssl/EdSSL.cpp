@@ -13,16 +13,7 @@
 namespace edft
 {
 
-//EdSSL::EdSSL()
-//{
-//	// TODO Auto-generated constructor stub
-//
-//}
-//
-//EdSSL::~EdSSL()
-//{
-//	// TODO Auto-generated destructor stub
-//}
+
 
 SSL_CTX* EdSSL::buildServerCtx(int sslmethod, const char* certfile, const char* privkeyfile)
 {

@@ -11,16 +11,6 @@
 namespace edft
 {
 
-EdTime::EdTime()
-{
-	// TODO Auto-generated constructor stub
-
-}
-
-EdTime::~EdTime()
-{
-	// TODO Auto-generated destructor stub
-}
 
 u32 EdTime::msecTime()
 {

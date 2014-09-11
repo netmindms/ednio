@@ -14,7 +14,7 @@
 #include <unordered_map>
 
 #include "EsHttpBodyStream.h"
-#include "EdHttpMsg.h"
+#include "EsHttpMsg.h"
 #include "http_parser.h"
 
 using namespace std;

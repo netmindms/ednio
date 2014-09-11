@@ -5,8 +5,8 @@
  *      Author: netmind
  */
 
-#define TAG "htcnn"
-#define LOG_LEVEL LOG_DEBUG
+#define DBGTAG "htcnn"
+#define DBG_LEVEL DBG_DEBUG
 #include <stack>
 #include <unordered_map>
 #include "../edslog.h"
@@ -14,7 +14,7 @@
 #include "EsHttpTask.h"
 #include "http_parser.h"
 #include "../EsFile.h"
-#include "EdHttpMsg.h"
+#include "EsHttpMsg.h"
 #include "EdHttp.h"
 #include "EsHttpBodyStream.h"
 
@@ -338,7 +338,7 @@ bool EsHttpCnn::transmitResponse(EsHttpTrans* ptrans)
 	// Date header
 	es_get_httpDate(tmp);
 	resp->addHdr(HTTPHDR_DATE, tmp);
-	resp->addHdr(HTTPHDR_SERVER, "ESEV/0.2.0");
+	resp->addHdr(HTTPHDR_SERVER, "EDNIO/0.2.0");
 	if (body != NULL)
 	{
 		char tmp[100];

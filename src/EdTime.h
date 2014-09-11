@@ -17,13 +17,8 @@ namespace edft
 class EdTime
 {
 public:
-	EdTime();
-	virtual ~EdTime();
-
-
 	static u32 msecTime();
-private:
-	static u32 mStartMsec;
+
 };
 
 } /* namespace edft */

@@ -19,7 +19,7 @@ enum {
 	UV_START = EDM_USER+1,
 };
 
-class EsHttpServer: public EdTask, public EdSocket::ISocketCb
+class EsHttpServer: public EdSocket::ISocketCb
 {
 public:
 	EsHttpServer();
