@@ -18,7 +18,7 @@
 #include "http_parser.h"
 
 using namespace std;
-using namespace edft;
+namespace edft {
 
 class EsHttpCnn;
 class IUriControllerCb;
@@ -70,5 +70,5 @@ private:
 	IUriControllerCb *mController;
 };
 
-
+} // namespace edft
 #endif /* ESHTTPTRANS_H_ */

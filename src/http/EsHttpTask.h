@@ -8,18 +8,21 @@
 #ifndef ESHTTPTASK_H_
 #define ESHTTPTASK_H_
 
-#include "../EsHandleManager.h"
-#include "../EdTask.h"
-#include "EsHttpTrans.h"
-#include "EsHttpCnn.h"
-
-
 #include <string>
 #include <unordered_map>
+
+#include "../EsHandleManager.h"
+#include "../EdTask.h"
+#include "../EdObjList.h"
+#include "EsHttpTrans.h"
+#include "EsHttpCnn.h"
+#include "EdHttpController.h"
+
+
 #include "IUriController.h"
 
 using namespace std;
-using namespace edft;
+namespace edft {
 
 enum {
 	UV_HTTPCNN=EDM_USER+1,
@@ -37,15 +40,18 @@ public:
 
 	virtual int OnEventProc(EdMsg* pmsg);
 	virtual void IOnSocketEvent(EdSocket *psock, int event);
+	virtual EdHttpController* OnNewRequest(const char *method, const char *url);
 
 public:
 	void setController(char* uri, IUriControllerCb *cb);
 
 private:
-	EsHandleManager<EsHttpCnn> mCnns;
+	//EsHandleManager<EsHttpCnn> mCnns;
+	EdObjList<EsHttpCnn> mCnns;
 	unordered_map<string, IUriControllerCb*> mContMap;
 	IUriControllerCb* getController(string* uri);
 };
 
+} // namespae edft
 
 #endif /* ESHTTPTASK_H_ */

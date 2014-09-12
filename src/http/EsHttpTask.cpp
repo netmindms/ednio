@@ -11,9 +11,12 @@
 #include "../edslog.h"
 #include "EsHttpTask.h"
 
+namespace edft {
+
+
 __thread EsHttpTask *_tHttpTask=NULL;
 
-EsHttpTask::EsHttpTask() : mCnns(100)
+EsHttpTask::EsHttpTask()
 {
 
 }
@@ -36,17 +39,11 @@ int EsHttpTask::OnEventProc(EdMsg* pmsg)
 	else if (pmsg->msgid == UV_HTTPCNN)
 	{
 		dbgd("new htt cnn...fd=%d", pmsg->p1);
-		u32 hcnn = mCnns.allocHandle();
-		EsHttpCnn* pcnn = mCnns.getObject(hcnn);
-		if(!pcnn)
-		{
-			dbgd("alloc cnn object...");
-			pcnn = new EsHttpCnn();
-			mCnns.setObject(hcnn, pcnn);
-			pcnn->setOnListener(this);
-		}
-		//mCnns.setObject(hcnn, pcnn);
-		pcnn->initCnn(pmsg->p1, hcnn, this);
+		//u32 hcnn = mCnns.allocHandle();
+		EsHttpCnn* pcnn = mCnns.allocObj();
+		dbgd("alloc cnn object...");
+		pcnn->setOnListener(this);
+		pcnn->initCnn(pmsg->p1, 0, this);
 	}
 
 	return 0;
@@ -63,8 +60,7 @@ void EsHttpTask::IOnSocketEvent(EdSocket* psock, int event)
 	{
 		dbgd("sock disconneted...fd=%d", psock->getFd());
 		pcnn->procDisconnected();
-		mCnns.freeHandle(pcnn->mHandle);
-
+		mCnns.freeObj(pcnn);
 	}
 }
 
@@ -86,3 +82,10 @@ IUriControllerCb* EsHttpTask::getController(string* uri)
 		return NULL;
 	}
 }
+
+EdHttpController* EsHttpTask::OnNewRequest(const char* method, const char* url)
+{
+	return NULL;
+}
+
+} // namespace edft

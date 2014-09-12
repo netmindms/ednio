@@ -5,8 +5,8 @@
  *      Author: khkim
  */
 
-#define LOG_LEVEL LOG_DEBUG
-#define TAG "htran"
+#define DBG_LEVEL DBG_DEBUG
+#define DBGTAG "httrs"
 
 #include <string.h>
 
@@ -18,6 +18,8 @@
 
 #include "EsHttpCnn.h"
 #include "EsHttpTextBody.h"
+
+namespace edft {
 
 EsHttpTrans::EsHttpTrans(u32 handle, EsHttpCnn *pcnn)
 {
@@ -188,3 +190,5 @@ int EsHttpTrans::transmitRespStream()
 	else
 		return -1;
 }
+
+} // namespace edft

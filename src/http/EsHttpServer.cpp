@@ -11,6 +11,9 @@
 #include "../edslog.h"
 #include "EsHttpServer.h"
 
+namespace edft {
+
+
 EsHttpServer::EsHttpServer()
 {
 	mSvcCount = 0;
@@ -35,10 +38,31 @@ void EsHttpServer::IOnSocketEvent(EdSocket* psock, int event)
 	}
 }
 
+int EsHttpServer::open(int port)
+{
+	mSvrSock.setOnListener(this);
+	int ret = mSvrSock.listenSock(port);
+	if(ret != 0)
+	{
+		dbge("### server listen port open fail, ret=%d");
+	}
+	return ret;
+}
+
+void EsHttpServer::close()
+{
+	mSvrSock.close();
+}
+
+#if 0
 void EsHttpServer::addService(EsHttpTask* ptask)
 {
 	mSvcMutex.lock();
 	mSvcList[mSvcCount++] = ptask;
 	ptask->run();
 	mSvcMutex.unlock();
+}
+#endif
+
+
 }

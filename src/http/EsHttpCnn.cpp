@@ -18,6 +18,7 @@
 #include "EdHttp.h"
 #include "EsHttpBodyStream.h"
 
+namespace edft {
 EsHttpCnn::EsHttpCnn()
 {
 	dbgd("http cnn const......");
@@ -124,20 +125,20 @@ int EsHttpCnn::body_cb(http_parser* parser, const char *at, size_t length)
 int EsHttpCnn::msg_begin(http_parser* parser)
 {
 	EsHttpCnn *pcnn = (EsHttpCnn*) parser->data;
-	return pcnn->msgBeginCb(parser);
+	return pcnn->dgMsgBeginCb(parser);
 
 }
 
 int EsHttpCnn::msg_end(http_parser* parser)
 {
 	EsHttpCnn *pcnn = (EsHttpCnn*) parser->data;
-	return pcnn->msgEndCb(parser);
+	return pcnn->dgMsgEndCb(parser);
 }
 
 int EsHttpCnn::on_url(http_parser* parser, const char* at, size_t length)
 {
 	EsHttpCnn *pcnn = (EsHttpCnn*) parser->data;
-	return pcnn->urlCb(parser, at, length);
+	return pcnn->dgUrlCb(parser, at, length);
 }
 
 int EsHttpCnn::on_headers_complete(http_parser* parser)
@@ -153,7 +154,7 @@ int EsHttpCnn::headerNameCb(http_parser*, const char* at, size_t length)
 	//dbgd("name cb, %s", tmp.c_str());
 	if (mPs == PS_FIRST_LINE)
 	{
-		procUrl();
+		procReqLine();
 	}
 
 	if (mIsHdrVal)
@@ -216,7 +217,7 @@ int EsHttpCnn::bodyDataCb(http_parser*, const char* at, size_t length)
 	return 0;
 }
 
-int EsHttpCnn::msgBeginCb(http_parser* parser)
+int EsHttpCnn::dgMsgBeginCb(http_parser* parser)
 {
 	mPs = PS_FIRST_LINE;
 
@@ -233,13 +234,13 @@ int EsHttpCnn::msgBeginCb(http_parser* parser)
 	return 0;
 }
 
-int EsHttpCnn::msgEndCb(http_parser*)
+int EsHttpCnn::dgMsgEndCb(http_parser*)
 {
 
 	return 0;
 }
 
-int EsHttpCnn::urlCb(http_parser* parser, const char* at, size_t length)
+int EsHttpCnn::dgUrlCb(http_parser* parser, const char* at, size_t length)
 {
 	if (mCurUrl == NULL)
 		mCurUrl = new string(at, length);
@@ -270,10 +271,11 @@ void EsHttpCnn::procHeader()
 	mCurHdrName = mCurHdrVal = NULL;
 }
 
-void EsHttpCnn::procUrl()
+void EsHttpCnn::procReqLine()
 {
 	dbgd("url = %s", mCurUrl->c_str());
 	mPs = PS_HEADER;
+	EdHttpController* pctl = mTask->OnNewRequest(http_method_str((http_method)mParser.method), mCurUrl->c_str());
 }
 
 void EsHttpCnn::sendResponse(EsHttpTrans* ptrans)
@@ -375,3 +377,5 @@ void EsHttpCnn::freeTrans(EsHttpTrans* ptrans)
 {
 
 }
+
+} // namespace edft

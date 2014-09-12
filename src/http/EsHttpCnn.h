@@ -20,6 +20,8 @@
 
 using namespace std;
 
+namespace edft {
+
 
 enum PARSER_STATUS_E {
 	PS_FIRST_LINE,
@@ -60,15 +62,16 @@ private:
 	static int body_cb(http_parser*, const char *at, size_t length);
 	int bodyDataCb(http_parser*, const char *at, size_t length);
 	static int msg_begin(http_parser* parser);
-	int msgBeginCb(http_parser* parser);
+	int dgMsgBeginCb(http_parser* parser);
 	static int msg_end(http_parser*);
-	int msgEndCb(http_parser*);
+	int dgMsgEndCb(http_parser*);
 	static int on_url(http_parser *parser, const char *at, size_t length);
-	int urlCb(http_parser *parser, const char *at, size_t length);
+	int dgUrlCb(http_parser *parser, const char *at, size_t length);
 	static int on_status(http_parser *parser, const char *at, size_t length);
 	int statusCb(http_parser *parser, const char *at, size_t length);
 	void procHeader();
-	void procUrl();
+	void procReqLine();
+
 	void sendResponse(EsHttpTrans* ptrans);
 	void transmitReserved();
 	bool transmitResponse(EsHttpTrans* ptrans);
@@ -107,5 +110,7 @@ private:
 
 
 };
+
+} // namespace edft
 
 #endif /* ESHTTPCNN_H_ */

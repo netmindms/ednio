@@ -13,7 +13,7 @@
 #include "EsHttpTask.h"
 
 
-using namespace edft;
+namespace edft {
 
 enum {
 	UV_START = EDM_USER+1,
@@ -24,17 +24,32 @@ class EsHttpServer: public EdSocket::ISocketCb
 public:
 	EsHttpServer();
 	virtual ~EsHttpServer();
-	virtual int OnEventProc(EdMsg* pmsg);
+	//virtual int OnEventProc(EdMsg* pmsg);
 	virtual void IOnSocketEvent(EdSocket *psock, int event);
 
-	EdSocket mSvrSock;
+	template<typename T>	void addService(int num=1)
+	{
+		mSvcMutex.lock();
+		for(int i=0;i<num;i++)
+		{
+			EsHttpTask *ptask = new T;
+			ptask->run();
+			mSvcList[mSvcCount++] = ptask;
+		}
+		mSvcMutex.unlock();
+	}
 
-	void addService(EsHttpTask* ptask);
+	int open(int port);
+	void close();
+
 private:
 	EdMutex mSvcMutex;
+	EdSocket mSvrSock;
 	EsHttpTask *mSvcList[100];
 	int mSvcCount;
 	int mSvcRound;
 };
+
+} // namespace edft
 
 #endif /* ESHTTPSERVER_H_ */

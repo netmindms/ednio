@@ -9,6 +9,7 @@
 #define EDHTTPCONTROLLER_H_
 
 #include "../EdEventFd.h"
+#include "EdHttpWriter.h"
 
 namespace edft
 {
@@ -23,6 +24,11 @@ public:
 	virtual void OnContentSendComplete();
 	virtual void OnComplete();
 	void close();
+	void setReqBodyWriter(EdHttpWriter* writer);
+	void setHttpResult(const char *code);
+
+private:
+	EdHttpWriter* mWriter;
 
 };
 
