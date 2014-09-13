@@ -88,4 +88,16 @@ EdHttpController* EsHttpTask::OnNewRequest(const char* method, const char* url)
 	return NULL;
 }
 
+
+EdHttpController* EsHttpTask::getRegController(const char* url)
+{
+	try {
+		__alloc_controller allocf = mAllocMap.at(url);
+		return allocf();
+	} catch(out_of_range &e)
+	{
+		return NULL;
+	}
+}
+
 } // namespace edft

@@ -46,18 +46,19 @@ public:
 		mUrlMap[url] = pctrl;
 	};
 
+	typedef EdHttpController* (*__alloc_controller)();
 
 public:
 	void setController(char* uri, IUriControllerCb *cb);
 
 	template<typename T>
-	void regController(const char* url) {
+	void regController(const char* url, bool singletone=false) {
 
 		class __defalloc {
 		public:
 			static T* alloc() { return new T; }
 		};
-		mAllocMap[url] = (void*)__defalloc::alloc;
+		mAllocMap[url] = (__alloc_controller)__defalloc::alloc;
 	};
 
 private:
@@ -66,7 +67,8 @@ private:
 	unordered_map<string, IUriControllerCb*> mContMap;
 	IUriControllerCb* getController(string* uri);
 	unordered_map<string, EdHttpController*> mUrlMap;
-	unordered_map<string, void*> mAllocMap;
+	unordered_map<string, __alloc_controller> mAllocMap;
+	EdHttpController* getRegController(const char *url);
 };
 
 } // namespae edft

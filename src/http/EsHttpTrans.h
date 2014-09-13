@@ -15,6 +15,7 @@
 
 #include "EsHttpBodyStream.h"
 #include "EsHttpMsg.h"
+#include "EdHttpController.h"
 #include "http_parser.h"
 
 using namespace std;
@@ -68,6 +69,7 @@ private:
 	EsHttpBodyStream *mUserBodyStream;
 
 	IUriControllerCb *mController;
+	EdHttpController* mUrlCtrl;
 };
 
 } // namespace edft

@@ -17,6 +17,7 @@ EdHttpController::EdHttpController()
 {
 	// TODO Auto-generated constructor stub
 	mWriter = NULL;
+	mReader = NULL;
 }
 
 EdHttpController::~EdHttpController()
@@ -62,6 +63,18 @@ void EdHttpController::setReqBodyWriter(EdHttpWriter* writer)
 
 void EdHttpController::setHttpResult(const char* code)
 {
+}
+
+void EdHttpController::setRespBodyReader(EdHttpReader* reader)
+{
+	if(mReader == NULL)
+	{
+		mReader = reader;
+	}
+	else
+	{
+		dbge("### Body reader already set...");
+	}
 }
 
 } /* namespace edft */

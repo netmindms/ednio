@@ -219,6 +219,8 @@ int EsHttpCnn::bodyDataCb(http_parser*, const char* at, size_t length)
 
 int EsHttpCnn::dgMsgBeginCb(http_parser* parser)
 {
+	assert(mCurTrans == NULL);
+
 	mPs = PS_FIRST_LINE;
 
 	mIsHdrVal = false;
@@ -275,7 +277,10 @@ void EsHttpCnn::procReqLine()
 {
 	dbgd("url = %s", mCurUrl->c_str());
 	mPs = PS_HEADER;
-	EdHttpController* pctl = mTask->OnNewRequest(http_method_str((http_method)mParser.method), mCurUrl->c_str());
+	//EdHttpController* pctl = mTask->OnNewRequest(http_method_str((http_method)mParser.method), mCurUrl->c_str());
+	EdHttpController* pctl = mTask->getRegController(mCurUrl->c_str());
+	mCurTrans->mUrlCtrl = pctl;
+	pctl->OnRequest();
 }
 
 void EsHttpCnn::sendResponse(EsHttpTrans* ptrans)

@@ -10,6 +10,7 @@
 
 #include "../EdEventFd.h"
 #include "EdHttpWriter.h"
+#include "EdHttpReader.h"
 
 namespace edft
 {
@@ -26,9 +27,10 @@ public:
 	void close();
 	void setReqBodyWriter(EdHttpWriter* writer);
 	void setHttpResult(const char *code);
-
+	void setRespBodyReader(EdHttpReader* reader);
 private:
 	EdHttpWriter* mWriter;
+	EdHttpReader* mReader;
 
 };
 

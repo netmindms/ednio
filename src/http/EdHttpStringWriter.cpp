@@ -20,7 +20,7 @@ EdHttpStringWriter::~EdHttpStringWriter()
 
 }
 
-int EdHttpStringWriter::Write(void* buf, int len)
+long EdHttpStringWriter::Write(void* buf, long len)
 {
 	mString.append((char*)buf, len);
 	return len;

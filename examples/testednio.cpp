@@ -895,39 +895,124 @@ void testMultiTaskInstance(int mode)
 
 }
 
-void testHttpSever(int mode)
+
+void testHttpBase(int mode)
 {
-	class MyController: public EdHttpController
+	enum
 	{
-		virtual void OnRequest()
+		TS_STRING_READER = EDM_USER + 1,
+	};
+	class BaseHttp: public TestTask
+	{
+		EdHttpStringReader mReader;
+
+		virtual int OnEventProc(EdMsg* pmsg)
 		{
+			if (pmsg->msgid == EDM_INIT)
+			{
 
-		};
+				addTest(TS_STRING_READER);
+				nextTest();
+			}
+			else if (pmsg->msgid == EDM_CLOSE)
+			{
 
-		virtual void OnContentRecvComplete() {
-			;
-		};
-		virtual void OnContentSendComplete() {
+			}
+			else if (pmsg->msgid == TS_STRING_READER)
+			{
+				long rdcnt;
+				char data[] = "0123456789";
+				char buf[100];
+				long count=0;
+				mReader.setString(data);
+				rdcnt = 0;
+				count = 0;
 
-		};
-		virtual void OnComplete() {
-			// TODO controller complete
-			delete this;
+				rdcnt = mReader.Read(buf+count, 3);
+				assert(rdcnt == 3);
+				count += rdcnt;
+
+				rdcnt = mReader.Read(buf+count, 3);
+				assert(rdcnt == 3);
+				count += rdcnt;
+
+				rdcnt = mReader.Read(buf+count, 3);
+				assert(rdcnt == 3);
+				count += rdcnt;
+
+				rdcnt = mReader.Read(buf+count, 3);
+				assert(rdcnt == 1);
+				count += rdcnt;
+
+				rdcnt = mReader.Read(buf+count, 3);
+				assert(rdcnt == -1);
+
+				if(memcmp(data, buf, strlen(data))) {
+					logs("### Fail: string reader no data match");
+					assert(0);
+				}
+
+				nextTest();
+			}
+
+			return 0;
 		}
 	};
+
+	logm(">>>> Test: Base Http , mode=%d", mode);
+	fdcheck_start();
+	BaseHttp task;
+	task.runMain(mode);
+	fdcheck_end();
+	logm("<<<< Base Http OK\n\n");
+}
+
+void testHttpSever(int mode)
+{
+	class MyHttpTask;
+	class MyController;
+	/*
+	 class MyUserDataUrl: public EdHttpController
+	 {
+	 public:
+	 MyUserDataUrl() {
+	 logs("MyUserData const.....");
+	 }
+	 virtual void OnRequest()
+	 {
+
+	 };
+
+	 virtual void OnContentRecvComplete() {
+	 ;
+	 };
+	 virtual void OnContentSendComplete() {
+
+	 };
+	 virtual void OnComplete() {
+	 // TODO controller complete
+	 delete this;
+	 }
+	 };
+	 */
 
 	class MyHttpTask: public EsHttpTask
 	{
 		EdHttpStringWriter *mWriter;
 		EdHttpStringReader *mReader;
+	public:
+
 		virtual int OnEventProc(EdMsg* pmsg)
 		{
 			int ret = EsHttpTask::OnEventProc(pmsg);
-			if(pmsg->msgid == EDM_INIT) {
+			if (pmsg->msgid == EDM_INIT)
+			{
 				regController<MyController>("/userinfo");
+				//regController<MyUserDataUrl>("/userdata");
 			}
+			return ret;
 		}
-
+#if 0
 		EdHttpController* OnNewRequest(const char* method, const char* url)
 		{
 			if (!strcmp(method, "GET") && !strcmp(url, "userinfo"))
@@ -939,6 +1024,56 @@ void testHttpSever(int mode)
 				return NULL;
 			}
 		}
+#endif
+	};
+
+	class MyController: public EdHttpController, public EdTimer::ITimerCb
+	{
+		EdHttpStringReader *mStrReader;
+		EdTimer mTimer;
+		MyHttpTask *mMyTask;
+	public:
+		MyController()
+		{
+			mStrReader = NULL;
+			mMyTask = (MyHttpTask*) getCurrentTask();
+			logs("mycont const.....");
+		}
+		virtual void OnRequest()
+		{
+			logs("after 100msec, send response...");
+			mTimer.setOnListener(this);
+			mTimer.set(100);
+		}
+
+		virtual void OnContentRecvComplete()
+		{
+			;
+		}
+		;
+		virtual void OnContentSendComplete()
+		{
+			delete mStrReader;
+			mStrReader = NULL;
+		}
+		;
+		virtual void OnComplete()
+		{
+			// TODO controller complete
+			logs("http complete...");
+			delete this;
+		}
+
+		virtual void IOnTimerEvent(EdTimer* ptimer)
+		{
+			logs("send response,...");
+			ptimer->kill();
+			mStrReader = new EdHttpStringReader;
+			mStrReader->setString("Hello, ednio http service....");
+			setRespBodyReader(mStrReader);
+			setHttpResult("200");
+		}
+
 	};
 
 	class HttpTestTask: public TestTask
@@ -948,8 +1083,11 @@ void testHttpSever(int mode)
 		{
 			if (pmsg->msgid == EDM_INIT)
 			{
-				mServer.open(9090);
-				mServer.addService<MyHttpTask>(1);
+				int port = 9090;
+				int task_inst = 1;
+				logs("server open, port=%d, task-instance=%d", port, task_inst);
+				mServer.open(port);
+				mServer.addService<MyHttpTask>(task_inst);
 
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
@@ -968,6 +1106,7 @@ void testHttpSever(int mode)
 
 }
 
+
 #include "http/http_parser.h"
 int main()
 {
@@ -979,7 +1118,7 @@ int main()
 	tk = strsep(&p, "=&");
 
 	char *urlis[] =
-	{ "UF_SCHEMA", "UF_HOST", "UF_PORT", "UF_PATH", "UF_QUERY", "UF_FRAGMENT", "UF_USERINFO" };
+	{	"UF_SCHEMA", "UF_HOST", "UF_PORT", "UF_PATH", "UF_QUERY", "UF_FRAGMENT", "UF_USERINFO"};
 
 	http_parser_url url;
 	//char raw[] = "http://www.yahoo.co.kr:8080/index.html?name=kim&sec=100";
@@ -1012,11 +1151,11 @@ int main()
 	}
 #endif
 
-
 	EdNioInit();
 	for (int i = 0; i < 1; i++)
 	{
-		testHttpSever(i);
+		testHttpBase(i);
+//		testHttpSever(i);
 //		testMultiTaskInstance(1);
 //		testreservefree(i);
 //		testtimer(i);
