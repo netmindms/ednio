@@ -18,11 +18,11 @@
 #include "EdTime.h"
 #include "edcurl/EdCurl.h"
 #include "edcurl/EdMultiCurl.h"
-#include "http/EdHttpServer.h"
 #include "http/EdHttpWriter.h"
 #include "http/EdHttpTask.h"
 #include "http/EdHttpStringReader.h"
 #include "http/EdHttpStringWriter.h"
+#include "http/EsHttpServer.h"
 #include "http/EsHttpTask.h"
 
 void levlog(int lev, const char *tagid, int line, const char *fmtstr, ...)
@@ -908,10 +908,11 @@ void testHttpSever(int mode)
 			;
 		};
 		virtual void OnContentSendComplete() {
-			delete this;
+
 		};
 		virtual void OnComplete() {
 			// TODO controller complete
+			delete this;
 		}
 	};
 
@@ -919,6 +920,13 @@ void testHttpSever(int mode)
 	{
 		EdHttpStringWriter *mWriter;
 		EdHttpStringReader *mReader;
+		virtual int OnEventProc(EdMsg* pmsg)
+		{
+			int ret = EsHttpTask::OnEventProc(pmsg);
+			if(pmsg->msgid == EDM_INIT) {
+				regController<MyController>("/userinfo");
+			}
+		}
 
 		EdHttpController* OnNewRequest(const char* method, const char* url)
 		{
@@ -935,14 +943,13 @@ void testHttpSever(int mode)
 
 	class HttpTestTask: public TestTask
 	{
-		EdHttpServer mServer;
+		EsHttpServer mServer;
 		virtual int OnEventProc(EdMsg* pmsg)
 		{
 			if (pmsg->msgid == EDM_INIT)
 			{
-				mServer.open(80);
-				mServer.addTask<MyHttpTask>(1);
-				mServer.start();
+				mServer.open(9090);
+				mServer.addService<MyHttpTask>(1);
 
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
@@ -964,7 +971,7 @@ void testHttpSever(int mode)
 #include "http/http_parser.h"
 int main()
 {
-
+#if 0
 	char t[100] = "name=kim&addr=2323";
 	char* p = t;
 	char *tk;
@@ -1003,6 +1010,8 @@ int main()
 			}
 		}
 	}
+#endif
+
 
 	EdNioInit();
 	for (int i = 0; i < 1; i++)

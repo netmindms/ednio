@@ -41,15 +41,32 @@ public:
 	virtual int OnEventProc(EdMsg* pmsg);
 	virtual void IOnSocketEvent(EdSocket *psock, int event);
 	virtual EdHttpController* OnNewRequest(const char *method, const char *url);
+	template<typename T> void addInCtrl(const char* method, const char *url) {
+		T* pctrl = new T;
+		mUrlMap[url] = pctrl;
+	};
+
 
 public:
 	void setController(char* uri, IUriControllerCb *cb);
+
+	template<typename T>
+	void regController(const char* url) {
+
+		class __defalloc {
+		public:
+			static T* alloc() { return new T; }
+		};
+		mAllocMap[url] = (void*)__defalloc::alloc;
+	};
 
 private:
 	//EsHandleManager<EsHttpCnn> mCnns;
 	EdObjList<EsHttpCnn> mCnns;
 	unordered_map<string, IUriControllerCb*> mContMap;
 	IUriControllerCb* getController(string* uri);
+	unordered_map<string, EdHttpController*> mUrlMap;
+	unordered_map<string, void*> mAllocMap;
 };
 
 } // namespae edft
