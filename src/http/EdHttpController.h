@@ -9,14 +9,21 @@
 #define EDHTTPCONTROLLER_H_
 
 #include "../EdEventFd.h"
+#include "EsHttpMsg.h"
 #include "EdHttpWriter.h"
 #include "EdHttpReader.h"
+
 
 namespace edft
 {
 
+
+
+class EsHttpCnn;
+
 class EdHttpController : public EdEventFd
 {
+	friend class EsHttpCnn;
 public:
 	EdHttpController();
 	virtual ~EdHttpController();
@@ -28,10 +35,32 @@ public:
 	void setReqBodyWriter(EdHttpWriter* writer);
 	void setHttpResult(const char *code);
 	void setRespBodyReader(EdHttpReader* reader);
+	const char* getReqHeader(char* name);
+	long getReqContentLen();
+
+
 private:
 	EdHttpWriter* mWriter;
 	EdHttpReader* mReader;
+	//EsHttpTrans* mTrans;
+	EsHttpCnn* mCnn;
+	EsHttpMsg mReqMsg;
+	EsHttpMsg mRespMsg;
+	int mEncHeaderSize;
+	int mEncHeaderReadCnt;
+	char mStatusCode[4];
+	bool mIsResponsed;
+	char* mRespHeaderStream;
 
+	void setConnection(EsHttpCnn* pcnn);
+	void addReqHeader(string* name, string* val);
+	void setUrl(string *url);
+	void sendResp(char* code, void *textbody, int len, char* cont_type);
+
+	void encodeResp();
+	int getRespEncodeStream(void* buf, int len);
+	int transmitRespStream();
+	int getStreamData(void *buf);
 };
 
 } /* namespace edft */

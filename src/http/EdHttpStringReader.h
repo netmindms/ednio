@@ -25,11 +25,13 @@ public:
 	virtual long getSize();
 	void setString(string *s);
 	void setString(const char* ptr);
+	void takeString(string *s);
 
 private:
 	void* mBuf;
 	long mReadIdx;
 	long mSize;
+	string *mTakenString;
 };
 
 } /* namespace edft */

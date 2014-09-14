@@ -58,7 +58,7 @@ private:
 	static int head_val_cb(http_parser*, const char *at, size_t length);
 	int headerValCb(http_parser*, const char *at, size_t length);
 	static int on_headers_complete(http_parser *parser);
-	int headerCompCb(http_parser *parser);
+	int dgHeaderComp(http_parser *parser);
 	static int body_cb(http_parser*, const char *at, size_t length);
 	int bodyDataCb(http_parser*, const char *at, size_t length);
 	static int msg_begin(http_parser* parser);
@@ -84,7 +84,7 @@ private:
 	int mBufSize;
 	char *mReadBuf;
 	EsHttpTrans *mCurTrans;
-
+	EdHttpController* mCurCtrl;
 
 	union {
 		struct {

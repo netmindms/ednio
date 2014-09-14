@@ -23,14 +23,22 @@ EdHttpStringReader::EdHttpStringReader()
 	// TODO Auto-generated constructor stub
 	mReadIdx = mSize = 0;
 	mBuf = NULL;
+	mTakenString = NULL;
 }
 
 EdHttpStringReader::~EdHttpStringReader()
 {
 	// TODO Auto-generated destructor stub
-	if(mBuf != NULL)
+	if(mTakenString == NULL)
 	{
-		free(mBuf);
+		if(mBuf != NULL)
+		{
+			free(mBuf);
+		}
+	}
+	else
+	{
+		delete mTakenString;
 	}
 }
 
@@ -78,6 +86,15 @@ void EdHttpStringReader::setString(const char* ptr)
 	{
 		memcpy(mBuf, ptr, mSize);
 	}
+}
+
+
+void EdHttpStringReader::takeString(string* s)
+{
+	mTakenString = s;
+	mReadIdx = 0;
+	mBuf = (char*)(s->c_str());
+	mSize = s->size();
 }
 
 } /* namespace edft */

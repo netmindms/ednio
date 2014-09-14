@@ -93,7 +93,8 @@ EdHttpController* EsHttpTask::getRegController(const char* url)
 {
 	try {
 		__alloc_controller allocf = mAllocMap.at(url);
-		return allocf();
+		EdHttpController* ptr = allocf();
+		return ptr;
 	} catch(out_of_range &e)
 	{
 		return NULL;

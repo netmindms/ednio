@@ -8,11 +8,13 @@
 #ifndef ESHTTPTRANS_H_
 #define ESHTTPTRANS_H_
 
+#include "../config.h"
 
 #include <string>
 #include <stdexcept>
 #include <unordered_map>
 
+#include "../EdType.h"
 #include "EsHttpBodyStream.h"
 #include "EsHttpMsg.h"
 #include "EdHttpController.h"
@@ -27,6 +29,8 @@ class IUriControllerCb;
 class EsHttpTrans
 {
 	friend class EsHttpCnn;
+	friend class EdHttpController;
+
 public:
 	EsHttpTrans(u32 handle, EsHttpCnn *pcnn);
 	virtual ~EsHttpTrans();

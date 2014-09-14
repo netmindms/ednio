@@ -42,6 +42,8 @@ EsHttpCnn::EsHttpCnn()
 
 	mBufSize = 8 * 1024;
 	mReadBuf = (char*) malloc(mBufSize);
+
+	mCurCtrl = NULL;
 }
 
 EsHttpCnn::~EsHttpCnn()
@@ -144,7 +146,7 @@ int EsHttpCnn::on_url(http_parser* parser, const char* at, size_t length)
 int EsHttpCnn::on_headers_complete(http_parser* parser)
 {
 	EsHttpCnn *pcnn = (EsHttpCnn*) parser->data;
-	return pcnn->headerCompCb(parser);
+	return pcnn->dgHeaderComp(parser);
 
 }
 
@@ -183,7 +185,7 @@ int EsHttpCnn::headerValCb(http_parser*, const char* at, size_t length)
 
 }
 
-int EsHttpCnn::headerCompCb(http_parser* parser)
+int EsHttpCnn::dgHeaderComp(http_parser* parser)
 {
 	if (mIsHdrVal)
 	{
@@ -191,6 +193,8 @@ int EsHttpCnn::headerCompCb(http_parser* parser)
 		procHeader();
 		mIsHdrVal = false;
 	}
+
+	mCurCtrl->OnRequest();
 
 	IUriControllerCb *cb = mTask->getController(mCurUrl);
 	if (cb)
@@ -278,9 +282,8 @@ void EsHttpCnn::procReqLine()
 	dbgd("url = %s", mCurUrl->c_str());
 	mPs = PS_HEADER;
 	//EdHttpController* pctl = mTask->OnNewRequest(http_method_str((http_method)mParser.method), mCurUrl->c_str());
-	EdHttpController* pctl = mTask->getRegController(mCurUrl->c_str());
-	mCurTrans->mUrlCtrl = pctl;
-	pctl->OnRequest();
+	mCurCtrl = mTask->getRegController(mCurUrl->c_str());
+
 }
 
 void EsHttpCnn::sendResponse(EsHttpTrans* ptrans)
