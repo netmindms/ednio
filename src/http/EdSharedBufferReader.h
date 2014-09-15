@@ -8,8 +8,13 @@
 #ifndef EDSHAREDBUFFERREADER_H_
 #define EDSHAREDBUFFERREADER_H_
 
+#include "../config.h"
+
+#include <string.h>
 #include <algorithm>
 #include "EdHttpReader.h"
+
+using namespace std;
 
 namespace edft
 {

@@ -35,7 +35,7 @@ class EsHttpCnn : public EdSocket
 {
 	friend class EsHttpTask;
 	friend class EsHttpTrans;
-
+	friend class EdHttpController;
 public:
 	EsHttpCnn();
 	virtual ~EsHttpCnn();
@@ -75,8 +75,10 @@ private:
 	void sendResponse(EsHttpTrans* ptrans);
 	void transmitReserved();
 	bool transmitResponse(EsHttpTrans* ptrans);
+	void scheduleSending(EdHttpController* pctrl);
 	EsHttpTrans* allocTrans();
 	void freeTrans(EsHttpTrans* ptrans);
+	int sendHttpPakcet(void* buf, int size);
 
 private:
 	EsHttpTask* mTask;
@@ -85,6 +87,7 @@ private:
 	char *mReadBuf;
 	EsHttpTrans *mCurTrans;
 	EdHttpController* mCurCtrl;
+	EdHttpController* mCurSendCtrl;
 
 	union {
 		struct {

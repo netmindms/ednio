@@ -386,4 +386,20 @@ void EsHttpCnn::freeTrans(EsHttpTrans* ptrans)
 
 }
 
+
+int EsHttpCnn::sendHttpPakcet(void* buf, int size)
+{
+	return send(buf, size);
+}
+
+
+void EsHttpCnn::scheduleSending(EdHttpController* pctrl)
+{
+	if(mCurSendCtrl == NULL)
+	{
+		mCurSendCtrl = pctrl;
+
+	}
+}
+
 } // namespace edft

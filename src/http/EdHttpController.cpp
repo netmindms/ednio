@@ -19,7 +19,7 @@ EdHttpController::EdHttpController()
 {
 	// TODO Auto-generated constructor stub
 	mWriter = NULL;
-	mReader = NULL;
+	mBodyReader = NULL;
 	//mTrans = NULL;
 	mIsResponsed = false;
 }
@@ -69,9 +69,9 @@ void EdHttpController::setHttpResult(const char* code)
 
 void EdHttpController::setRespBodyReader(EdHttpReader* reader)
 {
-	if(mReader == NULL)
+	if(mBodyReader == NULL)
 	{
-		mReader = reader;
+		mBodyReader = reader;
 	}
 	else
 	{
@@ -130,12 +130,11 @@ void EdHttpController::encodeResp()
 
 	string outbuf;
 	resp->encodeRespMsg(&outbuf);
-	mEncSize = outbuf.size();
-	//mEncodeStream = (char*)malloc(outbuf.size());
-	mEncodeStream = new char[ outbuf.size() ];
+	mEncHeaderSize = outbuf.size();
+	mEncHeaderStream = (char*)malloc( outbuf.size() );
 
-	memcpy(mEncodeStream, outbuf.c_str(), mEncSize);
-
+	memcpy(mEncHeaderStream, outbuf.c_str(), mEncHeaderSize);
+	mIsResponsed = true;
 	/*
 	if (body)
 	{
@@ -193,6 +192,12 @@ void EdHttpController::close()
 {
 	mReqMsg.free();
 	mRespMsg.free();
+
+	if(mEncHeaderStream != NULL)
+	{
+		free(mEncHeaderStream);
+		mEncHeaderStream = NULL;
+	}
 }
 
 #if 0
@@ -206,9 +211,44 @@ void EdHttpController::setRespBody(EsHttpBodyStream* body)
 int EdHttpController::getRespEncodeStream(void* buf, int len)
 {
 }
+#endif
 
 int EdHttpController::transmitRespStream()
 {
+#if 1
+	if(mEncHeaderReadCnt < mEncHeaderSize)
+	{
+
+		int wcnt = mCnn->sendHttpPakcet(mEncHeaderStream+mEncHeaderReadCnt, mEncHeaderSize - mEncHeaderReadCnt);
+		if(wcnt>=0)
+		{
+			mEncHeaderReadCnt += wcnt;
+			return 0;
+		}
+		else
+		{
+			return -1;
+		}
+	}
+
+	if(mBodyReader != NULL && (mEncHeaderReadCnt == mEncHeaderSize))
+	{
+		// send body stream
+		char* buf = (char*)malloc(8*1024);
+		if(buf != NULL)
+		{
+			long rcnt = mBodyReader->Read(buf, 8*1024);
+			if(rcnt>0)
+			{
+				mCnn->sendHttpPakcet(buf, rcnt);
+			}
+			free(buf);
+		}
+		else
+			assert(0); // TODO memory alloc fail processing
+	}
+#else // old
+
 	if (mEncReadCnt < mEncSize)
 	{
 		int wcnt = mCnn->send(mEncodeStream, mEncSize - mEncReadCnt);
@@ -220,14 +260,9 @@ int EdHttpController::transmitRespStream()
 	}
 	else
 		return -1;
-}
 #endif
-
 }
 
-int EdHttpController::getStreamData(void* buf)
-{
-	return 0;
-}
 
-/* namespace edft */
+
+} /* namespace edft */

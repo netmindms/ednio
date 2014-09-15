@@ -41,22 +41,27 @@ public:
 
 private:
 	EdHttpWriter* mWriter;
-	EdHttpReader* mReader;
+
 	//EsHttpTrans* mTrans;
 	EsHttpCnn* mCnn;
 	EsHttpMsg mReqMsg;
 	EsHttpMsg mRespMsg;
-	int mEncHeaderSize;
-	int mEncHeaderReadCnt;
+
 	char mStatusCode[4];
 	bool mIsResponsed;
-	char* mRespHeaderStream;
+
+	// header response stream data
+	char *mEncHeaderStream;
+	int mEncHeaderReadCnt;
+	int mEncHeaderSize;
+
+	// body data stream
+	EdHttpReader* mBodyReader;
 
 	void setConnection(EsHttpCnn* pcnn);
 	void addReqHeader(string* name, string* val);
 	void setUrl(string *url);
 	void sendResp(char* code, void *textbody, int len, char* cont_type);
-
 	void encodeResp();
 	int getRespEncodeStream(void* buf, int len);
 	int transmitRespStream();
