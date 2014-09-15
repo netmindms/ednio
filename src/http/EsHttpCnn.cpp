@@ -268,6 +268,7 @@ int EsHttpCnn::statusCb(http_parser* parser, const char* at, size_t length)
 
 void EsHttpCnn::procHeader()
 {
+	mCurCtrl->addReqHeader(mCurHdrName, mCurHdrVal);
 
 	mCurTrans->addReqHeader(mCurHdrName, mCurHdrVal);
 

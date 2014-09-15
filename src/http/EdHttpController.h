@@ -8,18 +8,20 @@
 #ifndef EDHTTPCONTROLLER_H_
 #define EDHTTPCONTROLLER_H_
 
+#include "../config.h"
+
+#include <list>
 #include "../EdEventFd.h"
 #include "EsHttpMsg.h"
 #include "EdHttpWriter.h"
 #include "EdHttpReader.h"
-
+#include "EdHttpType.h"
 
 namespace edft
 {
 
-
-
 class EsHttpCnn;
+
 
 class EdHttpController : public EdEventFd
 {
@@ -50,6 +52,8 @@ private:
 	char mStatusCode[4];
 	bool mIsResponsed;
 
+	std::list<packet_buf_t> mPacketList;
+
 	// header response stream data
 	char *mEncHeaderStream;
 	int mEncHeaderReadCnt;
@@ -65,7 +69,7 @@ private:
 	void encodeResp();
 	int getRespEncodeStream(void* buf, int len);
 	int transmitRespStream();
-	int getStreamData(void *buf);
+	packet_buf_t getSendPacket();
 };
 
 } /* namespace edft */

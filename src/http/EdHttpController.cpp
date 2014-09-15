@@ -130,21 +130,22 @@ void EdHttpController::encodeResp()
 
 	string outbuf;
 	resp->encodeRespMsg(&outbuf);
+#if 1
+	packet_buf_t pkt;
+	pkt.len = outbuf.size();
+	pkt.buf = malloc(outbuf.size());
+	memcpy(pkt.buf, outbuf.c_str(), outbuf.size());
+	mPacketList.push_back(pkt);
+#else
 	mEncHeaderSize = outbuf.size();
 	mEncHeaderStream = (char*)malloc( outbuf.size() );
-
 	memcpy(mEncHeaderStream, outbuf.c_str(), mEncHeaderSize);
+#endif
+
+
+
 	mIsResponsed = true;
-	/*
-	if (body)
-	{
-		body->open();
-		char* ptxt = (char*) body->getBuffer();
-		outbuf.append(ptxt, body->getContentLen());
-		body->close();
-	}
-	send(outbuf.c_str(), outbuf.size());
-	*/
+
 }
 
 
@@ -193,11 +194,23 @@ void EdHttpController::close()
 	mReqMsg.free();
 	mRespMsg.free();
 
+#if 1
+	// clear response packet bufs
+	packet_buf_t pkt;
+	for(;mPacketList.size()>0;)
+	{
+		pkt = mPacketList.front();
+		free(pkt.buf);
+		mPacketList.pop_front();
+	}
+
+#else
 	if(mEncHeaderStream != NULL)
 	{
 		free(mEncHeaderStream);
 		mEncHeaderStream = NULL;
 	}
+#endif
 }
 
 #if 0
@@ -263,6 +276,20 @@ int EdHttpController::transmitRespStream()
 #endif
 }
 
-
+packet_buf_t EdHttpController::getSendPacket()
+{
+	packet_buf_t pkt;
+	if(mPacketList.size() > 0)
+	{
+		pkt = mPacketList.front();
+		mPacketList.pop_front();
+	}
+	else
+	{
+		pkt.len = 0;
+		pkt.buf = NULL;
+	}
+	return pkt;
+}
 
 } /* namespace edft */
