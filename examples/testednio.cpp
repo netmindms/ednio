@@ -24,6 +24,9 @@
 #include "http/EdHttpStringWriter.h"
 #include "http/EsHttpServer.h"
 #include "http/EsHttpTask.h"
+#include "edssl/EdSSL.h"
+#include "edssl/EdSSLSocket.h"
+#include "edssl/EdSmartSocket.h"
 
 void levlog(int lev, const char *tagid, int line, const char *fmtstr, ...)
 {
@@ -895,7 +898,6 @@ void testMultiTaskInstance(int mode)
 
 }
 
-
 void testHttpBase(int mode)
 {
 	enum
@@ -923,31 +925,32 @@ void testHttpBase(int mode)
 				long rdcnt;
 				char data[] = "0123456789";
 				char buf[100];
-				long count=0;
+				long count = 0;
 				mReader.setString(data);
 				rdcnt = 0;
 				count = 0;
 
-				rdcnt = mReader.Read(buf+count, 3);
+				rdcnt = mReader.Read(buf + count, 3);
 				assert(rdcnt == 3);
 				count += rdcnt;
 
-				rdcnt = mReader.Read(buf+count, 3);
+				rdcnt = mReader.Read(buf + count, 3);
 				assert(rdcnt == 3);
 				count += rdcnt;
 
-				rdcnt = mReader.Read(buf+count, 3);
+				rdcnt = mReader.Read(buf + count, 3);
 				assert(rdcnt == 3);
 				count += rdcnt;
 
-				rdcnt = mReader.Read(buf+count, 3);
+				rdcnt = mReader.Read(buf + count, 3);
 				assert(rdcnt == 1);
 				count += rdcnt;
 
-				rdcnt = mReader.Read(buf+count, 3);
+				rdcnt = mReader.Read(buf + count, 3);
 				assert(rdcnt == -1);
 
-				if(memcmp(data, buf, strlen(data))) {
+				if (memcmp(data, buf, strlen(data)))
+				{
 					logs("### Fail: string reader no data match");
 					assert(0);
 				}
@@ -1106,6 +1109,141 @@ void testHttpSever(int mode)
 
 }
 
+void testssl(int mode)
+{
+	enum
+	{
+		TS_SSL = EDM_USER + 1, TS_SMART_SOCK,
+	};
+	class SSLTestTask: public TestTask, public EdSSLSocket::ISSLSocketCb, public EdSmartSocket::INet
+	{
+		EdSSLSocket *ssl;
+		int sslReadCnt;
+
+		// smart sock test
+		EdSmartSocket* smartSock;
+
+		virtual int OnEventProc(EdMsg* pmsg)
+		{
+			if (pmsg->msgid == EDM_INIT)
+			{
+				ssl = NULL;
+				smartSock = NULL;
+
+				//addTest(TS_SSL);
+				addTest(TS_SMART_SOCK);
+				nextTest();
+			}
+			else if (pmsg->msgid == EDM_CLOSE)
+			{
+
+			}
+			else if (pmsg->msgid == TS_SSL)
+			{
+				logs("== Start basic ssl client test...");
+				ssl = new EdSSLSocket;
+				sslReadCnt = 0;
+				ssl->openSSLClientSock();
+				ssl->setOnSSLListener(this);
+				ssl->connect("127.0.0.1", 443);
+			}
+			else if (pmsg->msgid == TS_SMART_SOCK)
+			{
+				logs("== Start smart sock test...");
+				smartSock = new EdSmartSocket;
+				smartSock->socketOpen(true);
+				smartSock->setOnNetListener(this);
+				smartSock->connect("127.0.0.1", 443);
+			}
+			return 0;
+		}
+
+		virtual void IOnSSLSocket(EdSSLSocket *psock, int event)
+		{
+			if (event == SSL_EVENT_CONNECTED)
+			{
+				logs("ssl connected...");
+				char req[] = "GET / HTTP/1.1\r\n"
+						"User-Agent: curl/7.22.0 (x86_64-pc-linux-gnu) libcurl/7.22.0 OpenSSL/1.0.1 zlib/1.2.3.4 libidn/1.23 librtmp/2.3\r\n"
+						"Host: 127.0.0.1\r\n"
+						"Accept: */*\r\n\r\n";
+				ssl->send(req, strlen(req));
+
+			}
+			else if (event == SSL_EVENT_DISCONNECTED)
+			{
+				logs("ssl disconnected..., cur read cnt=%d", sslReadCnt);
+				if (sslReadCnt < 177)
+				{
+					logs("### Fail: ssl read count mismatch, count=%d", sslReadCnt);
+					assert(0);
+				}
+				ssl->close();
+				logs("== basic ssl client test OK...\r\n");
+				nextTest();
+			}
+			else if (event == SSL_EVENT_READ)
+			{
+				char buf[8 * 1024 + 1];
+				int rdcnt = ssl->recv(buf, 8 * 1024);
+				if (rdcnt > 0)
+				{
+					sslReadCnt += rdcnt;
+					buf[rdcnt] = 0;
+					logs(buf);
+					if (sslReadCnt == 462)
+					{
+						ssl->close();
+						reserveFree(ssl);
+						ssl = NULL;
+						nextTest();
+					}
+				}
+			}
+
+		}
+
+		virtual void IOnNet(EdSmartSocket *psock, int event)
+		{
+			if (event == NETEV_CONNECTED)
+			{
+				logs("sm on connected..");
+				char req[] = "GET / HTTP/1.1\r\n"
+						"User-Agent: curl/7.22.0 (x86_64-pc-linux-gnu) libcurl/7.22.0 OpenSSL/1.0.1 zlib/1.2.3.4 libidn/1.23 librtmp/2.3\r\n"
+						"Host: 127.0.0.1\r\n"
+						"Accept: */*\r\n\r\n";
+				psock->sendPacket(req, strlen(req));
+			}
+			else if (event == NETEV_DISCONNECTED)
+			{
+				logs("sm on disconnected..");
+				psock->socketClose();
+				delete psock;
+				nextTest();
+			}
+			else if (event == NETEV_READ)
+			{
+				logs("sm on read");
+				char buf[1000];
+				int rcnt = psock->recvPacket(buf, 500);
+				if (rcnt > 0)
+				{
+					buf[rcnt] = 0;
+					logs(buf);
+				}
+			}
+		}
+	};
+
+	logm(">>>> Test: SSL, mode=%d", mode);
+	fdcheck_start();
+	auto task = new SSLTestTask;
+	task->run(mode);
+	task->wait();
+	delete task;
+	fdcheck_end();
+	logm("<<<< SSL test OK\n");
+}
 
 #include "http/http_parser.h"
 int main()
@@ -1152,9 +1290,10 @@ int main()
 #endif
 
 	EdNioInit();
-	for (int i = 0; i < 1; i++)
+	for (int i = 0; i < 2; i++)
 	{
-		testHttpBase(i);
+		//testHttpBase(i);
+		testssl(i);
 //		testHttpSever(i);
 //		testMultiTaskInstance(1);
 //		testreservefree(i);
