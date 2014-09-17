@@ -1,0 +1,52 @@
+/*
+ * EdSmartSocket.h
+ *
+ *  Created on: Sep 17, 2014
+ *      Author: netmind
+ */
+
+#ifndef EDSMARTSOCKET_H_
+#define EDSMARTSOCKET_H_
+#include "EdSSLSocket.h"
+
+namespace edft {
+
+
+enum {
+	NETEV_DISCONNECTED,
+	NETEV_CONNECTED,
+	NETEV_READ,
+	NETEV_WRITE,
+};
+
+class EdSmartSocket : public EdSSLSocket
+{
+
+public:
+	class INet {
+	public:
+		virtual void IOnNet(EdSmartSocket* psock, int event);
+	};
+
+	EdSmartSocket();
+	virtual ~EdSmartSocket();
+
+	int open(bool ssl=false, bool child=false, int chfd=-1);
+	virtual void OnConnected();
+	virtual void OnDisconnected();
+	virtual void OnRead();
+
+	int sendPacket(void *buf, int len);
+	int recvPacket(void *buf, int len);
+
+private:
+	bool mIsSSL;
+	INet *mCallback;
+	void* mPartial;
+	int mPartialRemain;
+
+};
+
+} // namespace edft
+
+#endif /* EDSMARTSOCKET_H_ */

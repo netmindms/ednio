@@ -34,6 +34,7 @@ public:
 
 	static SSL_CTX* buildServerCtx(int sslmethod, const char* certfile, const char* privkeyfile);
 	static SSL_CTX* buildClientCtx(int ver);
+	static SSL_CTX* buildCtx(int ver);
 	static void freeCtx(SSL_CTX* pctx);
 };
 

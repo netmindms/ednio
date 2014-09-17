@@ -101,4 +101,9 @@ EdHttpController* EsHttpTask::getRegController(const char* url)
 	}
 }
 
+void EsHttpTask::freeController(EdHttpController* pctrl)
+{
+	delete pctrl;
+}
+
 } // namespace edft

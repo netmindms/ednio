@@ -18,7 +18,8 @@
 #include "EdHttp.h"
 #include "EsHttpBodyStream.h"
 
-namespace edft {
+namespace edft
+{
 EsHttpCnn::EsHttpCnn()
 {
 	dbgd("http cnn const......");
@@ -284,7 +285,7 @@ void EsHttpCnn::procReqLine()
 	mPs = PS_HEADER;
 	//EdHttpController* pctl = mTask->OnNewRequest(http_method_str((http_method)mParser.method), mCurUrl->c_str());
 	mCurCtrl = mTask->getRegController(mCurUrl->c_str());
-
+	mCtrlList.push_back(mCurCtrl);
 }
 
 void EsHttpCnn::sendResponse(EsHttpTrans* ptrans)
@@ -297,7 +298,7 @@ void EsHttpCnn::transmitReserved()
 {
 	dbgd("transmit reserved..., trcnt=%d", mRespList.size());
 
-	stack<list<EsHttpTrans*>::iterator > dellist;
+	stack<list<EsHttpTrans*>::iterator> dellist;
 
 	//char* buf = (char*) malloc(8 * 1024);
 	auto itr = mRespList.begin();
@@ -321,7 +322,7 @@ void EsHttpCnn::transmitReserved()
 	//free(buf);
 
 	dbgd("to remove cnt=%d", dellist.size());
-	for(;!dellist.empty();)
+	for (; !dellist.empty();)
 	{
 		auto itr = dellist.top();
 		dellist.pop();
@@ -387,19 +388,96 @@ void EsHttpCnn::freeTrans(EsHttpTrans* ptrans)
 
 }
 
-
 int EsHttpCnn::sendHttpPakcet(void* buf, int size)
 {
 	return send(buf, size);
 }
 
-
-void EsHttpCnn::scheduleSending(EdHttpController* pctrl)
+void EsHttpCnn::scheduleTransmit()
 {
-	if(mCurSendCtrl == NULL)
-	{
-		mCurSendCtrl = pctrl;
+	// TODO schedule transmit
+	dbgd("scheduling transmit..., ready ctrl cnt=%d", mCtrlList.size());
+	if (mCurSendCtrl != NULL)
+		return;
 
+	if (mCtrlList.size() == 0)
+	{
+		dbge("### unexpected state, there is no ctrl");
+		return;
+	}
+
+	mCurSendCtrl = mCtrlList.front();
+
+	stack<list<EdHttpController*>::iterator> dellist;
+
+	char* buf = (char*) malloc(16 * 1024);
+	auto itr = mCtrlList.begin();
+	for (; itr != mCtrlList.end(); itr++)
+	{
+		mCurSendCtrl = (*itr);
+		int ret = mCurSendCtrl->getSendPacketData(buf, 16 * 1024);
+		if (ret > 0)
+		{
+			sendPacket(buf, ret, NULL);
+			//dbgd("transmit ok...handle=%0x", ptrans->mHandle);
+			//ptrans->mController->IOnCloseHttpTrans(mHandle, ptrans->mHandle);
+			//ptrans->close();
+			mCurSendCtrl->OnContentSendComplete();
+			dellist.push(itr);
+		}
+		else if (ret == -1)
+		{
+			break;
+		}
+
+	}
+
+	free(buf);
+
+	dbgd("to remove cnt=%d", dellist.size());
+	for (; !dellist.empty();)
+	{
+		auto itr = dellist.top();
+		dellist.pop();
+		//dbgd("remove tr list, handle=%0x", (*itr)->mHandle);
+		//mTransMap.erase((*itr)->mHandle);
+		//mRespList.erase(itr);
+		//delete (*itr);
+	}
+
+	dbgd("resp list cnt=%d, tr list cnt=%d", mRespList.size(), mTransMap.size());
+}
+
+int EsHttpCnn::sendCtrlStream(EdHttpController* pctl, int maxlen)
+{
+#define BUF_SIZE (16*1024)
+
+	if (isFull() == false)
+	{
+		int result;
+		char* buf = (char*) malloc(BUF_SIZE);
+		if (buf == NULL)
+		{
+			dbge("### Fail: memory allocation error for packet buffer");
+			return HTTP_SEND_FAIL;
+		}
+
+		int rlen = pctl->getSendPacketData(buf, BUF_SIZE);
+		if (rlen > 0)
+		{
+			sendPacket(buf, rlen, NULL);
+			result = HTTP_SEND_OK;
+		}
+		else
+		{
+			result = HTTP_SEND_OK;
+		}
+		free(buf);
+		return result;
+	}
+	else
+	{
+		return HTTP_SEND_PENDING;
 	}
 }
 

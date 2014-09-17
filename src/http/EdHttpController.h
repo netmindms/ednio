@@ -70,6 +70,7 @@ private:
 	int getRespEncodeStream(void* buf, int len);
 	int transmitRespStream();
 	packet_buf_t getSendPacket();
+	int getSendPacketData(void* buf, int len);
 };
 
 } /* namespace edft */

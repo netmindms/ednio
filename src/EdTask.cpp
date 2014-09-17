@@ -48,6 +48,9 @@ EdTask::EdTask(int nmsgq)
 	mMsgFd = -1;
 
 	mRunMode = MODE_EDEV;
+#if USE_SSL
+	mDefaultSSLCtx = NULL;
+#endif
 }
 
 EdTask::~EdTask()
@@ -710,6 +713,14 @@ void EdTask::taskProc()
 	cleanupAllTimer();
 	esClose(pctx);
 	_tEdContext = NULL;
+
+#if USE_SSL
+	if(mDefaultSSLCtx != NULL)
+	{
+		EdSSL::freeCtx(mDefaultSSLCtx);
+		mDefaultSSLCtx = NULL;
+	}
+#endif
 }
 
 void EdTask::edEventLoop(EdContext* pctx)
@@ -929,7 +940,20 @@ void EdTask::FreeEvent::OnEventFd(int cnt)
 }
 #endif
 
+#if USE_SSL
+SSL_CTX* EdTask::getSSLContext(int ver)
+{
+	if(mDefaultSSLCtx == NULL)
+	{
+		if(EdSSLIsInit()==false)
+		{
+			EdSSLInit();
+		}
+		mDefaultSSLCtx = EdSSL::buildCtx(ver);
+	}
 
-
+	return mDefaultSSLCtx;
+}
+#endif
 
 } // namespace edft

@@ -64,7 +64,8 @@ void EdHttpController::setReqBodyWriter(EdHttpWriter* writer)
 void EdHttpController::setHttpResult(const char* code)
 {
 	strncpy(mStatusCode, code, 3);
-
+	encodeResp();
+	mCnn->transmitReserved();
 }
 
 void EdHttpController::setRespBodyReader(EdHttpReader* reader)
@@ -290,6 +291,13 @@ packet_buf_t EdHttpController::getSendPacket()
 		pkt.buf = NULL;
 	}
 	return pkt;
+}
+
+
+int EdHttpController::getSendPacketData(void* buf, int len)
+{
+	// TODO:
+	return 0;
 }
 
 } /* namespace edft */

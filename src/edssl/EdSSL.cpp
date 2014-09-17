@@ -98,4 +98,37 @@ SSL_CTX* EdSSL::buildClientCtx(int ver)
 	return pctx;
 }
 
+SSL_CTX* EdSSL::buildCtx(int ver)
+{
+	SSL_CTX *pctx;
+	const SSL_METHOD *method;
+	switch (ver)
+	{
+	case SSL_VER_TLSV1:
+		method = TLSv1_method();
+		break;
+	case SSL_VER_TLSV11:
+		method = TLSv1_1_method();
+		break;
+	case SSL_VER_V23:
+		method = SSLv23_method();
+		break;
+	case SSL_VER_V3:
+		method = SSLv3_method();
+		break;
+	case SSL_VER_DTLSV1:
+		method = DTLSv1_method();
+		break;
+	default:
+		method = NULL;
+		break;
+	}
+	if (method == NULL)
+		return NULL;
+
+	pctx = SSL_CTX_new(method);
+
+	return pctx;
+}
+
 } /* namespace edft */

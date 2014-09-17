@@ -16,7 +16,7 @@
 #include "../EdSocket.h"
 #include "http_parser.h"
 #include "EsHttpTrans.h"
-
+#include "../EdSocketChannel.h"
 
 using namespace std;
 
@@ -29,9 +29,15 @@ enum PARSER_STATUS_E {
 	PS_BODY,
 };
 
+enum SEND_RESULT_E {
+	HTTP_SEND_FAIL=-1,
+	HTTP_SEND_OK =0,
+	HTTP_SEND_PENDING,
+};
+
 class EsHttpTask;
 
-class EsHttpCnn : public EdSocket
+class EsHttpCnn : public EdSocketChannel
 {
 	friend class EsHttpTask;
 	friend class EsHttpTrans;
@@ -75,10 +81,12 @@ private:
 	void sendResponse(EsHttpTrans* ptrans);
 	void transmitReserved();
 	bool transmitResponse(EsHttpTrans* ptrans);
-	void scheduleSending(EdHttpController* pctrl);
 	EsHttpTrans* allocTrans();
+
 	void freeTrans(EsHttpTrans* ptrans);
 	int sendHttpPakcet(void* buf, int size);
+	void scheduleTransmit();
+	int sendCtrlStream(EdHttpController* pctl, int maxlen);
 
 private:
 	EsHttpTask* mTask;
@@ -86,8 +94,6 @@ private:
 	int mBufSize;
 	char *mReadBuf;
 	EsHttpTrans *mCurTrans;
-	EdHttpController* mCurCtrl;
-	EdHttpController* mCurSendCtrl;
 
 	union {
 		struct {
@@ -110,6 +116,10 @@ private:
 	http_parser mParser;
 	http_parser_settings mParserSettings;
 
+	// controller list
+	std::list<EdHttpController*> mCtrlList;
+	EdHttpController* mCurCtrl;
+	EdHttpController* mCurSendCtrl;
 
 
 };

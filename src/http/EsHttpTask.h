@@ -69,6 +69,7 @@ private:
 	unordered_map<string, EdHttpController*> mUrlMap;
 	unordered_map<string, __alloc_controller> mAllocMap;
 	EdHttpController* getRegController(const char *url);
+	void freeController(EdHttpController* pctrl);
 };
 
 } // namespae edft

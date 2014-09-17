@@ -53,6 +53,7 @@ public:
 	int sendPacket(const void* buf, int len, const void *user = NULL, bool takebuf = false);
 	void closeChannel();
 	void setChannelCallback(ISocketChannelCb* cb);
+	bool isFull();
 
 private:
 	int tx(void);
