@@ -8,6 +8,8 @@
 #ifndef EDSMARTSOCKET_H_
 #define EDSMARTSOCKET_H_
 
+#include "../config.h"
+
 #include <openssl/evp.h>
 #include <openssl/ossl_typ.h>
 #include <openssl/ssl.h>
@@ -21,7 +23,13 @@ enum {
 	NETEV_DISCONNECTED,
 	NETEV_CONNECTED,
 	NETEV_READ,
-	NETEV_WRITE,
+	NETEV_SENDCOMPLETE,
+};
+
+enum {
+	SEND_FAIL=-1,
+	SEND_OK=0,
+	SEND_PENDING,
 };
 
 class EdSmartSocket : public EdSocket
@@ -46,6 +54,7 @@ public:
 	virtual void OnSSLRead();
 
 	int socketOpen(bool ssl=false);
+	int socketOpenChild(int fd);
 
 	/**
 	 * @brief Read data from ssl connection
@@ -106,6 +115,7 @@ private:
 	bool mIsSSLServer;
 	INet* mOnLis;
 	bool mIsSSL;
+	void* mPendingBuf; int mPendingWriteCnt; int mPendingSize;
 };
 
 } /* namespace edft */

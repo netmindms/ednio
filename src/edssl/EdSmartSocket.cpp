@@ -25,6 +25,9 @@ EdSmartSocket::EdSmartSocket()
 	mIsSSLServer = false;
 	mOnLis = NULL;
 	mIsSSL = false;
+	mPendingBuf = NULL;
+	mPendingSize = 0;
+	mPendingWriteCnt = 0;
 }
 
 EdSmartSocket::~EdSmartSocket()
@@ -64,6 +67,26 @@ void EdSmartSocket::OnRead()
 
 void EdSmartSocket::OnWrite()
 {
+	if (mPendingBuf != NULL)
+	{
+		int wret = send((u8*) mPendingBuf + mPendingWriteCnt, mPendingSize - mPendingWriteCnt);
+		if (wret > 0)
+		{
+			mPendingWriteCnt += wret;
+			if (mPendingWriteCnt == mPendingSize)
+			{
+				changeEvent(EVT_READ | EVT_HANGUP);
+				mPendingSize = 0;
+				mPendingWriteCnt = 0;
+				free(mPendingBuf);
+				mPendingBuf = NULL;
+				if (mOnLis != NULL)
+				{
+					mOnLis->IOnNet(this, NETEV_SENDCOMPLETE);
+				}
+			}
+		}
+	}
 }
 
 void EdSmartSocket::OnConnected()
@@ -145,6 +168,7 @@ int EdSmartSocket::recvPacket(void* buf, int bufsize)
 	if (mIsSSL == false)
 	{
 		rret = recv(buf, bufsize);
+		return rret;
 	}
 	else
 	{
@@ -222,9 +246,32 @@ void EdSmartSocket::OnSSLRead()
 int EdSmartSocket::sendPacket(const void* buf, int bufsize)
 {
 	int wret;
+	if (mPendingBuf != NULL)
+	{
+		return SEND_PENDING;
+	}
+
 	if (mIsSSL == false)
 	{
 		wret = send(buf, bufsize);
+		if (wret == bufsize)
+		{
+			return SEND_OK;
+		}
+		else if (wret >= 0)
+		{
+			mPendingSize = bufsize - wret;
+			mPendingWriteCnt = 0;
+			mPendingBuf = malloc(mPendingSize);
+			if (mPendingBuf == NULL)
+			{
+				dbge("### Fail: memory allocation error for peinding buffer");
+				return SEND_FAIL;
+			}
+			changeEvent(EVT_READ | EVT_WRITE | EVT_HANGUP);
+
+			return SEND_PENDING;
+		}
 	}
 	else
 	{
@@ -251,6 +298,12 @@ void EdSmartSocket::socketClose()
 		mSessionConencted = false;
 	}
 	EdSocket::close();
+
+	if (mPendingBuf != NULL)
+	{
+		free(mPendingBuf);
+		mPendingBuf = NULL;
+	}
 
 }
 
@@ -335,6 +388,17 @@ int EdSmartSocket::openSSLClientSock(SSL_CTX* pctx)
 void EdSmartSocket::sslAccept()
 {
 	procSSLConnect();
+}
+
+
+int EdSmartSocket::socketOpenChild(int fd)
+{
+	if(mIsSSL == false) {
+		openChildSock(fd);
+	} else {
+		openSSLChildSock(fd, NULL);
+	}
+	return 0;
 }
 
 } /* namespace edft */

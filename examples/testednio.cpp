@@ -1245,9 +1245,118 @@ void testssl(int mode)
 	logm("<<<< SSL test OK\n");
 }
 
+void testsmartsock(int mode)
+{
+	enum { TS_NORMAL=EDM_USER+1, };
+
+	class ClientTask: public TestTask, public EdSmartSocket::INet
+	{
+
+		EdSmartSocket* mSock;
+		virtual int OnEventProc(EdMsg* pmsg)
+		{
+			if (pmsg->msgid == EDM_INIT)
+			{
+				logs("client start...");
+				addTest(TS_NORMAL);
+				nextTest();
+			}
+			else if (pmsg->msgid == EDM_CLOSE)
+			{
+
+			}
+			else if(pmsg->msgid == TS_NORMAL)
+			{
+				logs("== Start normal test");
+				mSock = new EdSmartSocket;
+				mSock->setOnNetListener(this);
+				mSock->socketOpen();
+				mSock->connect("127.0.0.1", 7000);
+			}
+			return 0;
+		}
+
+		virtual void IOnNet(EdSmartSocket* psock, int event) {
+			if(event == NETEV_CONNECTED) {
+				logs("normal connected...");
+			} else if(event == NETEV_DISCONNECTED) {
+				logs("normal disconnected...");
+			}
+		}
+	};
+
+	class ServerTask: public TestTask, public EdSocket::ISocketCb, public EdSmartSocket::INet
+	{
+		EdSmartSocket *mChildSock;
+		EdSocket* mSvrSock;
+
+		virtual int OnEventProc(EdMsg* pmsg)
+		{
+			if (pmsg->msgid == EDM_INIT)
+			{
+				logs("server start...");
+				mSvrSock = new EdSocket;
+				mSvrSock->setOnListener(this);
+				mSvrSock->listenSock(7000);
+			}
+			else if (pmsg->msgid == EDM_CLOSE)
+			{
+
+			}
+			return 0;
+		}
+
+		virtual void IOnSocketEvent(EdSocket *psock, int event) {
+			if(event == SOCK_EVENT_INCOMING_ACCEPT) {
+				int fd = mSvrSock->accept();
+				assert(fd >0);
+				assert(mChildSock == NULL);
+				mChildSock = new EdSmartSocket;
+				mChildSock->setOnNetListener(this);
+				mChildSock->socketOpenChild(fd);
+			}
+		}
+
+		void IOnNet(EdSmartSocket *psock, int event) {
+			if(event == NETEV_DISCONNECTED) {
+				logs("child disconnected...");
+			} else if(event == NETEV_CONNECTED) {
+				assert(0);
+			} else if(event == NETEV_READ) {
+				char buf[100+1];
+				int rcnt = psock->recvPacket(buf, 100);
+				if(rcnt>0) {
+					buf[rcnt] = 0;
+					logs("server recv: %s", buf);
+					char tag[] = "server_tag: ";
+					psock->sendPacket(tag, strlen(tag));
+					psock->sendPacket(buf, rcnt);
+				}
+			}
+		}
+
+	};
+
+	logm(">>>> Test: smart socket, mode=%d", mode);
+	fdcheck_start();
+	auto stask = new ServerTask;
+	stask->run(mode);
+
+	auto ctask = new ClientTask;
+	ctask->run(mode);
+
+	ctask->wait();
+	stask->wait();
+	delete ctask;
+	delete stask;
+	fdcheck_end();
+	logm("<<<< smart socket test OK\n");
+}
+
 #include "http/http_parser.h"
 int main()
 {
+
 #if 0
 	char t[100] = "name=kim&addr=2323";
 	char* p = t;
@@ -1290,10 +1399,11 @@ int main()
 #endif
 
 	EdNioInit();
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < 1; i++)
 	{
+		testsmartsock(i);
 		//testHttpBase(i);
-		testssl(i);
+//		testssl(i);
 //		testHttpSever(i);
 //		testMultiTaskInstance(1);
 //		testreservefree(i);
