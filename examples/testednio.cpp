@@ -1247,40 +1247,139 @@ void testssl(int mode)
 
 void testsmartsock(int mode)
 {
-	enum { TS_NORMAL=EDM_USER+1, };
+	enum
+	{
+		TS_ECHO = EDM_USER + 1, TS_PENDING,
+	};
 
 	class ClientTask: public TestTask, public EdSmartSocket::INet
 	{
 
-		EdSmartSocket* mSock;
+		EdSmartSocket* mEchoSock;
+		char echostr[100];
+
 		virtual int OnEventProc(EdMsg* pmsg)
 		{
 			if (pmsg->msgid == EDM_INIT)
 			{
 				logs("client start...");
-				addTest(TS_NORMAL);
+				addTest(TS_ECHO);
+				addTest(TS_PENDING);
 				nextTest();
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
 
 			}
-			else if(pmsg->msgid == TS_NORMAL)
+			else if (pmsg->msgid == TS_ECHO)
 			{
 				logs("== Start normal test");
-				mSock = new EdSmartSocket;
-				mSock->setOnNetListener(this);
-				mSock->socketOpen();
-				mSock->connect("127.0.0.1", 7000);
+				strcpy(echostr, "'echo message'");
+				mEchoSock = new EdSmartSocket;
+				mEchoSock->setOnNetListener(this);
+				mEchoSock->socketOpen();
+				mEchoSock->connect("127.0.0.1", 7000);
+
+			}
+			else if (pmsg->msgid == TS_PENDING)
+			{
+				subtestpending();
 			}
 			return 0;
 		}
 
-		virtual void IOnNet(EdSmartSocket* psock, int event) {
-			if(event == NETEV_CONNECTED) {
-				logs("normal connected...");
-			} else if(event == NETEV_DISCONNECTED) {
-				logs("normal disconnected...");
+		void subtestpending()
+		{
+			static EdSmartSocket* pdSock;
+
+			class sockis: public EdSmartSocket::INet
+			{
+				long writeCnt;
+				void IOnNet(EdSmartSocket* psock, int event)
+				{
+					if (event == NETEV_CONNECTED)
+					{
+						logs("pending connected...");
+						writeCnt = 0;
+						char buf[1024];
+						int ret;
+						for(;;)
+						{
+							ret = psock->sendPacket(buf, 1024);
+							if(ret == SEND_PENDING) {
+								logs("send pending... cur wrietcnt=%d", writeCnt);
+								break;
+							}
+							else if(ret == SEND_FAIL) {
+								logs("### Fail: send fail......writeCnt=%d", writeCnt);
+								assert(0);
+							}
+							writeCnt += 1024;
+						}
+
+					}
+					else if (event == NETEV_DISCONNECTED)
+					{
+						logs("pending disconnected...");
+						delete psock;
+						delete this;
+					}
+					else if(event ==NETEV_SENDCOMPLETE) {
+						logs("pending send complete...");
+
+					}
+				}
+			};
+			sockis *pif = new sockis;
+			;
+			pdSock = new EdSmartSocket;
+			pdSock->setOnNetListener(pif);
+			pdSock->socketOpen();
+			pdSock->connect("127.0.0.1", 7001);
+
+		}
+
+		virtual void IOnNet(EdSmartSocket* psock, int event)
+		{
+			if (psock == mEchoSock)
+			{
+				if (event == NETEV_CONNECTED)
+				{
+					logs("echo connected...");
+					int ret = mEchoSock->sendPacket(echostr, strlen(echostr));
+					if (ret != SEND_OK)
+					{
+						logs("### Fail: send fail...");
+						assert(0);
+					}
+				}
+				else if (event == NETEV_DISCONNECTED)
+				{
+					logs("echo disconnected...");
+				}
+				else if (event == NETEV_READ)
+				{
+					int rcnt;
+					char buf[100];
+					rcnt = psock->recvPacket(buf, 100);
+					if (rcnt > 0)
+					{
+						buf[rcnt] = 0;
+						if (!strcmp(echostr, buf))
+						{
+							logs("echo test ok...\n");
+							nextTest();
+							psock->socketClose();
+							reserveFree(psock);
+							mEchoSock = NULL;
+						}
+						else
+						{
+							logs("### Fail: echo string mismatch...");
+							assert(0);
+						}
+					}
+				}
 			}
 		}
 	};
@@ -1288,49 +1387,119 @@ void testsmartsock(int mode)
 	class ServerTask: public TestTask, public EdSocket::ISocketCb, public EdSmartSocket::INet
 	{
 		EdSmartSocket *mChildSock;
-		EdSocket* mSvrSock;
+		EdSocket* mEchoSvrSock;
+
+		// pending test
+		EdSocket* mPendingSvr;
+		EdSmartSocket* mPendingSock;
 
 		virtual int OnEventProc(EdMsg* pmsg)
 		{
 			if (pmsg->msgid == EDM_INIT)
 			{
 				logs("server start...");
-				mSvrSock = new EdSocket;
-				mSvrSock->setOnListener(this);
-				mSvrSock->listenSock(7000);
+				mChildSock = NULL;
+
+				mEchoSvrSock = new EdSocket;
+				mEchoSvrSock->setOnListener(this);
+				mEchoSvrSock->listenSock(7000);
+
+				mPendingSvr = new EdSocket;
+				mPendingSvr->setOnListener(this);
+				mPendingSvr->listenSock(7001);
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
+				mEchoSvrSock->close();
+				delete mEchoSvrSock;
 
+				mPendingSock->close();
+				delete mPendingSvr;
 			}
 			return 0;
 		}
 
-		virtual void IOnSocketEvent(EdSocket *psock, int event) {
-			if(event == SOCK_EVENT_INCOMING_ACCEPT) {
-				int fd = mSvrSock->accept();
-				assert(fd >0);
-				assert(mChildSock == NULL);
-				mChildSock = new EdSmartSocket;
-				mChildSock->setOnNetListener(this);
-				mChildSock->socketOpenChild(fd);
+		virtual void IOnSocketEvent(EdSocket *psock, int event)
+		{
+			if (psock == mEchoSvrSock)
+			{
+				if (event == SOCK_EVENT_INCOMING_ACCEPT)
+				{
+					int fd = mEchoSvrSock->accept();
+					assert(fd > 0);
+					assert(mChildSock == NULL);
+					mChildSock = new EdSmartSocket;
+					mChildSock->setOnNetListener(this);
+					mChildSock->socketOpenChild(fd);
+				}
+			}
+			else if(psock == mPendingSvr)
+			{
+				int fd = mPendingSvr->accept();
+				assert(fd>0);
+				class sif : public EdSmartSocket::INet {
+					void IOnNet(EdSmartSocket* psock, int event) {
+						static int bwait=1;
+						static int pendReadCnt=0;
+						if(event == NETEV_DISCONNECTED) {
+							logs("pending sock disconnected..., pend read cnt=%d", pendReadCnt);
+
+							psock->close();
+							delete psock;
+							delete this;
+						} else if(event == NETEV_READ) {
+							//logs("pending sock on read");
+							if(bwait==1) {
+								usleep(1000*1000);
+								bwait = 0;
+							}
+							char buf[1000];
+							int rcnt = psock->recvPacket(buf, 500);
+							if(rcnt>0) {
+								pendReadCnt += rcnt;
+							}
+
+						}
+					}
+				};
+				mPendingSock = new EdSmartSocket;
+				mPendingSock->setOnNetListener(new sif);
+				mPendingSock->socketOpenChild(fd);
 			}
 		}
 
-		void IOnNet(EdSmartSocket *psock, int event) {
-			if(event == NETEV_DISCONNECTED) {
+		void IOnNet(EdSmartSocket *psock, int event)
+		{
+
+			if (event == NETEV_DISCONNECTED)
+			{
 				logs("child disconnected...");
-			} else if(event == NETEV_CONNECTED) {
+				psock->close();
+				delete psock;
+				mChildSock = NULL;
+			}
+			else if (event == NETEV_CONNECTED)
+			{
 				assert(0);
-			} else if(event == NETEV_READ) {
-				char buf[100+1];
+			}
+			else if (event == NETEV_READ)
+			{
+				char buf[100 + 1];
 				int rcnt = psock->recvPacket(buf, 100);
-				if(rcnt>0) {
+				if (rcnt > 0)
+				{
 					buf[rcnt] = 0;
 					logs("server recv: %s", buf);
-					char tag[] = "server_tag: ";
-					psock->sendPacket(tag, strlen(tag));
-					psock->sendPacket(buf, rcnt);
+					int ret = psock->sendPacket(buf, rcnt);
+					if (ret != SEND_OK)
+					{
+						logs("### Fail: echo server send fail...");
+						assert(0);
+					}
+				}
+				else
+				{
+					logs("server read fail...ret=%d", rcnt);
 				}
 			}
 		}
@@ -1346,7 +1515,7 @@ void testsmartsock(int mode)
 	ctask->run(mode);
 
 	ctask->wait();
-	stask->wait();
+	stask->terminate();
 	delete ctask;
 	delete stask;
 	fdcheck_end();

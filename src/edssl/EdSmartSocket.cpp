@@ -67,6 +67,7 @@ void EdSmartSocket::OnRead()
 
 void EdSmartSocket::OnWrite()
 {
+	dbgd("OnWrite");
 	if (mPendingBuf != NULL)
 	{
 		int wret = send((u8*) mPendingBuf + mPendingWriteCnt, mPendingSize - mPendingWriteCnt);
@@ -248,17 +249,34 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize)
 	int wret;
 	if (mPendingBuf != NULL)
 	{
-		return SEND_PENDING;
+		return SEND_FAIL;
 	}
 
 	if (mIsSSL == false)
 	{
 		wret = send(buf, bufsize);
+		bool ispending;
+
 		if (wret == bufsize)
 		{
 			return SEND_OK;
 		}
-		else if (wret >= 0)
+		else if (wret > 0)
+		{
+			ispending = true;
+		}
+		else
+		{
+			dbgd("send fail, error=%d", errno);
+			if (errno == EAGAIN)
+			{
+				ispending = true;
+			}
+			else
+				ispending = false;
+		}
+
+		if (ispending == true)
 		{
 			mPendingSize = bufsize - wret;
 			mPendingWriteCnt = 0;
@@ -271,6 +289,10 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize)
 			changeEvent(EVT_READ | EVT_WRITE | EVT_HANGUP);
 
 			return SEND_PENDING;
+		}
+		else
+		{
+			return SEND_FAIL;
 		}
 	}
 	else
@@ -390,12 +412,14 @@ void EdSmartSocket::sslAccept()
 	procSSLConnect();
 }
 
-
 int EdSmartSocket::socketOpenChild(int fd)
 {
-	if(mIsSSL == false) {
+	if (mIsSSL == false)
+	{
 		openChildSock(fd);
-	} else {
+	}
+	else
+	{
 		openSSLChildSock(fd, NULL);
 	}
 	return 0;
