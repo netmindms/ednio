@@ -190,6 +190,8 @@ public:
 	void cleanupAllTimer();
 
 	void reserveFree(EdObject* obj);
+	static EdTask* getCurrentTask();
+
 #if USE_SSL
 	SSL_CTX* getSSLContext(int ver=SSL_VER_TLSV1);
 #endif

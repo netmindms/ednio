@@ -37,7 +37,7 @@ enum SEND_RESULT_E {
 
 class EsHttpTask;
 
-class EsHttpCnn : public EdSocketChannel
+class EsHttpCnn : public EdObject, public EdSmartSocket::INet
 {
 	friend class EsHttpTask;
 	friend class EsHttpTrans;
@@ -51,6 +51,7 @@ public:
 	virtual void OnRead();
 	virtual void OnDisconnected();
 #endif
+	virtual void IOnNet(EdSmartSocket* psock, int event);
 
 	void initCnn(int fd, u32 handle, EsHttpTask* ptask);
 	void procRead();
@@ -120,7 +121,7 @@ private:
 	std::list<EdHttpController*> mCtrlList;
 	EdHttpController* mCurCtrl;
 	EdHttpController* mCurSendCtrl;
-
+	EdSmartSocket mSock;
 
 };
 

@@ -73,8 +73,9 @@ void EsHttpCnn::OnDisconnected()
 
 void EsHttpCnn::initCnn(int fd, u32 handle, EsHttpTask *ptask)
 {
-	//setChildSock(fd);
-	openChildSock(fd);
+	mSock.setOnNetListener(this);
+	mSock.socketOpenChild(fd);
+
 	mTask = ptask;
 	mHandle = handle;
 
@@ -412,18 +413,19 @@ void EsHttpCnn::scheduleTransmit()
 
 	char* buf = (char*) malloc(16 * 1024);
 	auto itr = mCtrlList.begin();
+	int sr;
 	for (; itr != mCtrlList.end(); itr++)
 	{
 		mCurSendCtrl = (*itr);
 		int ret = mCurSendCtrl->getSendPacketData(buf, 16 * 1024);
 		if (ret > 0)
 		{
-			sendPacket(buf, ret, NULL);
-			//dbgd("transmit ok...handle=%0x", ptrans->mHandle);
-			//ptrans->mController->IOnCloseHttpTrans(mHandle, ptrans->mHandle);
-			//ptrans->close();
-			mCurSendCtrl->OnContentSendComplete();
-			dellist.push(itr);
+			sr = sendPacket(buf, ret, NULL);
+			if(sr == SEND_OK)
+			{
+				mCurSendCtrl->OnContentSendComplete();
+				dellist.push(itr);
+			}
 		}
 		else if (ret == -1)
 		{
@@ -478,6 +480,16 @@ int EsHttpCnn::sendCtrlStream(EdHttpController* pctl, int maxlen)
 	else
 	{
 		return HTTP_SEND_PENDING;
+	}
+}
+
+
+void EsHttpCnn::IOnNet(EdSmartSocket* psock, int event)
+{
+	if(event == NETEV_READ) {
+
+	} else if(event == NETEV_SENDCOMPLETE) {
+
 	}
 }
 

@@ -956,4 +956,10 @@ SSL_CTX* EdTask::getSSLContext(int ver)
 }
 #endif
 
+
+EdTask* EdTask::getCurrentTask()
+{
+	return _tEdTask;
+}
+
 } // namespace edft

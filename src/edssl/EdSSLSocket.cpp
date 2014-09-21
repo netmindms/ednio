@@ -255,7 +255,7 @@ void EdSSLSocket::openSSLChildSock(int fd, SSL_CTX* pctx)
 	mIsSSLServer = true;
 	if (pctx == NULL)
 	{
-		mSSLCtx = getCurrentTask()->getSSLContext();
+		mSSLCtx = EdTask::getCurrentTask()->getSSLContext();
 	}
 	else
 	{
@@ -273,7 +273,7 @@ int EdSSLSocket::openSSLClientSock(SSL_CTX* pctx)
 		return fd;
 	if (pctx == NULL)
 	{
-		mSSLCtx = getCurrentTask()->getSSLContext();
+		mSSLCtx = EdTask::getCurrentTask()->getSSLContext();
 	}
 	else
 	{

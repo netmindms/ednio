@@ -261,7 +261,7 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize)
 		{
 			return SEND_OK;
 		}
-		else if (wret > 0)
+		else if (wret >= 0)
 		{
 			ispending = true;
 		}
@@ -286,6 +286,7 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize)
 				dbge("### Fail: memory allocation error for peinding buffer");
 				return SEND_FAIL;
 			}
+			memcpy(mPendingBuf, buf+wret, bufsize-wret);
 			changeEvent(EVT_READ | EVT_WRITE | EVT_HANGUP);
 
 			return SEND_PENDING;
@@ -298,14 +299,21 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize)
 	else
 	{
 		wret = SSL_write(mSSL, buf, bufsize);
-		if (wret <= 0)
+		if(wret > 0)
 		{
+			return SEND_OK;
+		}
+		else
+		{
+			dbgd("** ssl write ret=%d", wret);
+			mPendingBuf = malloc(bufsize);
+			mPendingWriteCnt = 0;
+			mPendingSize = bufsize;
 			int err = SSL_get_error(mSSL, wret);
 			changeSSLSockEvent(err, true);
-
+			return SEND_PENDING;
 		}
 	}
-	return wret;
 }
 
 void EdSmartSocket::socketClose()
@@ -378,7 +386,7 @@ void EdSmartSocket::openSSLChildSock(int fd, SSL_CTX* pctx)
 	mIsSSLServer = true;
 	if (pctx == NULL)
 	{
-		mSSLCtx = getCurrentTask()->getSSLContext();
+		mSSLCtx = EdTask::getCurrentTask()->getSSLContext();
 	}
 	else
 	{
@@ -396,7 +404,7 @@ int EdSmartSocket::openSSLClientSock(SSL_CTX* pctx)
 		return fd;
 	if (pctx == NULL)
 	{
-		mSSLCtx = getCurrentTask()->getSSLContext();
+		mSSLCtx = EdTask::getCurrentTask()->getSSLContext();
 	}
 	else
 	{

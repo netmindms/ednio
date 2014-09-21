@@ -34,10 +34,6 @@ int EdNioInit()
 	return 0;
 }
 
-EdTask* getCurrentTask()
-{
-	return _tEdTask;
-}
 
 #if USE_SSL
 int EdSSLInit()

@@ -20,7 +20,7 @@ namespace edft {
 
 const char* EdNioGetVer();
 int EdNioInit();
-EdTask* getCurrentTask();
+
 
 #if USE_SSL
 int EdSSLInit();
