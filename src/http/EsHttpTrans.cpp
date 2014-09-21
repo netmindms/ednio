@@ -5,6 +5,7 @@
  *      Author: khkim
  */
 
+#if 0
 #define DBG_LEVEL DBG_DEBUG
 #define DBGTAG "httrs"
 
@@ -192,3 +193,4 @@ int EsHttpTrans::transmitRespStream()
 }
 
 } // namespace edft
+#endif

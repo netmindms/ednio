@@ -99,7 +99,7 @@ public:
 	 */
 	//void setOnSSLListener(ISSLSocketCb *cb);
 	void setOnNetListener(INet* lis);
-
+	bool isWritable();
 private:
 	void startHandshake();
 	void procSSLRead(void);

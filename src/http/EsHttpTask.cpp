@@ -42,7 +42,7 @@ int EsHttpTask::OnEventProc(EdMsg* pmsg)
 		//u32 hcnn = mCnns.allocHandle();
 		EsHttpCnn* pcnn = mCnns.allocObj();
 		dbgd("alloc cnn object...");
-		pcnn->setOnListener(this);
+		//pcnn->setOnListener(this);
 		pcnn->initCnn(pmsg->p1, 0, this);
 	}
 

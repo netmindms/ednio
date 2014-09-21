@@ -85,6 +85,14 @@ void EsHttpCnn::initCnn(int fd, u32 handle, EsHttpTask *ptask)
 
 void EsHttpCnn::procRead()
 {
+#if 1
+	int rdcnt = mSock.recvPacket(mReadBuf, mBufSize);
+	dbgv("proc read cnt=%d", rdcnt);
+	if(rdcnt>0)
+	{
+		http_parser_execute(&mParser, &mParserSettings, mReadBuf, rdcnt);
+	}
+#else
 	int rdcnt = recv(mReadBuf, mBufSize);
 	dbgv("proc read cnt=%d", rdcnt);
 	if (rdcnt > 0)
@@ -97,12 +105,17 @@ void EsHttpCnn::procRead()
 //		file.closeFile();
 		http_parser_execute(&mParser, &mParserSettings, mReadBuf, rdcnt);
 	}
+#endif
 }
 
 void EsHttpCnn::procDisconnected()
 {
+#if 1
+	mSock.socketClose();
+#else
 	close();
 	deregisterEvent();
+#endif
 }
 
 int EsHttpCnn::head_field_cb(http_parser* parser, const char *at, size_t length)
@@ -337,6 +350,7 @@ void EsHttpCnn::transmitReserved()
 
 }
 
+#if 0
 bool EsHttpCnn::transmitResponse(EsHttpTrans* ptrans)
 {
 	int len;
@@ -373,6 +387,7 @@ bool EsHttpCnn::transmitResponse(EsHttpTrans* ptrans)
 	send(outbuf.c_str(), outbuf.size());
 
 }
+#endif
 
 EsHttpTrans* EsHttpCnn::allocTrans()
 {
@@ -389,10 +404,12 @@ void EsHttpCnn::freeTrans(EsHttpTrans* ptrans)
 
 }
 
+#if 0
 int EsHttpCnn::sendHttpPakcet(void* buf, int size)
 {
 	return send(buf, size);
 }
+#endif
 
 void EsHttpCnn::scheduleTransmit()
 {
@@ -416,15 +433,21 @@ void EsHttpCnn::scheduleTransmit()
 	int sr;
 	for (; itr != mCtrlList.end(); itr++)
 	{
+		if(mSock.isWritable()==false)
+			break;
 		mCurSendCtrl = (*itr);
 		int ret = mCurSendCtrl->getSendPacketData(buf, 16 * 1024);
 		if (ret > 0)
 		{
-			sr = sendPacket(buf, ret, NULL);
+			sr = mSock.sendPacket(buf, ret);
 			if(sr == SEND_OK)
 			{
 				mCurSendCtrl->OnContentSendComplete();
 				dellist.push(itr);
+			}
+			else
+			{
+				break;
 			}
 		}
 		else if (ret == -1)
@@ -450,46 +473,16 @@ void EsHttpCnn::scheduleTransmit()
 	dbgd("resp list cnt=%d, tr list cnt=%d", mRespList.size(), mTransMap.size());
 }
 
-int EsHttpCnn::sendCtrlStream(EdHttpController* pctl, int maxlen)
-{
-#define BUF_SIZE (16*1024)
-
-	if (isFull() == false)
-	{
-		int result;
-		char* buf = (char*) malloc(BUF_SIZE);
-		if (buf == NULL)
-		{
-			dbge("### Fail: memory allocation error for packet buffer");
-			return HTTP_SEND_FAIL;
-		}
-
-		int rlen = pctl->getSendPacketData(buf, BUF_SIZE);
-		if (rlen > 0)
-		{
-			sendPacket(buf, rlen, NULL);
-			result = HTTP_SEND_OK;
-		}
-		else
-		{
-			result = HTTP_SEND_OK;
-		}
-		free(buf);
-		return result;
-	}
-	else
-	{
-		return HTTP_SEND_PENDING;
-	}
-}
 
 
 void EsHttpCnn::IOnNet(EdSmartSocket* psock, int event)
 {
 	if(event == NETEV_READ) {
-
+		procRead();
 	} else if(event == NETEV_SENDCOMPLETE) {
-
+		scheduleTransmit();
+	} else if (event == NETEV_DISCONNECTED) {
+		procDisconnected();
 	}
 }
 

@@ -433,4 +433,13 @@ int EdSmartSocket::socketOpenChild(int fd)
 	return 0;
 }
 
+
+bool EdSmartSocket::isWritable()
+{
+	if(mPendingBuf == NULL)
+		return true;
+	else
+		return false;
+}
+
 } /* namespace edft */

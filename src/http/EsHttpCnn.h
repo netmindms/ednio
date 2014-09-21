@@ -16,7 +16,7 @@
 #include "../EdSocket.h"
 #include "http_parser.h"
 #include "EsHttpTrans.h"
-#include "../EdSocketChannel.h"
+#include "../edssl/EdSmartSocket.h"
 
 using namespace std;
 
