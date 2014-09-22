@@ -1015,19 +1015,7 @@ void testHttpSever(int mode)
 			}
 			return ret;
 		}
-#if 0
-		EdHttpController* OnNewRequest(const char* method, const char* url)
-		{
-			if (!strcmp(method, "GET") && !strcmp(url, "userinfo"))
-			{
-				return new MyController;
-			}
-			else
-			{
-				return NULL;
-			}
-		}
-#endif
+
 	};
 
 	class MyController: public EdHttpController, public EdTimer::ITimerCb
@@ -1039,7 +1027,7 @@ void testHttpSever(int mode)
 		MyController()
 		{
 			mStrReader = NULL;
-			mMyTask = (MyHttpTask*) getCurrentTask();
+			mMyTask = (MyHttpTask*) EdTask::getCurrentTask();
 			logs("mycont const.....");
 		}
 		virtual void OnRequest()
@@ -1072,8 +1060,8 @@ void testHttpSever(int mode)
 			logs("send response,...");
 			ptimer->kill();
 			mStrReader = new EdHttpStringReader;
-			mStrReader->setString("Hello, ednio http service....");
-			setRespBodyReader(mStrReader);
+			mStrReader->setString("Hello, ednio http service....\n");
+			setRespBodyReader(mStrReader, "text/plain");
 			setHttpResult("200");
 		}
 
@@ -1090,6 +1078,7 @@ void testHttpSever(int mode)
 				int task_inst = 1;
 				logs("server open, port=%d, task-instance=%d", port, task_inst);
 				mServer.open(port);
+				mServer.open(7070, SOCKET_SSL);
 				mServer.addService<MyHttpTask>(task_inst);
 
 			}
@@ -1570,10 +1559,10 @@ int main()
 	EdNioInit();
 	for (int i = 0; i < 1; i++)
 	{
-		testsmartsock(i);
+		testHttpSever(i);
+		//testsmartsock(i);
 		//testHttpBase(i);
 //		testssl(i);
-//		testHttpSever(i);
 //		testMultiTaskInstance(1);
 //		testreservefree(i);
 //		testtimer(i);
