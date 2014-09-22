@@ -20,6 +20,7 @@
 namespace edft
 {
 
+#define SEND_BUF_SIZE (16*1024)
 class EsHttpCnn;
 
 
@@ -36,7 +37,7 @@ public:
 	void close();
 	void setReqBodyWriter(EdHttpWriter* writer);
 	void setHttpResult(const char *code);
-	void setRespBodyReader(EdHttpReader* reader);
+	void setRespBodyReader(EdHttpReader* reader, const char *type);
 	const char* getReqHeader(char* name);
 	long getReqContentLen();
 
@@ -55,9 +56,10 @@ private:
 	std::list<packet_buf_t> mPacketList;
 
 	// header response stream data
-	char *mEncHeaderStream;
+	char *mEncStartStream;
 	int mEncHeaderReadCnt;
 	int mEncHeaderSize;
+	packet_buf_t mHdrPkt;
 
 	// body data stream
 	EdHttpReader* mBodyReader;
@@ -71,6 +73,7 @@ private:
 	int transmitRespStream();
 	packet_buf_t getSendPacket();
 	int getSendPacketData(void* buf, int len);
+	void initCtrl(EsHttpCnn* pcnn);
 };
 
 } /* namespace edft */

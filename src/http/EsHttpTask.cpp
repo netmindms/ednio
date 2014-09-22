@@ -10,6 +10,8 @@
 
 #include "../edslog.h"
 #include "EsHttpTask.h"
+#include "EdNotFoundHttpController.h"
+#include <stdexcept>
 
 namespace edft {
 
@@ -43,7 +45,7 @@ int EsHttpTask::OnEventProc(EdMsg* pmsg)
 		EsHttpCnn* pcnn = mCnns.allocObj();
 		dbgd("alloc cnn object...");
 		//pcnn->setOnListener(this);
-		pcnn->initCnn(pmsg->p1, 0, this);
+		pcnn->initCnn(pmsg->p1, 0, this, pmsg->p2);
 	}
 
 	return 0;
@@ -69,20 +71,6 @@ void EsHttpTask::setController(char* uri, IUriControllerCb* cb)
 	mContMap[uri] = cb;
 }
 
-IUriControllerCb* EsHttpTask::getController(string* uri)
-{
-	try
-	{
-		IUriControllerCb *cb;
-		cb = mContMap.at(*uri);
-		return cb;
-	}
-	catch (out_of_range &exp)
-	{
-		return NULL;
-	}
-}
-
 EdHttpController* EsHttpTask::OnNewRequest(const char* method, const char* url)
 {
 	return NULL;
@@ -97,7 +85,8 @@ EdHttpController* EsHttpTask::getRegController(const char* url)
 		return ptr;
 	} catch(out_of_range &e)
 	{
-		return NULL;
+		EdHttpController* ptr = new EdNotFoundHttpController;
+		return ptr;
 	}
 }
 

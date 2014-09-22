@@ -17,6 +17,7 @@
 #include "http_parser.h"
 #include "EsHttpTrans.h"
 #include "../edssl/EdSmartSocket.h"
+#include "EdHttpController.h"
 
 using namespace std;
 
@@ -53,7 +54,7 @@ public:
 #endif
 	virtual void IOnNet(EdSmartSocket* psock, int event);
 
-	void initCnn(int fd, u32 handle, EsHttpTask* ptask);
+	void initCnn(int fd, u32 handle, EsHttpTask* ptask, int socket_mode);
 	void procRead();
 	void procDisconnected();
 
@@ -78,14 +79,6 @@ private:
 	int statusCb(http_parser *parser, const char *at, size_t length);
 	void procHeader();
 	void procReqLine();
-
-	void sendResponse(EsHttpTrans* ptrans);
-	void transmitReserved();
-	bool transmitResponse(EsHttpTrans* ptrans);
-	EsHttpTrans* allocTrans();
-
-	void freeTrans(EsHttpTrans* ptrans);
-	int sendHttpPakcet(void* buf, int size);
 	void scheduleTransmit();
 	int sendCtrlStream(EdHttpController* pctl, int maxlen);
 
@@ -94,7 +87,6 @@ private:
 	u32 mHandle;
 	int mBufSize;
 	char *mReadBuf;
-	EsHttpTrans *mCurTrans;
 
 	union {
 		struct {
@@ -105,8 +97,6 @@ private:
 	};
 
 
-	unordered_map<u32, EsHttpTrans*> mTransMap;
-	std::list<EsHttpTrans *> mRespList;
 
 	//std::string mCurHdrName, mCurHdrVal;
 	string *mCurHdrName, *mCurHdrVal, *mCurUrl;

@@ -65,7 +65,6 @@ private:
 	//EsHandleManager<EsHttpCnn> mCnns;
 	EdObjList<EsHttpCnn> mCnns;
 	unordered_map<string, IUriControllerCb*> mContMap;
-	IUriControllerCb* getController(string* uri);
 	unordered_map<string, EdHttpController*> mUrlMap;
 	unordered_map<string, __alloc_controller> mAllocMap;
 	EdHttpController* getRegController(const char *url);

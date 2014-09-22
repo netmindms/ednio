@@ -6,7 +6,7 @@
  */
 
 #define DBGTAG "htcnn"
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_VERBOSE
 #include <stack>
 #include <unordered_map>
 #include "../edslog.h"
@@ -71,10 +71,10 @@ void EsHttpCnn::OnDisconnected()
 }
 #endif
 
-void EsHttpCnn::initCnn(int fd, u32 handle, EsHttpTask *ptask)
+void EsHttpCnn::initCnn(int fd, u32 handle, EsHttpTask *ptask, int socket_mode)
 {
 	mSock.setOnNetListener(this);
-	mSock.socketOpenChild(fd);
+	mSock.socketOpenChild(fd, socket_mode);
 
 	mTask = ptask;
 	mHandle = handle;
@@ -167,8 +167,8 @@ int EsHttpCnn::on_headers_complete(http_parser* parser)
 
 int EsHttpCnn::headerNameCb(http_parser*, const char* at, size_t length)
 {
-	//string tmp(at, length);
-	//dbgd("name cb, %s", tmp.c_str());
+	string tmp(at, length);
+	dbgv("name cb, %s", tmp.c_str());
 	if (mPs == PS_FIRST_LINE)
 	{
 		procReqLine();
@@ -188,8 +188,8 @@ int EsHttpCnn::headerNameCb(http_parser*, const char* at, size_t length)
 
 int EsHttpCnn::headerValCb(http_parser*, const char* at, size_t length)
 {
-	//string tmp(at, length);
-	//dbgd("val cb, %s", tmp.c_str());
+	string tmp(at, length);
+	dbgv("val cb, %s", tmp.c_str());
 
 	if (mCurHdrVal == NULL)
 		mCurHdrVal = new string();
@@ -209,8 +209,9 @@ int EsHttpCnn::dgHeaderComp(http_parser* parser)
 		mIsHdrVal = false;
 	}
 
-	mCurCtrl->OnRequest();
-
+	if(mCurCtrl != NULL)
+		mCurCtrl->OnRequest();
+/*
 	IUriControllerCb *cb = mTask->getController(mCurUrl);
 	if (cb)
 	{
@@ -219,26 +220,22 @@ int EsHttpCnn::dgHeaderComp(http_parser* parser)
 		if (mCurTrans->mIsResponsed)
 		{
 			mCurTrans->encodeResp();
-			transmitReserved();
+			//transmitReserved();
 		}
 	}
+	*/
 	return 0;
 }
 
 int EsHttpCnn::bodyDataCb(http_parser*, const char* at, size_t length)
 {
 	dbgd("body data len=%d", length);
-	IUriControllerCb *cb = mTask->getController(mCurUrl);
-	if (cb)
-	{
-		//cb->IOnMsgBody(mHandle, mCurTrans->mHandle, mCurTrans, (void*) at, length);
-	}
+
 	return 0;
 }
 
 int EsHttpCnn::dgMsgBeginCb(http_parser* parser)
 {
-	assert(mCurTrans == NULL);
 
 	mPs = PS_FIRST_LINE;
 
@@ -250,7 +247,6 @@ int EsHttpCnn::dgMsgBeginCb(http_parser* parser)
 	//mTransMap.push_back(mCurTrans);
 	//_hidx++;
 
-	mCurTrans = allocTrans();
 
 	return 0;
 }
@@ -283,9 +279,9 @@ int EsHttpCnn::statusCb(http_parser* parser, const char* at, size_t length)
 
 void EsHttpCnn::procHeader()
 {
-	mCurCtrl->addReqHeader(mCurHdrName, mCurHdrVal);
+	if(mCurCtrl != NULL)
+		mCurCtrl->addReqHeader(mCurHdrName, mCurHdrVal);
 
-	mCurTrans->addReqHeader(mCurHdrName, mCurHdrVal);
 
 	delete mCurHdrName;
 	delete mCurHdrVal;
@@ -299,55 +295,10 @@ void EsHttpCnn::procReqLine()
 	mPs = PS_HEADER;
 	//EdHttpController* pctl = mTask->OnNewRequest(http_method_str((http_method)mParser.method), mCurUrl->c_str());
 	mCurCtrl = mTask->getRegController(mCurUrl->c_str());
-	mCtrlList.push_back(mCurCtrl);
-}
-
-void EsHttpCnn::sendResponse(EsHttpTrans* ptrans)
-{
-	ptrans->mIsResponsed = true;
-	transmitReserved();
-}
-
-void EsHttpCnn::transmitReserved()
-{
-	dbgd("transmit reserved..., trcnt=%d", mRespList.size());
-
-	stack<list<EsHttpTrans*>::iterator> dellist;
-
-	//char* buf = (char*) malloc(8 * 1024);
-	auto itr = mRespList.begin();
-	for (; itr != mRespList.end(); itr++)
-	{
-		EsHttpTrans* ptrans = (*itr);
-		int ret = ptrans->transmitRespStream();
-		if (ret == 0)
-		{
-			dbgd("transmit ok...handle=%0x", ptrans->mHandle);
-			ptrans->mController->IOnCloseHttpTrans(mHandle, ptrans->mHandle);
-			ptrans->close();
-			dellist.push(itr);
-		}
-		else if (ret == -1)
-		{
-			break;
-		}
+	if(mCurCtrl != NULL) {
+		mCurCtrl->initCtrl(this);
+		mCtrlList.push_back(mCurCtrl);
 	}
-
-	//free(buf);
-
-	dbgd("to remove cnt=%d", dellist.size());
-	for (; !dellist.empty();)
-	{
-		auto itr = dellist.top();
-		dellist.pop();
-		dbgd("remove tr list, handle=%0x", (*itr)->mHandle);
-		mTransMap.erase((*itr)->mHandle);
-		mRespList.erase(itr);
-		delete (*itr);
-	}
-
-	dbgd("resp list cnt=%d, tr list cnt=%d", mRespList.size(), mTransMap.size());
-
 }
 
 #if 0
@@ -389,31 +340,9 @@ bool EsHttpCnn::transmitResponse(EsHttpTrans* ptrans)
 }
 #endif
 
-EsHttpTrans* EsHttpCnn::allocTrans()
-{
-
-	EsHttpTrans* ptrans = new EsHttpTrans(mTrhseed, this);
-	mTransMap[mTrhseed] = ptrans;
-	mRespList.push_back(ptrans);
-	_hidx++;
-	return ptrans;
-}
-
-void EsHttpCnn::freeTrans(EsHttpTrans* ptrans)
-{
-
-}
-
-#if 0
-int EsHttpCnn::sendHttpPakcet(void* buf, int size)
-{
-	return send(buf, size);
-}
-#endif
 
 void EsHttpCnn::scheduleTransmit()
 {
-	// TODO schedule transmit
 	dbgd("scheduling transmit..., ready ctrl cnt=%d", mCtrlList.size());
 	if (mCurSendCtrl != NULL)
 		return;
@@ -428,49 +357,33 @@ void EsHttpCnn::scheduleTransmit()
 
 	stack<list<EdHttpController*>::iterator> dellist;
 
-	char* buf = (char*) malloc(16 * 1024);
-	auto itr = mCtrlList.begin();
 	int sr;
+	auto itr = mCtrlList.begin();
 	for (; itr != mCtrlList.end(); itr++)
 	{
-		if(mSock.isWritable()==false)
-			break;
 		mCurSendCtrl = (*itr);
-		int ret = mCurSendCtrl->getSendPacketData(buf, 16 * 1024);
-		if (ret > 0)
-		{
-			sr = mSock.sendPacket(buf, ret);
-			if(sr == SEND_OK)
-			{
-				mCurSendCtrl->OnContentSendComplete();
-				dellist.push(itr);
-			}
-			else
-			{
-				break;
-			}
+		sr = sendCtrlStream(mCurSendCtrl, 16*1024);
+		if(sr == SEND_OK) {
+			dellist.push(itr);
+			mCurSendCtrl->OnContentSendComplete();
+			mTask->freeController(mCurSendCtrl);
+			mCurSendCtrl = NULL;
 		}
-		else if (ret == -1)
-		{
+		else {
 			break;
 		}
-
 	}
 
-	free(buf);
 
 	dbgd("to remove cnt=%d", dellist.size());
 	for (; !dellist.empty();)
 	{
 		auto itr = dellist.top();
 		dellist.pop();
-		//dbgd("remove tr list, handle=%0x", (*itr)->mHandle);
-		//mTransMap.erase((*itr)->mHandle);
-		//mRespList.erase(itr);
-		//delete (*itr);
+		mCtrlList.erase(itr);
 	}
 
-	dbgd("resp list cnt=%d, tr list cnt=%d", mRespList.size(), mTransMap.size());
+	dbgd("ctrl list cnt=%d", mCtrlList.size());
 }
 
 
@@ -480,10 +393,41 @@ void EsHttpCnn::IOnNet(EdSmartSocket* psock, int event)
 	if(event == NETEV_READ) {
 		procRead();
 	} else if(event == NETEV_SENDCOMPLETE) {
+		mCtrlList.pop_front();
+		mTask->freeController(mCurSendCtrl);
+		mCurSendCtrl = NULL;
 		scheduleTransmit();
 	} else if (event == NETEV_DISCONNECTED) {
 		procDisconnected();
 	}
+}
+
+
+int EsHttpCnn::sendCtrlStream(EdHttpController* pctl, int maxlen)
+{
+	int retVal=SEND_FAIL;
+	packet_buf_t bf;
+	if(mSock.isWritable() == false)
+		return SEND_FAIL;
+
+	for(;;) {
+		bf = pctl->getSendPacket();
+
+		if(bf.len >0) {
+			retVal = mSock.sendPacket(bf.buf, bf.len);
+
+			free(bf.buf);
+			if(retVal != SEND_OK)
+				break;
+		}
+		else
+		{
+			retVal = SEND_OK;
+			break;
+		}
+	}
+
+	return retVal;
 }
 
 } // namespace edft

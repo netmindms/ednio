@@ -33,15 +33,21 @@ void EsHttpServer::IOnSocketEvent(EdSocket* psock, int event)
 		dbgd("new incoming cnn, fd=%d", fd);
 		if(mSvcCount>0) {
 			int idx = (mSvcRound++ % mSvcCount);
-			mSvcList[idx]->postMsg(UV_HTTPCNN, fd, 0);
+			mSvcList[idx]->postMsg(UV_HTTPCNN, fd, psock==&mSvrSock ? 0:1);
 		}
 	}
 }
 
-int EsHttpServer::open(int port)
+int EsHttpServer::open(int port, bool ssl)
 {
-	mSvrSock.setOnListener(this);
-	int ret = mSvrSock.listenSock(port);
+	EdSocket *psock;
+	if(ssl == false) {
+		psock = &mSvrSock;
+	} else {
+		psock = &mSSLSvrSock;
+	}
+	psock->setOnListener(this);
+	int ret = psock->listenSock(port);
 	if(ret != 0)
 	{
 		dbge("### server listen port open fail, ret=%d");

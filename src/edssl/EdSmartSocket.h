@@ -32,6 +32,12 @@ enum {
 	SEND_PENDING,
 };
 
+enum {
+	SOCKET_NORMAL=0,
+	SOCKET_SSL=1,
+};
+
+
 class EdSmartSocket : public EdSocket
 {
 public:
@@ -53,8 +59,8 @@ public:
 	virtual void OnSSLDisconnected();
 	virtual void OnSSLRead();
 
-	int socketOpen(bool ssl=false);
-	int socketOpenChild(int fd);
+	int socketOpen(int mode=0);
+	int socketOpenChild(int fd, int mode=0);
 
 	/**
 	 * @brief Read data from ssl connection
@@ -114,7 +120,7 @@ private:
 	//ISSLSocketCb *mSSLCallback;
 	bool mIsSSLServer;
 	INet* mOnLis;
-	bool mIsSSL;
+	int mMode; // 0: Normal mode, 1: ssl mode
 	void* mPendingBuf; int mPendingWriteCnt; int mPendingSize;
 };
 

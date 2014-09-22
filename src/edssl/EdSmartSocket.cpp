@@ -24,7 +24,7 @@ EdSmartSocket::EdSmartSocket()
 	//mSSLCallback = NULL;
 	mIsSSLServer = false;
 	mOnLis = NULL;
-	mIsSSL = false;
+	mMode = 0;
 	mPendingBuf = NULL;
 	mPendingSize = 0;
 	mPendingWriteCnt = 0;
@@ -35,11 +35,11 @@ EdSmartSocket::~EdSmartSocket()
 	socketClose();
 }
 
-int EdSmartSocket::socketOpen(bool ssl)
+int EdSmartSocket::socketOpen(int mode)
 {
 	int ret;
-	mIsSSL = ssl;
-	if (mIsSSL == false)
+	mMode = mode;
+	if (mMode == SOCKET_NORMAL)
 	{
 		ret = openSock(SOCK_TYPE_TCP);
 	}
@@ -52,7 +52,7 @@ int EdSmartSocket::socketOpen(bool ssl)
 
 void EdSmartSocket::OnRead()
 {
-	if (mIsSSL == false)
+	if (mMode == SOCKET_NORMAL)
 	{
 		if (mOnLis != NULL)
 		{
@@ -93,7 +93,7 @@ void EdSmartSocket::OnWrite()
 void EdSmartSocket::OnConnected()
 {
 	dbgd("socket connected...");
-	if (mIsSSL == true)
+	if (mMode == SOCKET_SSL)
 	{
 		startHandshake();
 	}
@@ -117,7 +117,7 @@ void EdSmartSocket::OnDisconnected()
 #endif
 	if (mOnLis != NULL)
 	{
-		if (mIsSSL == false)
+		if (mMode == false)
 		{
 			mOnLis->IOnNet(this, NETEV_DISCONNECTED);
 		}
@@ -166,7 +166,7 @@ void EdSmartSocket::changeSSLSockEvent(int err, bool bwrite)
 int EdSmartSocket::recvPacket(void* buf, int bufsize)
 {
 	int rret;
-	if (mIsSSL == false)
+	if (mMode == false)
 	{
 		rret = recv(buf, bufsize);
 		return rret;
@@ -252,7 +252,7 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize)
 		return SEND_FAIL;
 	}
 
-	if (mIsSSL == false)
+	if (mMode == false)
 	{
 		wret = send(buf, bufsize);
 		bool ispending;
@@ -420,9 +420,10 @@ void EdSmartSocket::sslAccept()
 	procSSLConnect();
 }
 
-int EdSmartSocket::socketOpenChild(int fd)
+int EdSmartSocket::socketOpenChild(int fd, int mode)
 {
-	if (mIsSSL == false)
+	mMode = mode;
+	if (mode == SOCKET_NORMAL)
 	{
 		openChildSock(fd);
 	}

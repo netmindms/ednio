@@ -39,12 +39,13 @@ public:
 		mSvcMutex.unlock();
 	}
 
-	int open(int port);
+	int open(int port, bool ssl=false);
 	void close();
 
 private:
 	EdMutex mSvcMutex;
 	EdSocket mSvrSock;
+	EdSocket mSSLSvrSock;
 	EsHttpTask *mSvcList[100];
 	int mSvcCount;
 	int mSvcRound;

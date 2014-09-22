@@ -5,6 +5,7 @@
  *      Author: khkim
  */
 
+#if 0
 #ifndef ESHTTPTRANS_H_
 #define ESHTTPTRANS_H_
 
@@ -78,3 +79,4 @@ private:
 
 } // namespace edft
 #endif /* ESHTTPTRANS_H_ */
+#endif
