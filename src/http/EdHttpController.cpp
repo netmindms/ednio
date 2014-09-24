@@ -26,6 +26,7 @@ EdHttpController::EdHttpController()
 	mEncHeaderSize = 0;
 	mEncHeaderReadCnt = 0;
 	memset(mStatusCode, 0, sizeof(mStatusCode));
+
 }
 
 EdHttpController::~EdHttpController()

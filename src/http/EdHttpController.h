@@ -57,6 +57,7 @@ private:
 
 	char mStatusCode[4];
 	bool mIsFinalResponsed;
+	bool mTxTrying;
 
 	std::list<packet_buf_t> mPacketList;
 

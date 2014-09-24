@@ -214,9 +214,7 @@ int EsHttpCnn::dgHeaderComp(http_parser* parser)
 	if (mCurCtrl != NULL)
 	{
 		mCurCtrl->OnRequest();
-		if(mCurCtrl->mIsFinalResponsed==true) {
-			scheduleTransmit();
-		}
+
 	}
 	return 0;
 }
@@ -244,9 +242,13 @@ int EsHttpCnn::dgMsgBeginCb(http_parser* parser)
 	return 0;
 }
 
-int EsHttpCnn::dgMsgEndCb(http_parser*)
+int EsHttpCnn::dgMsgEndCb(http_parser* parser)
 {
 	dbgd("http msg end...");
+	if (mCurCtrl->mIsFinalResponsed == true)
+	{
+		scheduleTransmit();
+	}
 	return 0;
 }
 

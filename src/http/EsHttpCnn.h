@@ -60,7 +60,7 @@ private:
 	static int msg_begin(http_parser* parser);
 	int dgMsgBeginCb(http_parser* parser);
 	static int msg_end(http_parser*);
-	int dgMsgEndCb(http_parser*);
+	int dgMsgEndCb(http_parser* parser);
 	static int on_url(http_parser *parser, const char *at, size_t length);
 	int dgUrlCb(http_parser *parser, const char *at, size_t length);
 	static int on_status(http_parser *parser, const char *at, size_t length);
