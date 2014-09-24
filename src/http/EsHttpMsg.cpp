@@ -38,7 +38,7 @@ void EsHttpMsg::addHdr(const char* name, const char* val)
 	mHeaders[name] = val;
 }
 
-const char* EsHttpMsg::getHdr(char* name)
+const char* EsHttpMsg::getHdr(const char* name)
 {
 	try {
 		string &val = mHeaders.at(name);

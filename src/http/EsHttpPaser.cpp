@@ -74,10 +74,6 @@ void EsHttpPaser::consumeData(int size)
 
 void EsHttpPaser::putData(char* str, int len)
 {
-	char* ptr = str;
-	if(mState == REQLINE_S) {
-
-	}
 
 }
 

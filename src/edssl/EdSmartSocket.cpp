@@ -286,7 +286,7 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize)
 				dbge("### Fail: memory allocation error for peinding buffer");
 				return SEND_FAIL;
 			}
-			memcpy(mPendingBuf, buf+wret, bufsize-wret);
+			memcpy(mPendingBuf, (u8*)buf+wret, bufsize-wret);
 			changeEvent(EVT_READ | EVT_WRITE | EVT_HANGUP);
 
 			return SEND_PENDING;

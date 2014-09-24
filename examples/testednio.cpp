@@ -19,7 +19,6 @@
 #include "edcurl/EdCurl.h"
 #include "edcurl/EdMultiCurl.h"
 #include "http/EdHttpWriter.h"
-#include "http/EdHttpTask.h"
 #include "http/EdHttpStringReader.h"
 #include "http/EdHttpStringWriter.h"
 #include "http/EsHttpServer.h"
@@ -974,6 +973,8 @@ void testHttpSever(int mode)
 {
 	class MyHttpTask;
 	class MyController;
+	class ServerEndUrl;
+
 	/*
 	 class MyUserDataUrl: public EdHttpController
 	 {
@@ -1010,8 +1011,9 @@ void testHttpSever(int mode)
 			int ret = EsHttpTask::OnEventProc(pmsg);
 			if (pmsg->msgid == EDM_INIT)
 			{
-				regController<MyController>("/userinfo");
-				//regController<MyUserDataUrl>("/userdata");
+				setSSLCert("/home/netmind/testkey/netsvr.crt", "/home/netmind/testkey/testkey.key");
+				regController<MyController>("/userinfo", this);
+				regController<ServerEndUrl>("/serverend", this);
 			}
 			return ret;
 		}
@@ -1030,6 +1032,11 @@ void testHttpSever(int mode)
 			mMyTask = (MyHttpTask*) EdTask::getCurrentTask();
 			logs("mycont const.....");
 		}
+		void OnInit()
+		{
+
+		}
+
 		virtual void OnRequest()
 		{
 			logs("after 100msec, send response...");
@@ -1042,16 +1049,12 @@ void testHttpSever(int mode)
 			;
 		}
 		;
-		virtual void OnContentSendComplete()
+		virtual void OnComplete(int result)
 		{
+			logs("http complete...result=%d", result);
 			delete mStrReader;
 			mStrReader = NULL;
-		}
-		;
-		virtual void OnComplete()
-		{
-			// TODO controller complete
-			logs("http complete...");
+
 			delete this;
 		}
 
@@ -1067,6 +1070,15 @@ void testHttpSever(int mode)
 
 	};
 
+	class ServerEndUrl : public EdHttpController {
+		void OnRequest() {
+			logs("server end url, ");
+			EdTask *ptask = (EdTask*)getUserData();
+			ptask->postExit();
+			setHttpResult("200");
+		}
+	};
+
 	class HttpTestTask: public TestTask
 	{
 		EsHttpServer mServer;
@@ -1079,7 +1091,7 @@ void testHttpSever(int mode)
 				logs("server open, port=%d, task-instance=%d", port, task_inst);
 				mServer.open(port);
 				mServer.open(7070, SOCKET_SSL);
-				mServer.addService<MyHttpTask>(task_inst);
+				mServer.startService<MyHttpTask>(task_inst);
 
 			}
 			else if (pmsg->msgid == EDM_CLOSE)

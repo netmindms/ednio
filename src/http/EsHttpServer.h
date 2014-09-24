@@ -27,7 +27,7 @@ public:
 	//virtual int OnEventProc(EdMsg* pmsg);
 	virtual void IOnSocketEvent(EdSocket *psock, int event);
 
-	template<typename T>	void addService(int num=1)
+	template<typename T>	void startService(int num=1)
 	{
 		mSvcMutex.lock();
 		for(int i=0;i<num;i++)

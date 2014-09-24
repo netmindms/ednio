@@ -11,7 +11,7 @@
 #include "../config.h"
 
 #include <list>
-#include "../EdEventFd.h"
+#include "../EdObject.h"
 #include "EsHttpMsg.h"
 #include "EdHttpWriter.h"
 #include "EdHttpReader.h"
@@ -24,25 +24,30 @@ namespace edft
 class EsHttpCnn;
 
 
-class EdHttpController : public EdEventFd
+class EdHttpController : public EdObject
 {
+	friend class EsHttpTask;
 	friend class EsHttpCnn;
 public:
 	EdHttpController();
 	virtual ~EdHttpController();
+	virtual void OnInit();
 	virtual void OnRequest();
 	virtual void OnContentRecvComplete();
-	virtual void OnContentSendComplete();
-	virtual void OnComplete();
+	//virtual void OnContentSendComplete();
+	virtual void OnComplete(int result);
 	void close();
 	void setReqBodyWriter(EdHttpWriter* writer);
-	void setHttpResult(const char *code);
 	void setRespBodyReader(EdHttpReader* reader, const char *type);
 	const char* getReqHeader(char* name);
 	long getReqContentLen();
-
+	void *getUserData();
+protected:
+	void setHttpResult(const char *code);
 
 private:
+	void* mUserData;
+
 	EdHttpWriter* mWriter;
 
 	//EsHttpTrans* mTrans;
@@ -51,7 +56,7 @@ private:
 	EsHttpMsg mRespMsg;
 
 	char mStatusCode[4];
-	bool mIsResponsed;
+	bool mIsFinalResponsed;
 
 	std::list<packet_buf_t> mPacketList;
 

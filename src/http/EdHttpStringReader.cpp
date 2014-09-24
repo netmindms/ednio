@@ -47,7 +47,7 @@ long EdHttpStringReader::Read(void* buf, long len)
 	if (mReadIdx < mSize)
 	{
 		int rdcnt = min(len, mSize - mReadIdx);
-		memcpy(buf, mBuf+mReadIdx, rdcnt);
+		memcpy(buf, (char*)mBuf+mReadIdx, rdcnt);
 		mReadIdx += rdcnt;
 		return rdcnt;
 	}

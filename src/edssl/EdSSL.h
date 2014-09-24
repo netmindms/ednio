@@ -26,6 +26,10 @@ enum {
 	SSL_VER_DTLSV1,
 };
 
+
+int EdSSLInit();
+bool EdSSLIsInit();
+
 class EdSSL
 {
 public:

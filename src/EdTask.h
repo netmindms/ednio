@@ -194,6 +194,7 @@ public:
 
 #if USE_SSL
 	SSL_CTX* getSSLContext(int ver=SSL_VER_TLSV1);
+	int setSSLCert(const char* certfile, const char* privkeyfile);
 #endif
 
 public:

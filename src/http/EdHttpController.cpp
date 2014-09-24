@@ -17,11 +17,15 @@ namespace edft
 
 EdHttpController::EdHttpController()
 {
-	// TODO Auto-generated constructor stub
 	mWriter = NULL;
 	mBodyReader = NULL;
 	//mTrans = NULL;
-	mIsResponsed = false;
+	mIsFinalResponsed = false;
+	mCnn = NULL;
+	mEncStartStream = NULL;
+	mEncHeaderSize = 0;
+	mEncHeaderReadCnt = 0;
+	memset(mStatusCode, 0, sizeof(mStatusCode));
 }
 
 EdHttpController::~EdHttpController()
@@ -37,11 +41,13 @@ void EdHttpController::OnContentRecvComplete()
 {
 }
 
+#if 0
 void EdHttpController::OnContentSendComplete()
 {
 }
+#endif
 
-void EdHttpController::OnComplete()
+void EdHttpController::OnComplete(int result)
 {
 }
 
@@ -59,9 +65,10 @@ void EdHttpController::setReqBodyWriter(EdHttpWriter* writer)
 
 void EdHttpController::setHttpResult(const char* code)
 {
-	strncpy(mStatusCode, code, 3);
+	memcpy(mStatusCode, code, 3);
+
 	encodeResp();
-	mCnn->scheduleTransmit();
+	//mCnn->scheduleTransmit();
 }
 
 void EdHttpController::setRespBodyReader(EdHttpReader* reader, const char* type)
@@ -112,7 +119,6 @@ long EdHttpController::getReqContentLen()
 
 void EdHttpController::encodeResp()
 {
-	int len;
 	EsHttpMsg *resp = &mRespMsg;
 	char tmp[100];
 
@@ -146,7 +152,7 @@ void EdHttpController::encodeResp()
 	mEncStartStream = (char*) malloc(outbuf.size());
 	memcpy(mEncStartStream, outbuf.c_str(), mEncHeaderSize);
 #endif
-	mIsResponsed = true;
+	mIsFinalResponsed = true;
 }
 
 #if 0
@@ -156,7 +162,7 @@ void EdHttpController::sendResp(char* code, void *textbody, int len, char* cont_
 	EsHttpTextBody *body = new EsHttpTextBody((char*) textbody, len);
 	setRespBody(body);
 	memcpy(mStatusCode, code, 4);
-	mIsResponsed = true;
+	mIsFinalResponsed = true;
 	//mCnn->sendResponse(this);
 #else
 	char tmp[100];
@@ -258,6 +264,17 @@ int EdHttpController::getSendPacketData(void* buf, int len)
 void EdHttpController::initCtrl(EsHttpCnn* pcnn)
 {
 	mCnn = pcnn;
+}
+
+
+void EdHttpController::OnInit()
+{
+}
+
+
+void* EdHttpController::getUserData()
+{
+	return mUserData;
 }
 
 } /* namespace edft */

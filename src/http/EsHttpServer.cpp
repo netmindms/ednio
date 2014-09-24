@@ -58,6 +58,13 @@ int EsHttpServer::open(int port, bool ssl)
 void EsHttpServer::close()
 {
 	mSvrSock.close();
+	mSSLSvrSock.close();
+	for(int i=0;i<mSvcCount;i++)
+	{
+		mSvcList[i]->terminate();
+		delete mSvcList[i];
+	}
+
 }
 
 #if 0

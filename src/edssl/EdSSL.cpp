@@ -13,7 +13,21 @@
 namespace edft
 {
 
+bool _gSSLIsInit=false;
 
+int EdSSLInit()
+{
+	SSL_library_init();
+	SSL_load_error_strings();
+	OpenSSL_add_all_algorithms();
+	_gSSLIsInit = true;
+	return 0;
+}
+
+bool EdSSLIsInit()
+{
+	return _gSSLIsInit;
+}
 
 SSL_CTX* EdSSL::buildServerCtx(int sslmethod, const char* certfile, const char* privkeyfile)
 {

@@ -37,6 +37,7 @@ int EsHttpTask::OnEventProc(EdMsg* pmsg)
 	else if(pmsg->msgid == EDM_CLOSE)
 	{
 		dbgd("close http task...");
+		release();
 	}
 	else if (pmsg->msgid == UV_HTTPCNN)
 	{
@@ -80,8 +81,10 @@ EdHttpController* EsHttpTask::OnNewRequest(const char* method, const char* url)
 EdHttpController* EsHttpTask::getRegController(const char* url)
 {
 	try {
-		__alloc_controller allocf = mAllocMap.at(url);
-		EdHttpController* ptr = allocf();
+		//__alloc_controller allocf = mAllocMap.at(url);
+		urlmapinfo_t *info = mAllocMap.at(url);
+		EdHttpController* ptr = info->alloc();
+		ptr->mUserData = info->userObj;
 		return ptr;
 	} catch(out_of_range &e)
 	{
@@ -93,6 +96,14 @@ EdHttpController* EsHttpTask::getRegController(const char* url)
 void EsHttpTask::freeController(EdHttpController* pctrl)
 {
 	delete pctrl;
+}
+
+void EsHttpTask::release()
+{
+	for(auto itr=mAllocMap.begin(); itr != mAllocMap.end(); itr++)
+	{
+		delete (itr->second);
+	}
 }
 
 } // namespace edft

@@ -25,6 +25,7 @@ namespace edft {
 
 
 enum PARSER_STATUS_E {
+	PS_INIT,
 	PS_FIRST_LINE,
 	PS_HEADER,
 	PS_BODY,
@@ -41,24 +42,11 @@ class EsHttpTask;
 class EsHttpCnn : public EdObject, public EdSmartSocket::INet
 {
 	friend class EsHttpTask;
-	friend class EsHttpTrans;
 	friend class EdHttpController;
 public:
 	EsHttpCnn();
 	virtual ~EsHttpCnn();
-
-
-#if 0
-	virtual void OnRead();
-	virtual void OnDisconnected();
-#endif
 	virtual void IOnNet(EdSmartSocket* psock, int event);
-
-	void initCnn(int fd, u32 handle, EsHttpTask* ptask, int socket_mode);
-	void procRead();
-	void procDisconnected();
-
-
 
 private:
 	static int head_field_cb(http_parser*, const char *at, size_t length);
@@ -79,14 +67,21 @@ private:
 	int statusCb(http_parser *parser, const char *at, size_t length);
 	void procHeader();
 	void procReqLine();
+
+	int initCnn(int fd, u32 handle, EsHttpTask* ptask, int socket_mode);
+	void procRead();
+	void procDisconnected();
 	void scheduleTransmit();
 	int sendCtrlStream(EdHttpController* pctl, int maxlen);
+
+	void close();
+	void closeAllCtrls();
 
 private:
 	EsHttpTask* mTask;
 	u32 mHandle;
 	int mBufSize;
-	char *mReadBuf;
+	void *mReadBuf;
 
 	union {
 		struct {
@@ -96,14 +91,10 @@ private:
 		u32 mTrhseed;
 	};
 
-
-
-	//std::string mCurHdrName, mCurHdrVal;
 	string *mCurHdrName, *mCurHdrVal, *mCurUrl;
 	bool mIsHdrVal;
 	PARSER_STATUS_E mPs;
 
-	int mParsingStatus;
 	http_parser mParser;
 	http_parser_settings mParserSettings;
 

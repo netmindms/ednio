@@ -74,10 +74,6 @@ void EsMyHttpPaser::consumeData(int size)
 
 void EsMyHttpPaser::putData(char* str, int len)
 {
-	char* ptr = str;
-	if(mState == REQLINE_S) {
-
-	}
 
 }
 

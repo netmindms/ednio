@@ -7,6 +7,7 @@
 
 #ifndef ESHTTPTASK_H_
 #define ESHTTPTASK_H_
+#include "../config.h"
 
 #include <string>
 #include <unordered_map>
@@ -47,28 +48,44 @@ public:
 	};
 
 	typedef EdHttpController* (*__alloc_controller)();
-
+	struct urlmapinfo_t {
+		__alloc_controller alloc;
+		union {
+		void* userObj;
+		u64 ldata;
+		u32 wdata;
+		};
+	};
 public:
 	void setController(char* uri, IUriControllerCb *cb);
 
 	template<typename T>
-	void regController(const char* url, bool singletone=false) {
+	void regController(const char* url, void *user) {
 
 		class __defalloc {
 		public:
 			static T* alloc() { return new T; }
 		};
-		mAllocMap[url] = (__alloc_controller)__defalloc::alloc;
+		struct urlmapinfo_t *info = new urlmapinfo_t;
+		info->alloc = (__alloc_controller)__defalloc::alloc;;
+		info->userObj = user;
+		mAllocMap[url] = info;
+
 	};
+
 
 private:
 	//EsHandleManager<EsHttpCnn> mCnns;
 	EdObjList<EsHttpCnn> mCnns;
 	unordered_map<string, IUriControllerCb*> mContMap;
 	unordered_map<string, EdHttpController*> mUrlMap;
-	unordered_map<string, __alloc_controller> mAllocMap;
+	//unordered_map<string, __alloc_controller> mAllocMap;
+	unordered_map<string, urlmapinfo_t*> mAllocMap;
 	EdHttpController* getRegController(const char *url);
 	void freeController(EdHttpController* pctrl);
+	void release();
+
+
 };
 
 } // namespae edft

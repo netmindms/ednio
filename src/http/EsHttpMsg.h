@@ -26,7 +26,7 @@ public:
 	void setStatusLine(string *statusline);
 	void addHdr(string *hdr, string *val);
 	void addHdr(const char* name, const char* val);
-	const char* getHdr(char* name);
+	const char* getHdr(const char* name);
 
 	void encodeRespMsg(string *outbuf);
 

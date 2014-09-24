@@ -44,7 +44,7 @@ public:
 		if (mReadCnt < mSize)
 		{
 			int rdcnt = min(len, mSize - mReadCnt);
-			memcpy(buf, mBuf + mReadCnt, rdcnt);
+			memcpy(buf, (unsigned char*)mBuf + mReadCnt, rdcnt);
 			mReadCnt += rdcnt;
 			return rdcnt;
 		}

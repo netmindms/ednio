@@ -99,7 +99,7 @@ int EdTask::runMain(int mode)
 	mRunMode = mode;
 	mTid = pthread_self();
 	postMsg(EDM_INIT);
-	task_thread((void*)this);
+	task_thread((void*) this);
 	return 0;
 }
 
@@ -663,7 +663,7 @@ int EdTask::esMain(EdContext* psys)
 			edevt_t* pevt = (edevt_t*) epv->data.ptr;
 			dbgv("event data.ptr=%p, pevtuser=%p, event=%0x", pevt, pevt->user, epv->events);
 
-			if(pevt->isReg == false)
+			if (pevt->isReg == false)
 				goto __release_event__;
 			if (epv->events & EPOLLIN)
 				pevt->evtcb(pevt, pevt->fd, EVT_READ);
@@ -715,7 +715,7 @@ void EdTask::taskProc()
 	_tEdContext = NULL;
 
 #if USE_SSL
-	if(mDefaultSSLCtx != NULL)
+	if (mDefaultSSLCtx != NULL)
 	{
 		EdSSL::freeCtx(mDefaultSSLCtx);
 		mDefaultSSLCtx = NULL;
@@ -943,9 +943,9 @@ void EdTask::FreeEvent::OnEventFd(int cnt)
 #if USE_SSL
 SSL_CTX* EdTask::getSSLContext(int ver)
 {
-	if(mDefaultSSLCtx == NULL)
+	if (mDefaultSSLCtx == NULL)
 	{
-		if(EdSSLIsInit()==false)
+		if (EdSSLIsInit() == false)
 		{
 			EdSSLInit();
 		}
@@ -954,7 +954,27 @@ SSL_CTX* EdTask::getSSLContext(int ver)
 
 	return mDefaultSSLCtx;
 }
+
+int EdTask::setSSLCert(const char* certfile, const char* privkeyfile)
+{
+	int ret;
+	SSL_CTX *pctx = getSSLContext();
+
+	ret = SSL_CTX_use_certificate_file(pctx, certfile, SSL_FILETYPE_PEM);
+	dbgd("set cert file, ret=%d", ret);
+	ret = SSL_CTX_use_PrivateKey_file(pctx, privkeyfile, SSL_FILETYPE_PEM);
+	dbgd("set key file, ret=%d", ret);
+
+	if (!SSL_CTX_check_private_key(pctx))
+	{
+		dbge("### private key check error......");
+		return -1;
+	}
+	return 0;
+}
+
 #endif
+
 
 
 EdTask* EdTask::getCurrentTask()
@@ -963,3 +983,4 @@ EdTask* EdTask::getCurrentTask()
 }
 
 } // namespace edft
+

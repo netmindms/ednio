@@ -42,6 +42,7 @@ int EdUrl::parse(const char* str, int len)
 //			dbgd("url parsing: %s = %s", urlis[i], f.c_str());
 //		}
 //	}
+	return 0;// TODO
 }
 
 } /* namespace edft */
