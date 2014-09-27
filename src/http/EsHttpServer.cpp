@@ -57,13 +57,16 @@ int EsHttpServer::open(int port, bool ssl)
 
 void EsHttpServer::close()
 {
+	dbgd("http server closing...task cnt=%d", mSvcCount);
 	mSvrSock.close();
 	mSSLSvrSock.close();
 	for(int i=0;i<mSvcCount;i++)
 	{
 		mSvcList[i]->terminate();
 		delete mSvcList[i];
+		mSvcList[i] = NULL;
 	}
+	mSvcCount = 0;
 
 }
 

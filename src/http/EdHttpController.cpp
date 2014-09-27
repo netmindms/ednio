@@ -1,3 +1,11 @@
+#include <algorithm>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+
+#include "../EdType.h"
+
 /*
  * EdHttpController.cpp
  *
@@ -66,10 +74,16 @@ void EdHttpController::setReqBodyWriter(EdHttpWriter* writer)
 
 void EdHttpController::setHttpResult(const char* code)
 {
-	memcpy(mStatusCode, code, 3);
-
-	encodeResp();
-	//mCnn->scheduleTransmit();
+	if (mIsFinalResponsed == false)
+	{
+		memcpy(mStatusCode, code, 4);
+		encodeResp();
+		mCnn->reqTx(this);
+	}
+	else
+	{
+		dbge("### Fail: result set error,...code=%s", code);
+	}
 }
 
 void EdHttpController::setRespBodyReader(EdHttpReader* reader, const char* type)
@@ -131,7 +145,8 @@ void EdHttpController::encodeResp()
 	es_get_httpDate(tmp);
 	resp->addHdr(HTTPHDR_DATE, tmp);
 	resp->addHdr(HTTPHDR_SERVER, "ESEV/0.2.0");
-	if(mBodyReader != NULL) {
+	if (mBodyReader != NULL)
+	{
 		int clen = mBodyReader->getSize();
 		char buf[20];
 		sprintf(buf, "%d", clen);
@@ -220,30 +235,37 @@ void EdHttpController::close()
 #endif
 }
 
-packet_buf_t EdHttpController::getSendPacket()
+void EdHttpController::getSendPacket(packet_buf_t* pinfo)
 {
-	packet_buf_t bf;
 
-	bf.len = 0;
-	bf.buf = NULL;
+	pinfo->len = 0;
+	pinfo->buf = NULL;
 
 	if (mEncStartStream != NULL)
 	{
-		bf.len = mEncHeaderSize;
-		bf.buf = mEncStartStream;
+		pinfo->len = mEncHeaderSize;
+		pinfo->buf = mEncStartStream;
 		mEncStartStream = NULL;
 		mEncHeaderReadCnt = 0;
 		mEncHeaderSize = 0;
-		return bf;
+		return;
 	}
 
-	if(mBodyReader != NULL	) {
-		bf.buf = malloc(SEND_BUF_SIZE);
-		int rcnt = mBodyReader->Read((u8*)bf.buf, SEND_BUF_SIZE);
-		bf.len = rcnt;
+	if (mBodyReader != NULL)
+	{
+		pinfo->buf = malloc(SEND_BUF_SIZE);
+		if (pinfo->buf != NULL)
+		{
+			int rcnt = mBodyReader->Read((u8*) pinfo->buf, SEND_BUF_SIZE);
+			pinfo->len = rcnt;
+			if (pinfo->len <= 0)
+			{
+				free(pinfo->buf);
+				pinfo->buf = NULL;
+			}
+		}
+		return;
 	}
-
-	return bf;
 
 }
 
@@ -261,21 +283,23 @@ int EdHttpController::getSendPacketData(void* buf, int len)
 	return 0;
 }
 
-
 void EdHttpController::initCtrl(EsHttpCnn* pcnn)
 {
 	mCnn = pcnn;
 }
 
-
 void EdHttpController::OnInit()
 {
 }
 
-
 void* EdHttpController::getUserData()
 {
 	return mUserData;
+}
+
+const string* EdHttpController::getReqUrl()
+{
+	return mReqMsg.getUrl();
 }
 
 } /* namespace edft */

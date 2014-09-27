@@ -23,6 +23,7 @@ public:
 	virtual ~EsHttpMsg();
 
 	void setUrl(string *url);
+	const string* getUrl();
 	void setStatusLine(string *statusline);
 	void addHdr(string *hdr, string *val);
 	void addHdr(const char* name, const char* val);

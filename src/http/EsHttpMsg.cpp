@@ -67,4 +67,10 @@ void EsHttpMsg::free()
 	mUrl = "";
 }
 
+
+const string* EsHttpMsg::getUrl()
+{
+	return &mUrl;
 }
+
+} // namespace edft

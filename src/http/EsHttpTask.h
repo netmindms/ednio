@@ -81,9 +81,10 @@ private:
 	unordered_map<string, EdHttpController*> mUrlMap;
 	//unordered_map<string, __alloc_controller> mAllocMap;
 	unordered_map<string, urlmapinfo_t*> mAllocMap;
-	EdHttpController* getRegController(const char *url);
+	EdHttpController*allocController(const char *url);
 	void freeController(EdHttpController* pctrl);
 	void release();
+	void freeConnection(EsHttpCnn *pcnn);
 
 
 };

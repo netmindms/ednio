@@ -73,6 +73,7 @@ private:
 	void procDisconnected();
 	void scheduleTransmit();
 	int sendCtrlStream(EdHttpController* pctl, int maxlen);
+	void reqTx(EdHttpController* pctl);
 
 	void close();
 	void closeAllCtrls();
@@ -103,6 +104,8 @@ private:
 	EdHttpController* mCurCtrl;
 	EdHttpController* mCurSendCtrl;
 	EdSmartSocket mSock;
+
+	bool mTxTrying;
 
 };
 

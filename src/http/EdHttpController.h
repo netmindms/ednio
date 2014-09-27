@@ -42,6 +42,8 @@ public:
 	const char* getReqHeader(char* name);
 	long getReqContentLen();
 	void *getUserData();
+	const string* getReqUrl();
+
 protected:
 	void setHttpResult(const char *code);
 
@@ -77,7 +79,7 @@ private:
 	void encodeResp();
 	int getRespEncodeStream(void* buf, int len);
 	int transmitRespStream();
-	packet_buf_t getSendPacket();
+	void getSendPacket(packet_buf_t* pinfo);
 	int getSendPacketData(void* buf, int len);
 	void initCtrl(EsHttpCnn* pcnn);
 };

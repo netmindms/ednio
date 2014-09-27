@@ -78,7 +78,7 @@ EdHttpController* EsHttpTask::OnNewRequest(const char* method, const char* url)
 }
 
 
-EdHttpController* EsHttpTask::getRegController(const char* url)
+EdHttpController* EsHttpTask::allocController(const char* url)
 {
 	try {
 		//__alloc_controller allocf = mAllocMap.at(url);
@@ -100,10 +100,27 @@ void EsHttpTask::freeController(EdHttpController* pctrl)
 
 void EsHttpTask::release()
 {
+	dbgd("stopping service task, cur connection count=%d", mCnns.size());
+	EsHttpCnn* pcnn;
+	for(;;)
+	{
+		pcnn = mCnns.pop_front();
+		if(pcnn == NULL)
+			break;
+		pcnn->close();
+		delete pcnn;
+	}
+
+	dbgd("free url map...cnt=%d", mAllocMap.size());
 	for(auto itr=mAllocMap.begin(); itr != mAllocMap.end(); itr++)
 	{
 		delete (itr->second);
 	}
+}
+
+void EsHttpTask::freeConnection(EsHttpCnn* pcnn)
+{
+	mCnns.freeObj(pcnn);
 }
 
 } // namespace edft
