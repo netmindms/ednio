@@ -7,7 +7,7 @@
 //============================================================================
 
 #define DBGTAG "main0"
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 
 #include <sys/types.h>
 #include <dirent.h>
@@ -19,10 +19,12 @@
 #include "edcurl/EdCurl.h"
 #include "edcurl/EdMultiCurl.h"
 #include "http/EdHttpWriter.h"
+#include "http/EsHttpTask.h"
 #include "http/EdHttpStringReader.h"
 #include "http/EdHttpStringWriter.h"
 #include "http/EsHttpServer.h"
 #include "http/EsHttpTask.h"
+#include "http/EdHttpFileReader.h"
 #include "edssl/EdSSL.h"
 #include "edssl/EdSSLSocket.h"
 #include "edssl/EdSmartSocket.h"
@@ -61,7 +63,7 @@ long _gStartFds;
 int get_num_fds()
 {
 	int fd_count;
-	char buf[64];
+	char buf[300];
 	struct dirent *dp;
 
 	snprintf(buf, 256, "/proc/%i/fd/", getpid());
@@ -294,6 +296,7 @@ void testtimer(int mode)
 				}
 
 			}
+			return 0;
 		}
 
 		virtual void IOnTimerEvent(EdTimer* ptimer)
@@ -971,34 +974,17 @@ void testHttpBase(int mode)
 
 void testHttpSever(int mode)
 {
+	static bool serverEnd = false;
+	static EsHttpServer* server = NULL;
+
+	enum
+	{
+		TS_NORMAL = EDM_USER + 1, TS_SERVER_END,
+	};
 	class MyHttpTask;
 	class MyController;
-	class ServerEndUrl;
+	class FileCtrl;
 
-	/*
-	 class MyUserDataUrl: public EdHttpController
-	 {
-	 public:
-	 MyUserDataUrl() {
-	 logs("MyUserData const.....");
-	 }
-	 virtual void OnRequest()
-	 {
-
-	 };
-
-	 virtual void OnContentRecvComplete() {
-	 ;
-	 };
-	 virtual void OnContentSendComplete() {
-
-	 };
-	 virtual void OnComplete() {
-	 // TODO controller complete
-	 delete this;
-	 }
-	 };
-	 */
 
 	class MyHttpTask: public EsHttpTask
 	{
@@ -1011,9 +997,9 @@ void testHttpSever(int mode)
 			int ret = EsHttpTask::OnEventProc(pmsg);
 			if (pmsg->msgid == EDM_INIT)
 			{
-				setSSLCert("/home/netmind/testkey/netsvr.crt", "/home/netmind/testkey/testkey.key");
-				regController<MyController>("/userinfo", this);
-				regController<ServerEndUrl>("/serverend", this);
+				//setSSLCert()
+				regController<MyController>("/userinfo", NULL);
+				regController<FileCtrl>("/getfile", NULL);
 			}
 			return ret;
 		}
@@ -1032,11 +1018,6 @@ void testHttpSever(int mode)
 			mMyTask = (MyHttpTask*) EdTask::getCurrentTask();
 			logs("mycont const.....");
 		}
-		void OnInit()
-		{
-
-		}
-
 		virtual void OnRequest()
 		{
 			logs("after 100msec, send response...");
@@ -1049,13 +1030,13 @@ void testHttpSever(int mode)
 			;
 		}
 		;
+
 		virtual void OnComplete(int result)
 		{
 			logs("http complete...result=%d", result);
 			delete mStrReader;
 			mStrReader = NULL;
-
-			delete this;
+			serverEnd = true;
 		}
 
 		virtual void IOnTimerEvent(EdTimer* ptimer)
@@ -1070,41 +1051,78 @@ void testHttpSever(int mode)
 
 	};
 
-	class ServerEndUrl : public EdHttpController {
-		void OnRequest() {
-			logs("server end url, ");
-			EdTask *ptask = (EdTask*)getUserData();
-			ptask->postExit();
+	class FileCtrl : public EdHttpController {
+		EdHttpFileReader reader;
+		void OnInit() {
+			logs("file ctrl on init...");
+		};
+		virtual void OnRequest() {
+			reader.open("/home/netmind/b.zip");
+			setRespBodyReader(&reader, "application/zip");
 			setHttpResult("200");
+		};
+
+		virtual void OnComplete(int result)
+		{
+			logs("file ctrl complete, result=%d", result);
+			reader.close();
 		}
+
+
 	};
 
 	class HttpTestTask: public TestTask
 	{
-		EsHttpServer mServer;
 		virtual int OnEventProc(EdMsg* pmsg)
 		{
 			if (pmsg->msgid == EDM_INIT)
 			{
-				int port = 9090;
-				int task_inst = 1;
-				logs("server open, port=%d, task-instance=%d", port, task_inst);
-				mServer.open(port);
-				mServer.open(7070, SOCKET_SSL);
-				mServer.startService<MyHttpTask>(task_inst);
+				server = new EsHttpServer;
+
+				addTest(TS_NORMAL);
+				addTest(TS_SERVER_END);
+				nextTest();
 
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
-				mServer.close();
+				server->close();
+				delete server;
+				server = NULL;
+			}
+			else if (pmsg->msgid == TS_NORMAL)
+			{
+				int port = 9090;
+				int task_inst = 1;
+				logs("server open, port=%d, task-instance=%d", port, task_inst);
+				server->open(port);
+				server->open(7070, true);
+				server->startService<MyHttpTask>(task_inst);
+
+				nextTest();
+			}
+			else if (pmsg->msgid == TS_SERVER_END)
+			{
+				setTimer(1, 500);
+			}
+			else if (pmsg->msgid == EDM_TIMER)
+			{
+				if (pmsg->p1 == 1)
+				{
+					if (serverEnd == true)
+					{
+						postExit();
+						killTimer(pmsg->p1);
+					}
+				}
 			}
 			return 0;
 		}
 	};
 	logm(">>>> Test: Http Server, mode=%d", mode);
 	fdcheck_start();
-	HttpTestTask task;
-	task.runMain(mode);
+	HttpTestTask *task = new HttpTestTask;
+	task->runMain(mode);
 	fdcheck_end();
 	logm("<<<< HttpServer OK\n\n");
 
@@ -1250,7 +1268,7 @@ void testsmartsock(int mode)
 {
 	enum
 	{
-		TS_ECHO = EDM_USER + 1, TS_PENDING,
+		TS_ECHO = EDM_USER + 1, TS_PENDING, TS_SSL,
 	};
 
 	class ClientTask: public TestTask, public EdSmartSocket::INet
@@ -1286,6 +1304,10 @@ void testsmartsock(int mode)
 			{
 				subtestpending();
 			}
+			else if (pmsg->msgid == TS_SSL)
+			{
+
+			}
 			return 0;
 		}
 
@@ -1293,7 +1315,7 @@ void testsmartsock(int mode)
 		{
 			static EdSmartSocket* pdSock;
 
-			class sockis: public EdSmartSocket::INet
+			class echoimpl: public EdSmartSocket::INet
 			{
 				long writeCnt;
 				void IOnNet(EdSmartSocket* psock, int event)
@@ -1304,18 +1326,25 @@ void testsmartsock(int mode)
 						writeCnt = 0;
 						char buf[1024];
 						int ret;
-						for(;;)
+						for (;;)
 						{
+							memset(buf, 0, 1024);
 							ret = psock->sendPacket(buf, 1024);
-							if(ret == SEND_PENDING) {
+							if (ret == SEND_PENDING)
+							{
+								writeCnt += 1024;
 								logs("send pending... cur wrietcnt=%d", writeCnt);
 								break;
 							}
-							else if(ret == SEND_FAIL) {
+							else if (ret == SEND_FAIL)
+							{
 								logs("### Fail: send fail......writeCnt=%d", writeCnt);
 								assert(0);
 							}
-							writeCnt += 1024;
+							else if (ret == SEND_OK)
+							{
+								writeCnt += 1024;
+							}
 						}
 
 					}
@@ -1325,13 +1354,18 @@ void testsmartsock(int mode)
 						delete psock;
 						delete this;
 					}
-					else if(event ==NETEV_SENDCOMPLETE) {
-						logs("pending send complete...");
-
+					else if (event == NETEV_SENDCOMPLETE)
+					{
+						logs("pending send complete...write cnt=%d", writeCnt);
+						usleep(1000 * 1000);
+						psock->close();
+						getCurrentTask()->reserveFree(psock);
+						delete this;
+						((TestTask*) getCurrentTask())->nextTest();
 					}
 				}
 			};
-			sockis *pif = new sockis;
+			echoimpl *pif = new echoimpl;
 			;
 			pdSock = new EdSmartSocket;
 			pdSock->setOnNetListener(pif);
@@ -1414,8 +1448,9 @@ void testsmartsock(int mode)
 				mEchoSvrSock->close();
 				delete mEchoSvrSock;
 
-				mPendingSock->close();
+				mPendingSvr->close();
 				delete mPendingSvr;
+
 			}
 			return 0;
 		}
@@ -1434,29 +1469,36 @@ void testsmartsock(int mode)
 					mChildSock->socketOpenChild(fd);
 				}
 			}
-			else if(psock == mPendingSvr)
+			else if (psock == mPendingSvr)
 			{
 				int fd = mPendingSvr->accept();
-				assert(fd>0);
-				class sif : public EdSmartSocket::INet {
-					void IOnNet(EdSmartSocket* psock, int event) {
-						static int bwait=1;
-						static int pendReadCnt=0;
-						if(event == NETEV_DISCONNECTED) {
+				assert(fd > 0);
+				class sif: public EdSmartSocket::INet
+				{
+					void IOnNet(EdSmartSocket* psock, int event)
+					{
+						static int bwait = 1;
+						static int pendReadCnt = 0;
+						if (event == NETEV_DISCONNECTED)
+						{
 							logs("pending sock disconnected..., pend read cnt=%d", pendReadCnt);
 
 							psock->close();
 							delete psock;
 							delete this;
-						} else if(event == NETEV_READ) {
+						}
+						else if (event == NETEV_READ)
+						{
 							//logs("pending sock on read");
-							if(bwait==1) {
-								usleep(1000*1000);
+							if (bwait == 1)
+							{
+								usleep(1000 * 1000);
 								bwait = 0;
 							}
 							char buf[1000];
 							int rcnt = psock->recvPacket(buf, 500);
-							if(rcnt>0) {
+							if (rcnt > 0)
+							{
 								pendReadCnt += rcnt;
 							}
 
