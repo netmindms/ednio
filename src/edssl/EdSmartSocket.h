@@ -51,14 +51,19 @@ public:
 	EdSmartSocket();
 	virtual ~EdSmartSocket();
 
-	virtual void OnRead();
-	virtual void OnWrite();
-	virtual void OnConnected();
-	virtual void OnDisconnected();
-	virtual void OnSSLConnected();
-	virtual void OnSSLDisconnected();
-	virtual void OnSSLRead();
-
+	void OnRead();
+	void OnWrite();
+	void OnConnected();
+	void OnDisconnected();
+	void OnSSLConnected();
+	void OnSSLDisconnected();
+	void OnSSLRead();
+/*
+	virtual void OnNetConnected();
+	virtual void OnNetDisconnected();
+	virtual void OnNetRead();
+	virtual void OnNetSendComplete();
+*/
 	int socketOpen(int mode=0);
 	int socketOpenChild(int fd, int mode=0);
 
@@ -106,12 +111,13 @@ public:
 	//void setOnSSLListener(ISSLSocketCb *cb);
 	void setOnNetListener(INet* lis);
 	bool isWritable();
+	void reserveWrite();
+
 private:
 	void startHandshake();
 	void procSSLRead(void);
 	void procSSLConnect(void);
 	void changeSSLSockEvent(int err, bool bwrite);
-
 
 private:
 	SSL *mSSL;

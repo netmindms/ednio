@@ -7,7 +7,7 @@
 
 #ifndef EDFILE_H_
 #define EDFILE_H_
-#include "EsFile.h"
+#include "EdFile.h"
 #include <stdarg.h>
 #include <fcntl.h>
 #include "EdType.h"
@@ -16,7 +16,7 @@
 namespace edft
 {
 
-class EsFile
+class EdFile
 {
 public:
 	enum {
@@ -29,9 +29,9 @@ public:
 		OPEN_RWTC = (O_RDWR|O_TRUNC|O_CREAT),
 	};
 public:
-	EsFile(const char* path, int flags=OPEN_READ, u32 mode=0);
-	EsFile();
-	virtual ~EsFile();
+	EdFile(const char* path, int flags=OPEN_READ, u32 mode=0);
+	EdFile();
+	virtual ~EdFile();
 
 	int openFile(const char* path, int flags=OPEN_READ, u32 mode=0);
 
@@ -44,6 +44,8 @@ public:
 	u64 seek(u64 offset, u64 ref);
 	int getFd(void);
 	void closeFile(void);
+	static long getSize(const char* path);
+
 private:
 	int mFd;
 };

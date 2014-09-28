@@ -20,8 +20,6 @@
 #include "EdHttpController.h"
 
 
-#include "IUriController.h"
-
 using namespace std;
 namespace edft {
 
@@ -57,7 +55,6 @@ public:
 		};
 	};
 public:
-	void setController(char* uri, IUriControllerCb *cb);
 
 	template<typename T>
 	void regController(const char* url, void *user) {
@@ -77,7 +74,6 @@ public:
 private:
 	//EsHandleManager<EsHttpCnn> mCnns;
 	EdObjList<EsHttpCnn> mCnns;
-	unordered_map<string, IUriControllerCb*> mContMap;
 	unordered_map<string, EdHttpController*> mUrlMap;
 	//unordered_map<string, __alloc_controller> mAllocMap;
 	unordered_map<string, urlmapinfo_t*> mAllocMap;

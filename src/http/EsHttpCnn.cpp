@@ -6,14 +6,14 @@
  */
 
 #define DBGTAG "htcnn"
-#define DBG_LEVEL DBG_VERBOSE
+#define DBG_LEVEL DBG_WARN
 #include <stack>
 #include <unordered_map>
 #include "../edslog.h"
 #include "EsHttpCnn.h"
 #include "EsHttpTask.h"
 #include "http_parser.h"
-#include "../EsFile.h"
+#include "../EdFile.h"
 #include "EsHttpMsg.h"
 #include "EdHttp.h"
 #include "EsHttpBodyStream.h"
@@ -262,7 +262,6 @@ int EsHttpCnn::dgMsgEndCb(http_parser* parser)
 	{
 		delete mCurUrl;mCurUrl = NULL;
 	}
-	mCurCtrl = NULL;
 	CHECK_DELETE_OBJ(mCurHdrName);
 	CHECK_DELETE_OBJ(mCurHdrVal);
 	return 0;
@@ -314,58 +313,20 @@ void EsHttpCnn::procReqLine()
 	}
 }
 
-#if 0
-bool EsHttpCnn::transmitResponse(EsHttpTrans* ptrans)
-{
-	int len;
-	EsHttpMsg *resp = &ptrans->mRespMsg;
-	EsHttpBodyStream *body = ptrans->mBodyStream;
-	char tmp[100];
 
-	// status line
-	string firstline = string("HTTP/1.1 ") + ptrans->mStatusCode + " " + es_get_http_desp(ptrans->mStatusCode) + "\r\n";
-	resp->setStatusLine(&firstline);
-
-	// Date header
-	es_get_httpDate(tmp);
-	resp->addHdr(HTTPHDR_DATE, tmp);
-	resp->addHdr(HTTPHDR_SERVER, "EDNIO/0.2.0");
-	if (body != NULL)
-	{
-		char tmp[100];
-		sprintf(tmp, "%d", body->getContentLen());
-		resp->addHdr(HTTPHDR_CONTENT_LEN, tmp);
-		resp->addHdr(HTTPHDR_CONTENT_TYPE, body->getContentType());
-	}
-
-	string outbuf;
-	resp->encodeRespMsg(&outbuf);
-
-	if (body)
-	{
-		body->open();
-		char* ptxt = (char*) body->getBuffer();
-		outbuf.append(ptxt, body->getContentLen());
-		body->close();
-	}
-	send(outbuf.c_str(), outbuf.size());
-
-}
-#endif
-
-void EsHttpCnn::scheduleTransmit()
+int EsHttpCnn::scheduleTransmit()
 {
 	dbgd("scheduling transmit..., ready ctrl cnt=%d", mCtrlList.size());
-	if (mCurSendCtrl != NULL)
-		return;
+	//if (mCurSendCtrl != NULL)
+	//	return 1;
 
 	if (mCtrlList.size() == 0)
 	{
-		dbge("### unexpected state, there is no ctrl");
-		return;
+		dbgd("    no controls to send");
+		return 0;
 	}
 
-	mCurSendCtrl = mCtrlList.front();
+	//mCurSendCtrl = mCtrlList.front();
 
 	stack<list<EdHttpController*>::iterator> dellist;
 
@@ -374,11 +335,10 @@ void EsHttpCnn::scheduleTransmit()
 	for (; itr != mCtrlList.end(); itr++)
 	{
 		mCurSendCtrl = (*itr);
-		sr = sendCtrlStream(mCurSendCtrl, 16 * 1024);
+		sr = sendCtrlStream(mCurSendCtrl, 500 * 1024);
 		if (sr == SEND_OK)
 		{
 			dellist.push(itr);
-			//mCurSendCtrl->OnContentSendComplete();
 			mCurSendCtrl->OnComplete(0);
 			mCurSendCtrl->close();
 			mTask->freeController(mCurSendCtrl);
@@ -399,6 +359,7 @@ void EsHttpCnn::scheduleTransmit()
 	}
 
 	dbgd("ctrl list cnt=%d", mCtrlList.size());
+	return mCtrlList.size();
 }
 
 void EsHttpCnn::IOnNet(EdSmartSocket* psock, int event)
@@ -409,9 +370,9 @@ void EsHttpCnn::IOnNet(EdSmartSocket* psock, int event)
 	}
 	else if (event == NETEV_SENDCOMPLETE)
 	{
-		mCtrlList.pop_front();
-		mTask->freeController(mCurSendCtrl);
-		mCurSendCtrl = NULL;
+		//mCtrlList.pop_front();
+		//mTask->freeController(mCurSendCtrl);
+		//mCurSendCtrl = NULL;
 		scheduleTransmit();
 	}
 	else if (event == NETEV_DISCONNECTED)
@@ -427,6 +388,7 @@ int EsHttpCnn::sendCtrlStream(EdHttpController* pctl, int maxlen)
 	if (mSock.isWritable() == false)
 		return SEND_FAIL;
 
+	int sentlen=0;
 	for (;;)
 	{
 		pctl->getSendPacket(&bf);
@@ -434,10 +396,21 @@ int EsHttpCnn::sendCtrlStream(EdHttpController* pctl, int maxlen)
 		if (bf.len > 0)
 		{
 			retVal = mSock.sendPacket(bf.buf, bf.len);
+			//dbgd("send packet, wret=%d, inlen=%d", retVal, bf.len);
 			free(bf.buf);
-			dbgd("free buf, ptr=%0x", bf.buf);
-			if (retVal != SEND_OK)
+			//dbgd("free buf, ptr=%0x", bf.buf);
+			if (retVal != SEND_OK) {
+				dbgd("*** send packet nok, ret=%d", retVal);
 				break;
+			} else {
+				sentlen += bf.len;
+				if(sentlen >= maxlen) {
+					dbgd("reserve write, sentlen=%d, maxlen=%d", sentlen, maxlen);
+					mSock.reserveWrite();
+					retVal = SEND_PENDING;
+					break;
+				}
+			}
 		}
 		else
 		{
@@ -448,6 +421,7 @@ int EsHttpCnn::sendCtrlStream(EdHttpController* pctl, int maxlen)
 
 	return retVal;
 }
+
 
 void EsHttpCnn::closeAllCtrls()
 {

@@ -5,7 +5,7 @@
  *      Author: netmind
  */
 
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 #define DBGTAG "htask"
 
 #include "../edslog.h"
@@ -67,10 +67,6 @@ void EsHttpTask::IOnSocketEvent(EdSocket* psock, int event)
 	}
 }
 
-void EsHttpTask::setController(char* uri, IUriControllerCb* cb)
-{
-	mContMap[uri] = cb;
-}
 
 EdHttpController* EsHttpTask::OnNewRequest(const char* method, const char* url)
 {

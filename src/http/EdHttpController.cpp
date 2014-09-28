@@ -30,9 +30,11 @@ EdHttpController::EdHttpController()
 	//mTrans = NULL;
 	mIsFinalResponsed = false;
 	mCnn = NULL;
+#if 0
 	mEncStartStream = NULL;
 	mEncHeaderSize = 0;
 	mEncHeaderReadCnt = 0;
+#endif
 	memset(mStatusCode, 0, sizeof(mStatusCode));
 
 }
@@ -90,8 +92,12 @@ void EdHttpController::setRespBodyReader(EdHttpReader* reader, const char* type)
 {
 	if (mBodyReader == NULL)
 	{
-		mRespMsg.addHdr("Content-Type", type);
 		mBodyReader = reader;
+		int clen = mBodyReader->getSize();
+		char buf[20];
+		sprintf(buf, "%d", clen);
+		mRespMsg.addHdr(HTTPHDR_CONTENT_LEN, buf);
+		mRespMsg.addHdr(HTTPHDR_CONTENT_TYPE, type);
 	}
 	else
 	{
@@ -136,37 +142,23 @@ void EdHttpController::encodeResp()
 {
 	EsHttpMsg *resp = &mRespMsg;
 	char tmp[100];
-
-	// status line
+// status line
 	string firstline = string("HTTP/1.1 ") + mStatusCode + " " + es_get_http_desp(mStatusCode) + "\r\n";
 	resp->setStatusLine(&firstline);
 
-	// Date header
+// Date header
 	es_get_httpDate(tmp);
 	resp->addHdr(HTTPHDR_DATE, tmp);
 	resp->addHdr(HTTPHDR_SERVER, "ESEV/0.2.0");
-	if (mBodyReader != NULL)
-	{
-		int clen = mBodyReader->getSize();
-		char buf[20];
-		sprintf(buf, "%d", clen);
-		resp->addHdr(HTTPHDR_CONTENT_LEN, buf);
-		resp->addHdr(HTTPHDR_CONTENT_TYPE, "text/plain");
-	}
 
-	string outbuf;
-	resp->encodeRespMsg(&outbuf);
-#if 0
-	packet_buf_t pkt;
-	pkt.len = outbuf.size();
-	pkt.buf = malloc(outbuf.size());
-	memcpy(pkt.buf, outbuf.c_str(), outbuf.size());
-	mPacketList.push_back(pkt);
+	mHeaderEncStr.clear();
+	resp->encodeRespMsg(&mHeaderEncStr);
+#if 1
 #else
 	mEncHeaderReadCnt = 0;
-	mEncHeaderSize = outbuf.size();
-	mEncStartStream = (char*) malloc(outbuf.size());
-	memcpy(mEncStartStream, outbuf.c_str(), mEncHeaderSize);
+	mEncHeaderSize = mHeaderEncStr.size();
+	mEncStartStream = (char*) malloc(mHeaderEncStr.size());
+	memcpy(mEncStartStream, mHeaderEncStr.c_str(), mEncHeaderSize);
 #endif
 	mIsFinalResponsed = true;
 }
@@ -179,15 +171,15 @@ void EdHttpController::sendResp(char* code, void *textbody, int len, char* cont_
 	setRespBody(body);
 	memcpy(mStatusCode, code, 4);
 	mIsFinalResponsed = true;
-	//mCnn->sendResponse(this);
+//mCnn->sendResponse(this);
 #else
 	char tmp[100];
 
-	// status line
+// status line
 	string firstline = string("HTTP/1.1 ") + code + " " + es_get_http_desp(code) + "\r\n";
 	mRespMsg.setStatusLine(&firstline);
 
-	// Date header
+// Date header
 	es_get_httpDate(tmp);
 	mRespMsg.addHdr(HTTPHDR_DATE, tmp);
 
@@ -217,7 +209,7 @@ void EdHttpController::close()
 	mRespMsg.free();
 
 #if 1
-	// clear response packet bufs
+// clear response packet bufs
 	packet_buf_t pkt;
 	for (; mPacketList.size() > 0;)
 	{
@@ -237,38 +229,49 @@ void EdHttpController::close()
 
 void EdHttpController::getSendPacket(packet_buf_t* pinfo)
 {
+	int pktbufsize;
 
 	pinfo->len = 0;
 	pinfo->buf = NULL;
 
-	if (mEncStartStream != NULL)
+	if (mHeaderEncStr.size() > 0)
 	{
-		pinfo->len = mEncHeaderSize;
-		pinfo->buf = mEncStartStream;
-		mEncStartStream = NULL;
-		mEncHeaderReadCnt = 0;
-		mEncHeaderSize = 0;
-		return;
+		pinfo->len = mHeaderEncStr.size();
+		pktbufsize = max(SEND_BUF_SIZE, pinfo->len);
+		pinfo->buf = malloc(pktbufsize);
+		memcpy(pinfo->buf, mHeaderEncStr.c_str(), pinfo->len);
+		mHeaderEncStr.clear();
+	}
+	else
+	{
+		pinfo->buf = malloc(SEND_BUF_SIZE);
+		pinfo->len = 0;
+		pktbufsize = SEND_BUF_SIZE;
+
 	}
 
 	if (mBodyReader != NULL)
 	{
-		pinfo->buf = malloc(SEND_BUF_SIZE);
-		if (pinfo->buf != NULL)
+		int remain = pktbufsize - pinfo->len;
+		if (remain > 0)
 		{
-			int rcnt = mBodyReader->Read((u8*) pinfo->buf, SEND_BUF_SIZE);
-			pinfo->len = rcnt;
-			if (pinfo->len <= 0)
+			int rcnt = mBodyReader->Read((u8*) pinfo->buf + pinfo->len, remain);
+			if (rcnt > 0)
 			{
-				free(pinfo->buf);
-				pinfo->buf = NULL;
+				pinfo->len += rcnt;
 			}
 		}
-		return;
+	}
+
+	if (pinfo->len <= 0)
+	{
+		free(pinfo->buf);
+		pinfo->buf = NULL;
 	}
 
 }
 
+#if 0
 int EdHttpController::getSendPacketData(void* buf, int len)
 {
 	int totalcnt = 0;
@@ -282,6 +285,7 @@ int EdHttpController::getSendPacketData(void* buf, int len)
 
 	return 0;
 }
+#endif
 
 void EdHttpController::initCtrl(EsHttpCnn* pcnn)
 {

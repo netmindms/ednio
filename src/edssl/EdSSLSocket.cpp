@@ -169,7 +169,6 @@ int EdSSLSocket::send(const void* buf, int bufsize)
 	{
 		int err = SSL_get_error(mSSL, wret);
 		changeSSLSockEvent(err, true);
-
 	}
 	return wret;
 }

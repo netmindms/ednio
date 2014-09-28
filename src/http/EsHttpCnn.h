@@ -71,7 +71,7 @@ private:
 	int initCnn(int fd, u32 handle, EsHttpTask* ptask, int socket_mode);
 	void procRead();
 	void procDisconnected();
-	void scheduleTransmit();
+	int scheduleTransmit();
 	int sendCtrlStream(EdHttpController* pctl, int maxlen);
 	void reqTx(EdHttpController* pctl);
 
