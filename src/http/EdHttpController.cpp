@@ -13,7 +13,7 @@
  *      Author: netmind
  */
 #define DBGTAG "htctr"
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 
 #include "../edslog.h"
 #include "EdHttpController.h"
@@ -27,9 +27,10 @@ EdHttpController::EdHttpController()
 {
 	mWriter = NULL;
 	mBodyReader = NULL;
-	//mTrans = NULL;
 	mIsFinalResponsed = false;
 	mCnn = NULL;
+	mUserData = NULL;
+	mTxTrying = false;
 #if 0
 	mEncStartStream = NULL;
 	mEncHeaderSize = 0;

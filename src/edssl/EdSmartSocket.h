@@ -84,7 +84,7 @@ public:
 	 * @remark You should call this method after ssl session connected.
 	 * @return Data count to be sent.
 	 */
-	int sendPacket(const void* buf, int size);
+	int sendPacket(const void* buf, int size, bool takebuffer=false);
 
 	/**
 	 * @brief Close ssl connection.
@@ -118,6 +118,8 @@ private:
 	void procSSLRead(void);
 	void procSSLConnect(void);
 	void changeSSLSockEvent(int err, bool bwrite);
+	void procNormalOnWrite();
+	void procSSLOnWrite();
 
 private:
 	SSL *mSSL;

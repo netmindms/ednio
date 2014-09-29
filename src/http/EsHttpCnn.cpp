@@ -335,7 +335,7 @@ int EsHttpCnn::scheduleTransmit()
 	for (; itr != mCtrlList.end(); itr++)
 	{
 		mCurSendCtrl = (*itr);
-		sr = sendCtrlStream(mCurSendCtrl, 500 * 1024);
+		sr = sendCtrlStream(mCurSendCtrl, 16 * 1024);
 		if (sr == SEND_OK)
 		{
 			dellist.push(itr);
@@ -385,19 +385,22 @@ int EsHttpCnn::sendCtrlStream(EdHttpController* pctl, int maxlen)
 {
 	int retVal = SEND_FAIL;
 	packet_buf_t bf;
-	if (mSock.isWritable() == false)
-		return SEND_FAIL;
 
 	int sentlen=0;
 	for (;;)
 	{
+		if (mSock.isWritable() == false) {
+			retVal = SEND_PENDING;
+			break;
+		}
+
 		pctl->getSendPacket(&bf);
 
 		if (bf.len > 0)
 		{
-			retVal = mSock.sendPacket(bf.buf, bf.len);
+			retVal = mSock.sendPacket(bf.buf, bf.len, true);
 			//dbgd("send packet, wret=%d, inlen=%d", retVal, bf.len);
-			free(bf.buf);
+			//free(bf.buf);
 			//dbgd("free buf, ptr=%0x", bf.buf);
 			if (retVal != SEND_OK) {
 				dbgd("*** send packet nok, ret=%d", retVal);
@@ -405,7 +408,7 @@ int EsHttpCnn::sendCtrlStream(EdHttpController* pctl, int maxlen)
 			} else {
 				sentlen += bf.len;
 				if(sentlen >= maxlen) {
-					dbgd("reserve write, sentlen=%d, maxlen=%d", sentlen, maxlen);
+					dbgd("=================== reserve write, sentlen=%d, maxlen=%d", sentlen, maxlen);
 					mSock.reserveWrite();
 					retVal = SEND_PENDING;
 					break;

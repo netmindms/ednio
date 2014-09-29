@@ -68,84 +68,14 @@ void EdSmartSocket::OnRead()
 void EdSmartSocket::OnWrite()
 {
 	dbgd("OnWrite");
-#if 1
-	if (mMode == SOCKET_SSL && mSessionConencted == false)
+	if (mMode == SOCKET_NORMAL)
 	{
-		procSSLConnect();
-		return;
-	}
-
-	if (mPendingBuf != NULL)
-	{
-
-		int wret;
-		if (mMode == SOCKET_NORMAL) {
-			wret = send((u8*) mPendingBuf + mPendingWriteCnt, mPendingSize - mPendingWriteCnt);
-		} else {
-			wret = SSL_write(mSSL, (u8*) mPendingBuf + mPendingWriteCnt, mPendingSize - mPendingWriteCnt);
-			if(wret<=0) {
-				int err = SSL_get_error(mSSL, wret);
-				changeSSLSockEvent(err, true);
-			}
-		}
-
-		if (wret > 0)
-		{
-			mPendingWriteCnt += wret;
-			if (mPendingWriteCnt == mPendingSize)
-			{
-				changeEvent(EVT_READ | EVT_HANGUP);
-				mPendingSize = 0;
-				mPendingWriteCnt = 0;
-				free(mPendingBuf);
-				mPendingBuf = NULL;
-				if (mOnLis != NULL)
-				{
-					mOnLis->IOnNet(this, NETEV_SENDCOMPLETE);
-				}
-			}
-		}
+		procNormalOnWrite();
 	}
 	else
 	{
-		dbgd("no pending buffer on write...");
-		changeEvent(EVT_READ | EVT_HANGUP);
-		if (mOnLis != NULL)
-		{
-			mOnLis->IOnNet(this, NETEV_SENDCOMPLETE);
-		}
+		procSSLOnWrite();
 	}
-
-#else
-	if (mPendingBuf != NULL)
-	{
-		int wret = send((u8*) mPendingBuf + mPendingWriteCnt, mPendingSize - mPendingWriteCnt);
-		if (wret > 0)
-		{
-			mPendingWriteCnt += wret;
-			if (mPendingWriteCnt == mPendingSize)
-			{
-				changeEvent(EVT_READ | EVT_HANGUP);
-				mPendingSize = 0;
-				mPendingWriteCnt = 0;
-				free(mPendingBuf);
-				mPendingBuf = NULL;
-				if (mOnLis != NULL)
-				{
-					mOnLis->IOnNet(this, NETEV_SENDCOMPLETE);
-				}
-			}
-		}
-	}
-	else
-	{
-		changeEvent(EVT_READ | EVT_HANGUP);
-		if (mOnLis != NULL)
-		{
-			mOnLis->IOnNet(this, NETEV_SENDCOMPLETE);
-		}
-	}
-#endif
 }
 
 void EdSmartSocket::OnConnected()
@@ -299,7 +229,7 @@ void EdSmartSocket::OnSSLRead()
 		mOnLis->IOnNet(this, NETEV_READ);
 }
 
-int EdSmartSocket::sendPacket(const void* buf, int bufsize)
+int EdSmartSocket::sendPacket(const void* buf, int bufsize, bool takebuffer)
 {
 	int wret;
 	if (mPendingBuf != NULL)
@@ -315,9 +245,13 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize)
 
 		if (wret == bufsize)
 		{
+			if (takebuffer == true)
+			{
+				free((void*) buf);
+			}
 			return SEND_OK;
 		}
-		else if (wret >= 0)
+		else if (wret > 0)
 		{
 			dbgd("partial write, input size=%ld, write size=%ld", bufsize, wret);
 			ispending = true;
@@ -330,20 +264,34 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize)
 				ispending = true;
 			}
 			else
+			{
 				ispending = false;
+			}
+			wret = 0;
 		}
 
 		if (ispending == true)
 		{
-			mPendingSize = bufsize - wret;
-			mPendingWriteCnt = 0;
-			mPendingBuf = malloc(mPendingSize);
-			if (mPendingBuf == NULL)
+			if (takebuffer == false)
 			{
-				dbge("### Fail: memory allocation error for peinding buffer");
-				return SEND_FAIL;
+				mPendingSize = bufsize - wret;
+				mPendingWriteCnt = 0;
+				mPendingBuf = malloc(mPendingSize);
+				if (mPendingBuf == NULL)
+				{
+					dbge("### Fail: memory allocation error for peinding buffer");
+					return SEND_FAIL;
+				}
+				memcpy(mPendingBuf, (u8*) buf + wret, mPendingSize);
 			}
-			memcpy(mPendingBuf, (u8*) buf + wret, bufsize - wret);
+			else
+			{
+				if (wret < 0)
+					wret = 0;
+				mPendingSize = bufsize;
+				mPendingBuf = (void*)buf;
+				mPendingWriteCnt = bufsize - wret;
+			}
 			changeEvent(EVT_READ | EVT_WRITE | EVT_HANGUP);
 
 			return SEND_PENDING;
@@ -355,33 +303,40 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize)
 	}
 	else
 	{
-		wret = SSL_write(mSSL, buf, bufsize);
+		if (takebuffer == false)
+		{
+			mPendingBuf = malloc(bufsize);
+			assert(mPendingBuf != NULL);
+			memcpy(mPendingBuf, buf, bufsize);
+			mPendingWriteCnt = 0;
+			mPendingSize = bufsize;
+		}
+		else
+		{
+			mPendingBuf = (void*)buf;
+			mPendingSize = bufsize;
+			mPendingWriteCnt = 0;
+		}
+
+		wret = SSL_write(mSSL, mPendingBuf, mPendingSize);
 		if (wret == bufsize)
 		{
+			//dbgd("ssl write cnt=%d, input cnt=%d", wret, bufsize);
+			free(mPendingBuf);
+			mPendingBuf = NULL;
+			mPendingWriteCnt = 0;
+			mPendingSize = 0;
 			return SEND_OK;
 		}
 		else
 		{
 			dbgd("** ssl write ret=%d", wret);
-			int pbuf_size;
-			int read_pos;
 			if (wret <= 0)
 			{
-				pbuf_size = bufsize;
-				read_pos = 0;
+				dbgd(" ssl write error, input size=%d, wret=%d", bufsize, wret);
 				int err = SSL_get_error(mSSL, wret);
 				changeSSLSockEvent(err, true);
 			}
-			else
-			{
-				pbuf_size = bufsize - wret;
-				read_pos = wret;
-			}
-
-			mPendingBuf = malloc(pbuf_size);
-			memcpy(mPendingBuf, buf + read_pos, pbuf_size);
-			mPendingWriteCnt = 0;
-			mPendingSize = pbuf_size;
 
 			return SEND_PENDING;
 		}
@@ -518,6 +473,87 @@ void EdSmartSocket::reserveWrite()
 {
 	dbgd("reserve write...");
 	changeEvent(EVT_WRITE | EVT_HANGUP | EVT_READ);
+}
+
+void EdSmartSocket::procNormalOnWrite()
+{
+	if (mPendingBuf != NULL)
+	{
+		int wret;
+		wret = send((u8*) mPendingBuf + mPendingWriteCnt, mPendingSize - mPendingWriteCnt);
+
+		if (wret > 0)
+		{
+			mPendingWriteCnt += wret;
+			if (mPendingWriteCnt == mPendingSize)
+			{
+				changeEvent(EVT_READ | EVT_HANGUP);
+				mPendingSize = 0;
+				mPendingWriteCnt = 0;
+				free(mPendingBuf);
+				mPendingBuf = NULL;
+				if (mOnLis != NULL)
+				{
+					mOnLis->IOnNet(this, NETEV_SENDCOMPLETE);
+				}
+			}
+		}
+	}
+	else
+	{
+		dbgd("no pending buffer on write...");
+		changeEvent(EVT_READ | EVT_HANGUP);
+		if (mOnLis != NULL)
+		{
+			mOnLis->IOnNet(this, NETEV_SENDCOMPLETE);
+		}
+	}
+}
+
+void EdSmartSocket::procSSLOnWrite()
+{
+	if (mSessionConencted == false)
+	{
+		procSSLConnect();
+		return;
+	}
+
+	if (mPendingBuf != NULL)
+	{
+		int wret;
+		wret = SSL_write(mSSL, (u8*) mPendingBuf + mPendingWriteCnt, mPendingSize - mPendingWriteCnt);
+		if (wret > 0)
+		{
+			mPendingWriteCnt += wret;
+			if (mPendingWriteCnt == mPendingSize)
+			{
+				changeEvent(EVT_READ | EVT_HANGUP);
+				mPendingSize = 0;
+				mPendingWriteCnt = 0;
+				free(mPendingBuf);
+				mPendingBuf = NULL;
+				if (mOnLis != NULL)
+				{
+					mOnLis->IOnNet(this, NETEV_SENDCOMPLETE);
+				}
+			}
+		}
+		else if (wret <= 0)
+		{
+			int err = SSL_get_error(mSSL, wret);
+			changeSSLSockEvent(err, true);
+		}
+
+	}
+	else
+	{
+		dbgd("no pending buffer on write...");
+		changeEvent(EVT_READ | EVT_HANGUP);
+		if (mOnLis != NULL)
+		{
+			mOnLis->IOnNet(this, NETEV_SENDCOMPLETE);
+		}
+	}
 }
 
 } /* namespace edft */
