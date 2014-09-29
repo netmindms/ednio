@@ -997,7 +997,7 @@ void testHttpSever(int mode)
 			int ret = EsHttpTask::OnEventProc(pmsg);
 			if (pmsg->msgid == EDM_INIT)
 			{
-				setSSLCert("/home/netmind/testkey/netsvr.crt", "/home/netmind/testkey/netsvr.key");
+				setSSLCertFile("/home/netmind/testkey/netsvr.crt", "/home/netmind/testkey/netsvr.key");
 				regController<MyController>("/userinfo", NULL);
 				regController<FileCtrl>("/getfile", NULL);
 			}

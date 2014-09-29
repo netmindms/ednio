@@ -13,7 +13,9 @@
 namespace edft
 {
 
-bool _gSSLIsInit=false;
+__thread class EdSSL *_tDefEdSSL = NULL;
+
+bool _gSSLIsInit = false;
 
 int EdSSLInit()
 {
@@ -27,6 +29,15 @@ int EdSSLInit()
 bool EdSSLIsInit()
 {
 	return _gSSLIsInit;
+}
+
+EdSSL::EdSSL()
+{
+	mCtx = NULL;
+}
+
+EdSSL::~EdSSL()
+{
 }
 
 SSL_CTX* EdSSL::buildServerCtx(int sslmethod, const char* certfile, const char* privkeyfile)
@@ -143,6 +154,81 @@ SSL_CTX* EdSSL::buildCtx(int ver)
 	pctx = SSL_CTX_new(method);
 
 	return pctx;
+}
+
+EdSSL* EdSSL::getDefaultEdSSL()
+{
+	if (_tDefEdSSL == NULL)
+	{
+		if (EdSSLIsInit() == false)
+		{
+			EdSSLInit();
+		}
+
+		EdSSL *pssl =new EdSSL;
+		pssl->open(SSL_VER_TLSV1);
+		_tDefEdSSL = pssl;
+	}
+
+	return _tDefEdSSL;
+}
+
+
+void EdSSL::freeDefaultEdSSL()
+{
+	if(_tDefEdSSL != NULL)
+	{
+		delete _tDefEdSSL; _tDefEdSSL=NULL;
+	}
+}
+
+
+SSL_CTX* EdSSL::getContext()
+{
+	return mCtx;
+}
+
+int EdSSL::setSSLCert(const char* certfile, const char* privkeyfile)
+{
+	int ret;
+
+	ret = SSL_CTX_use_certificate_file(mCtx, certfile, SSL_FILETYPE_PEM);
+	dbgd("set cert file, ret=%d", ret);
+	ret = SSL_CTX_use_PrivateKey_file(mCtx, privkeyfile, SSL_FILETYPE_PEM);
+	dbgd("set key file, ret=%d", ret);
+
+	if (!SSL_CTX_check_private_key(mCtx))
+	{
+		dbge("### private key check error......");
+		return -1;
+	}
+	return 0;
+}
+
+
+void EdSSL::open(int ver)
+{
+	mCtx = EdSSL::buildCtx(ver);
+	SSL_CTX_set_default_passwd_cb(mCtx, password_cb);
+	SSL_CTX_set_default_passwd_cb_userdata(mCtx, (void*)this);
+
+}
+
+void EdSSL::setCertPassword(const char* pw)
+{
+	strncpy(mPasswd, pw, sizeof(mPasswd)-1);
+}
+
+
+int EdSSL::password_cb(char* buf, int size, int rwflag, void* userdata)
+{
+	EdSSL* pssl = (EdSSL*)userdata;
+	return pssl->dgPasswordCb(buf, size, rwflag);
+}
+
+int EdSSL::dgPasswordCb(char* buf, int size, int rwflag)
+{
+	strcpy(buf, mPasswd);
 }
 
 } /* namespace edft */

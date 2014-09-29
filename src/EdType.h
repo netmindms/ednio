@@ -30,6 +30,12 @@ typedef int64_t i64;
 
 #define CHECK_DELETE_OBJ(PTR) { if(PTR != NULL) { delete PTR;PTR=NULL;} }
 
+typedef struct {
+	void* buf;
+	int size;
+	bool takeBuffer;
+} EdBufferInfo;
+
 }
 
 #endif /* EDTYPE_H_ */
