@@ -22,6 +22,20 @@ typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
 
+#define ESMIN(A, B) ( (A)<(B) ? (A):(B) )
+#define ESMAX(A, B) ( (A)>(B) ? (A):(B) )
+
+#define HIDX(H) (0x0000ffff & H)
+#define HANDLE_TO_OBJ(H, OBJS, FILED_NAME, MAX) (HIDX(H) >= MAX ? NULL : ( OBJS[HIDX(H)].FILED_NAME==H ? &OBJS[HIDX(H)] : NULL ) )
+
+#define CHECK_DELETE_OBJ(PTR) { if(PTR != NULL) { delete PTR;PTR=NULL;} }
+
+typedef struct {
+	void* buf;
+	int size;
+	bool takeBuffer;
+} EdBufferInfo;
+
 }
 
 #endif /* EDTYPE_H_ */

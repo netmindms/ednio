@@ -198,7 +198,7 @@ public:
 			return NULL;
 	}
 
-	T* nextObj(T* objptr)
+	T* next(T* objptr)
 	{
 		listhdr_t* phdr = (listhdr_t*)objptr - 1;
 		return phdr->next ? (T*)(phdr->next+1) : NULL;

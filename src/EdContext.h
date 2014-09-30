@@ -25,7 +25,7 @@
 #define EDM_CLOSE 2
 #define EDM_TIMER 3
 #define EDM_SOCKET 4
-#define EDM_EXIT 999
+#define EDM_EXIT 5
 #define EDM_USER 1000
 
 #define OBJECT_MSG(P1, P2) ((void*)( P1 | ((uint64_t)P2<<32)))

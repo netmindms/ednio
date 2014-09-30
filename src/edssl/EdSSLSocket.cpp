@@ -10,7 +10,7 @@
 #include "../edslog.h"
 #include "../EdNio.h"
 #include "EdSSLSocket.h"
-
+#include "../edssl/EdSSLContext.h"
 #include <openssl/err.h>
 
 namespace edft
@@ -169,7 +169,6 @@ int EdSSLSocket::send(const void* buf, int bufsize)
 	{
 		int err = SSL_get_error(mSSL, wret);
 		changeSSLSockEvent(err, true);
-
 	}
 	return wret;
 }
@@ -178,7 +177,7 @@ void EdSSLSocket::close()
 {
 	if (mSSL)
 	{
-		dbgd("ssl close, free ssl=%p, state=%d", mSSL,SSL_state(mSSL));
+		dbgd("ssl close, free ssl=%p, state=%d", mSSL, SSL_state(mSSL));
 		SSL_shutdown(mSSL);
 		SSL_free(mSSL);
 		mSSL = NULL;
@@ -249,11 +248,18 @@ void EdSSLSocket::procSSLConnect(void)
 	}
 }
 
-void EdSSLSocket::openSSLChildSock(int fd, SSL_CTX* psslctx)
+void EdSSLSocket::openSSLChildSock(int fd, SSL_CTX* pctx)
 {
 	openChildSock(fd);
 	mIsSSLServer = true;
-	mSSLCtx = psslctx;
+	if (pctx == NULL)
+	{
+		mSSLCtx = EdSSLContext::getDefaultEdSSL()->getContext();
+	}
+	else
+	{
+		mSSLCtx = pctx;
+	}
 	mSSL = SSL_new(mSSLCtx);
 	SSL_set_fd(mSSL, fd);
 
@@ -264,7 +270,15 @@ int EdSSLSocket::openSSLClientSock(SSL_CTX* pctx)
 	int fd = openSock(SOCK_TYPE_TCP);
 	if (fd < 0)
 		return fd;
-	mSSLCtx = pctx;
+	if (pctx == NULL)
+	{
+		mSSLCtx = EdSSLContext::getDefaultEdSSL()->getContext();
+	}
+	else
+	{
+		mSSLCtx = pctx;
+	}
+
 	mIsSSLServer = false;
 	return fd;
 }

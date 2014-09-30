@@ -39,7 +39,7 @@ void EdSocket::openChildSock(int fd)
 	setFd(fd);
 	mStatus = SOCK_STATUS_CONNECTED;
 	mType = SOCK_TYPE_TCP;
-	registerEvent(EVT_READ);
+	registerEvent(EVT_READ|EVT_HANGUP);
 }
 
 void EdSocket::acceptSock(EdSocket* pchild, ISocketCb *cb)

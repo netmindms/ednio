@@ -1,6 +1,6 @@
 //============================================================================
 // Name        : testednio.cpp
-// Author      : 
+// Author      :
 // Version     :
 // Copyright   : Your copyright notice
 // Description : Test Driven Development for ednio
@@ -19,13 +19,13 @@
 #include "edcurl/EdCurl.h"
 #include "edcurl/EdMultiCurl.h"
 #include "http/EdHttpWriter.h"
-#include "http/EsHttpTask.h"
+#include "http/EdHttpTask.h"
 #include "http/EdHttpStringReader.h"
 #include "http/EdHttpStringWriter.h"
-#include "http/EsHttpServer.h"
-#include "http/EsHttpTask.h"
+#include "http/EdHttpServer.h"
+#include "http/EdHttpTask.h"
 #include "http/EdHttpFileReader.h"
-#include "edssl/EdSSL.h"
+#include "edssl/EdSSLContext.h"
 #include "edssl/EdSSLSocket.h"
 #include "edssl/EdSmartSocket.h"
 
@@ -975,7 +975,7 @@ void testHttpBase(int mode)
 void testHttpSever(int mode)
 {
 	static bool serverEnd = false;
-	static EsHttpServer* server = NULL;
+	static EdHttpServer* server = NULL;
 
 	enum
 	{
@@ -986,7 +986,7 @@ void testHttpSever(int mode)
 	class FileCtrl;
 
 
-	class MyHttpTask: public EsHttpTask
+	class MyHttpTask: public EdHttpTask
 	{
 		EdHttpStringWriter *mWriter;
 		EdHttpStringReader *mReader;
@@ -994,10 +994,11 @@ void testHttpSever(int mode)
 
 		virtual int OnEventProc(EdMsg* pmsg)
 		{
-			int ret = EsHttpTask::OnEventProc(pmsg);
+			int ret = EdHttpTask::OnEventProc(pmsg);
 			if (pmsg->msgid == EDM_INIT)
 			{
-				//setSSLCert()
+				setDefaultCertPassword("ks2662");
+				setDefaultCertFile("/home/netmind/testkey/netsvr.crt", "/home/netmind/testkey/netsvr.key");
 				regController<MyController>("/userinfo", NULL);
 				regController<FileCtrl>("/getfile", NULL);
 			}
@@ -1057,7 +1058,7 @@ void testHttpSever(int mode)
 			logs("file ctrl on init...");
 		};
 		virtual void OnRequest() {
-			reader.open("/home/netmind/b.zip");
+			reader.open("/home/netmind/bb");
 			setRespBodyReader(&reader, "application/zip");
 			setHttpResult("200");
 		};
@@ -1077,7 +1078,7 @@ void testHttpSever(int mode)
 		{
 			if (pmsg->msgid == EDM_INIT)
 			{
-				server = new EsHttpServer;
+				server = new EdHttpServer;
 
 				addTest(TS_NORMAL);
 				addTest(TS_SERVER_END);

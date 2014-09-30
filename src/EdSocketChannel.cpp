@@ -234,4 +234,10 @@ void EdSocketChannel::setChannelCallback(ISocketChannelCb* cb)
 	mChannelCb = cb;
 }
 
+
+bool EdSocketChannel::isFull()
+{
+	return (mFreeChks.empty());
+}
+
 } /* namespace edft */

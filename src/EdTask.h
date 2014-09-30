@@ -187,6 +187,7 @@ public:
 	void cleanupAllTimer();
 
 	void reserveFree(EdObject* obj);
+	static EdTask* getCurrentTask();
 
 
 public:

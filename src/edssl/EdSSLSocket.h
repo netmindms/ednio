@@ -82,12 +82,12 @@ public:
 	SSL *getSSL();
 	SSL_CTX* getSSLContext();
 
-	int openSSLClientSock(SSL_CTX *pctx);
+	int openSSLClientSock(SSL_CTX *pctx=NULL);
 
 	/**
 	 * @brief Open a socket for incoming ssl connection.
 	 */
-	void openSSLChildSock(int fd, SSL_CTX* psslctx);
+	void openSSLChildSock(int fd, SSL_CTX* psslctx=NULL);
 
 	/**
 	 * @brief Set ssl event callback.
