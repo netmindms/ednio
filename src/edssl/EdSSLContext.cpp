@@ -5,15 +5,15 @@
  *      Author: netmind
  */
 #define DBGTAG "edssl"
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 
 #include "../edslog.h"
-#include "EdSSL.h"
+#include "EdSSLContext.h"
 
 namespace edft
 {
 
-__thread class EdSSL *_tDefEdSSL = NULL;
+__thread class EdSSLContext *_tDefEdSSL = NULL;
 
 bool _gSSLIsInit = false;
 
@@ -31,16 +31,16 @@ bool EdSSLIsInit()
 	return _gSSLIsInit;
 }
 
-EdSSL::EdSSL()
+EdSSLContext::EdSSLContext()
 {
 	mCtx = NULL;
 }
 
-EdSSL::~EdSSL()
+EdSSLContext::~EdSSLContext()
 {
 }
 
-SSL_CTX* EdSSL::buildServerCtx(int sslmethod, const char* certfile, const char* privkeyfile)
+SSL_CTX* EdSSLContext::buildServerCtx(int sslmethod, const char* certfile, const char* privkeyfile)
 {
 	const SSL_METHOD *method;
 	switch (sslmethod)
@@ -85,12 +85,16 @@ SSL_CTX* EdSSL::buildServerCtx(int sslmethod, const char* certfile, const char* 
 	return pctx;
 }
 
-void EdSSL::freeCtx(SSL_CTX* pctx)
+void EdSSLContext::close()
 {
-	SSL_CTX_free(pctx);
+	if(mCtx != NULL)
+	{
+		SSL_CTX_free(mCtx);
+		mCtx = NULL;
+	}
 }
 
-SSL_CTX* EdSSL::buildClientCtx(int ver)
+SSL_CTX* EdSSLContext::buildClientCtx(int ver)
 {
 	SSL_CTX *pctx;
 	const SSL_METHOD *method;
@@ -123,7 +127,7 @@ SSL_CTX* EdSSL::buildClientCtx(int ver)
 	return pctx;
 }
 
-SSL_CTX* EdSSL::buildCtx(int ver)
+SSL_CTX* EdSSLContext::buildCtx(int ver)
 {
 	SSL_CTX *pctx;
 	const SSL_METHOD *method;
@@ -156,7 +160,7 @@ SSL_CTX* EdSSL::buildCtx(int ver)
 	return pctx;
 }
 
-EdSSL* EdSSL::getDefaultEdSSL()
+EdSSLContext* EdSSLContext::getDefaultEdSSL()
 {
 	if (_tDefEdSSL == NULL)
 	{
@@ -165,7 +169,7 @@ EdSSL* EdSSL::getDefaultEdSSL()
 			EdSSLInit();
 		}
 
-		EdSSL *pssl =new EdSSL;
+		EdSSLContext *pssl =new EdSSLContext;
 		pssl->open(SSL_VER_TLSV1);
 		_tDefEdSSL = pssl;
 	}
@@ -174,21 +178,25 @@ EdSSL* EdSSL::getDefaultEdSSL()
 }
 
 
-void EdSSL::freeDefaultEdSSL()
+
+void EdSSLContext::freeDefaultEdSSL()
 {
+
 	if(_tDefEdSSL != NULL)
 	{
+		_tDefEdSSL->close();
 		delete _tDefEdSSL; _tDefEdSSL=NULL;
 	}
+
 }
 
 
-SSL_CTX* EdSSL::getContext()
+SSL_CTX* EdSSLContext::getContext()
 {
 	return mCtx;
 }
 
-int EdSSL::setSSLCert(const char* certfile, const char* privkeyfile)
+int EdSSLContext::setSSLCertFile(const char* certfile, const char* privkeyfile)
 {
 	int ret;
 
@@ -206,29 +214,31 @@ int EdSSL::setSSLCert(const char* certfile, const char* privkeyfile)
 }
 
 
-void EdSSL::open(int ver)
+void EdSSLContext::open(int ver)
 {
-	mCtx = EdSSL::buildCtx(ver);
+	mCtx = EdSSLContext::buildCtx(ver);
 	SSL_CTX_set_default_passwd_cb(mCtx, password_cb);
 	SSL_CTX_set_default_passwd_cb_userdata(mCtx, (void*)this);
 
 }
 
-void EdSSL::setCertPassword(const char* pw)
+void EdSSLContext::setCertPassword(const char* pw)
 {
 	strncpy(mPasswd, pw, sizeof(mPasswd)-1);
 }
 
 
-int EdSSL::password_cb(char* buf, int size, int rwflag, void* userdata)
+int EdSSLContext::password_cb(char* buf, int size, int rwflag, void* userdata)
 {
-	EdSSL* pssl = (EdSSL*)userdata;
+	EdSSLContext* pssl = (EdSSLContext*)userdata;
 	return pssl->dgPasswordCb(buf, size, rwflag);
 }
 
-int EdSSL::dgPasswordCb(char* buf, int size, int rwflag)
+int EdSSLContext::dgPasswordCb(char* buf, int size, int rwflag)
 {
+	dbgd("cert password callback,...size=%d, rwflag=%d", size, rwflag);
 	strcpy(buf, mPasswd);
+	return strlen(mPasswd);
 }
 
 } /* namespace edft */

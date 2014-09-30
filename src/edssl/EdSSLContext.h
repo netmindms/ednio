@@ -31,25 +31,25 @@ enum {
 int EdSSLInit();
 bool EdSSLIsInit();
 
-class EdSSL
+class EdSSLContext
 {
 public:
-	EdSSL();
-	virtual ~EdSSL();
+	EdSSLContext();
+	virtual ~EdSSLContext();
 
 
 	static SSL_CTX* buildServerCtx(int sslmethod, const char* certfile, const char* privkeyfile);
 	static SSL_CTX* buildClientCtx(int ver);
 	static SSL_CTX* buildCtx(int ver);
-	static void freeCtx(SSL_CTX* pctx);
-	static EdSSL* getDefaultEdSSL();
+	static EdSSLContext* getDefaultEdSSL();
 	static void freeDefaultEdSSL();
 	static int password_cb(char *buf, int size, int rwflag, void *userdata);
 
 	void open(int ver);
+	void close();
 
 	SSL_CTX* getContext();
-	int setSSLCert(const char* certfile, const char* privkeyfile);
+	int setSSLCertFile(const char* certfile, const char* privkeyfile);
 	void setCertPassword(const char* pw);
 private:
 	int dgPasswordCb(char* buf, int size, int rwflag);
@@ -60,7 +60,7 @@ private:
 
 };
 
-extern __thread class EdSSL *_tDefEdSSL;
+extern __thread class EdSSLContext *_tDefEdSSL;
 ;
 } /* namespace edft */
 

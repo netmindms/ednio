@@ -18,9 +18,6 @@
 #include "EdMutex.h"
 #include "EdObjList.h"
 #include "EdEventFd.h"
-#if USE_SSL
-#include "edssl/EdSSL.h"
-#endif
 
 #define MSGLIST_ED
 
@@ -192,10 +189,6 @@ public:
 	void reserveFree(EdObject* obj);
 	static EdTask* getCurrentTask();
 
-#if USE_SSL
-	SSL_CTX* getSSLContext(int ver=SSL_VER_TLSV1);
-	int setSSLCert(const char* certfile, const char* privkeyfile);
-#endif
 
 public:
 	virtual int OnEventProc(EdMsg* pmsg);
@@ -212,9 +205,6 @@ private:
 	EdObjList<edevt_t> mEvtList;
 	EdObjList<edevt_t> mDummyEvtList;
 	std::list<EdObject*> mReserveFreeList;
-#if USE_SSL
-	SSL_CTX* mDefaultSSLCtx;
-#endif
 
 private:
 	edevt_t* regEdEvent(int fd, uint32_t events, EVENTCB cb, void* user);

@@ -17,7 +17,7 @@
 
 #include "../edslog.h"
 #include "EdHttpController.h"
-#include "EsHttpCnn.h"
+#include "EdHttpCnn.h"
 #include "EdHttp.h"
 
 namespace edft
@@ -106,7 +106,7 @@ void EdHttpController::setRespBodyReader(EdHttpReader* reader, const char* type)
 	}
 }
 
-void EdHttpController::setConnection(EsHttpCnn* pcnn)
+void EdHttpController::setConnection(EdHttpCnn* pcnn)
 {
 	mCnn = pcnn;
 }
@@ -141,7 +141,7 @@ long EdHttpController::getReqContentLen()
 
 void EdHttpController::encodeResp()
 {
-	EsHttpMsg *resp = &mRespMsg;
+	EdHttpMsg *resp = &mRespMsg;
 	char tmp[100];
 // status line
 	string firstline = string("HTTP/1.1 ") + mStatusCode + " " + es_get_http_desp(mStatusCode) + "\r\n";
@@ -288,7 +288,7 @@ int EdHttpController::getSendPacketData(void* buf, int len)
 }
 #endif
 
-void EdHttpController::initCtrl(EsHttpCnn* pcnn)
+void EdHttpController::initCtrl(EdHttpCnn* pcnn)
 {
 	mCnn = pcnn;
 }

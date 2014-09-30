@@ -1,23 +1,44 @@
 /*
- * EdHttpMsg.h
+ * EsHttpMsg.h
  *
- *  Created on: Sep 6, 2014
+ *  Created on: Jul 7, 2014
  *      Author: netmind
  */
 
-#ifndef EDHTTPMSG_H_
-#define EDHTTPMSG_H_
+#ifndef ESHTTPMSG_H_
+#define ESHTTPMSG_H_
 
-namespace edft
-{
+#include <string>
+#include <unordered_map>
+
+using namespace std;
+
+namespace edft {
 
 class EdHttpMsg
 {
+	friend class EsHttpTrans;
 public:
 	EdHttpMsg();
 	virtual ~EdHttpMsg();
+
+	void setUrl(string *url);
+	const string* getUrl();
+	void setStatusLine(string *statusline);
+	void addHdr(string *hdr, string *val);
+	void addHdr(const char* name, const char* val);
+	const char* getHdr(const char* name);
+
+	void encodeRespMsg(string *outbuf);
+
+	void free();
+
+private:
+	unordered_map<string, string> mHeaders;
+	string mStatusLine;
+	string mUrl;
 };
 
-} /* namespace edft */
+}
 
-#endif /* EDHTTPMSG_H_ */
+#endif /* ESHTTPMSG_H_ */

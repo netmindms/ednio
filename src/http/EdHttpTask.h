@@ -15,8 +15,7 @@
 #include "../EsHandleManager.h"
 #include "../EdTask.h"
 #include "../EdObjList.h"
-#include "EsHttpTrans.h"
-#include "EsHttpCnn.h"
+#include "EdHttpCnn.h"
 #include "EdHttpController.h"
 
 
@@ -24,26 +23,24 @@ using namespace std;
 namespace edft {
 
 enum {
-	UV_HTTPCNN=EDM_USER+1,
+	EDMX_HTTPCNN=EDM_USER-1,
 };
 
-extern __thread EsHttpTask *_tHttpTask;
 
-class EsHttpTask: public EdTask, public EdSocket::ISocketCb
+class EdHttpTask: public EdTask, public EdSocket::ISocketCb
 {
-	friend class EsHttpCnn;
+	friend class EdHttpCnn;
 
 public:
-	EsHttpTask();
-	virtual ~EsHttpTask();
-
+	EdHttpTask();
+	virtual ~EdHttpTask();
 	virtual int OnEventProc(EdMsg* pmsg);
 	virtual void IOnSocketEvent(EdSocket *psock, int event);
-	virtual EdHttpController* OnNewRequest(const char *method, const char *url);
-	template<typename T> void addInCtrl(const char* method, const char *url) {
-		T* pctrl = new T;
-		mUrlMap[url] = pctrl;
-	};
+
+	int setDefaultCertFile(const char* crtfile, const char* keyfile);
+	void setDefaultCertPassword(const char* pw);
+	int openDefaultCertFile(const char* crtfile, const char* keyfile, const char* pw);
+
 
 	typedef EdHttpController* (*__alloc_controller)();
 	struct urlmapinfo_t {
@@ -54,7 +51,6 @@ public:
 		u32 wdata;
 		};
 	};
-public:
 
 	template<typename T>
 	void regController(const char* url, void *user) {
@@ -72,15 +68,13 @@ public:
 
 
 private:
-	//EsHandleManager<EsHttpCnn> mCnns;
-	EdObjList<EsHttpCnn> mCnns;
+	EdObjList<EdHttpCnn> mCnns;
 	unordered_map<string, EdHttpController*> mUrlMap;
-	//unordered_map<string, __alloc_controller> mAllocMap;
 	unordered_map<string, urlmapinfo_t*> mAllocMap;
 	EdHttpController*allocController(const char *url);
 	void freeController(EdHttpController* pctrl);
 	void release();
-	void freeConnection(EsHttpCnn *pcnn);
+	void freeConnection(EdHttpCnn *pcnn);
 
 
 };

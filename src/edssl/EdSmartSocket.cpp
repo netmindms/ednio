@@ -18,6 +18,7 @@ namespace edft
 
 EdSmartSocket::EdSmartSocket()
 {
+	mEdSSLCtx = NULL;
 	mSSLCtx = NULL;
 	mSSL = NULL;
 	mSessionConencted = false;
@@ -407,35 +408,41 @@ void EdSmartSocket::procSSLConnect(void)
 	}
 }
 
-void EdSmartSocket::openSSLChildSock(int fd, SSL_CTX* pctx)
+void EdSmartSocket::openSSLChildSock(int fd, EdSSLContext* pctx)
 {
 	openChildSock(fd);
 	mIsSSLServer = true;
 	if (pctx == NULL)
 	{
-		mSSLCtx = EdTask::getCurrentTask()->getSSLContext();
+		//mSSLCtx = EdTask::getCurrentTask()->getSSLContext();
+		mEdSSLCtx = EdSSLContext::getDefaultEdSSL();
+		mSSLCtx = mEdSSLCtx->getContext();
 	}
 	else
 	{
-		mSSLCtx = pctx;
+		mEdSSLCtx = pctx;
+		mSSLCtx = mEdSSLCtx->getContext();
 	}
 	mSSL = SSL_new(mSSLCtx);
 	SSL_set_fd(mSSL, fd);
 
 }
 
-int EdSmartSocket::openSSLClientSock(SSL_CTX* pctx)
+int EdSmartSocket::openSSLClientSock(EdSSLContext* pctx)
 {
 	int fd = openSock(SOCK_TYPE_TCP);
 	if (fd < 0)
 		return fd;
 	if (pctx == NULL)
 	{
-		mSSLCtx = EdTask::getCurrentTask()->getSSLContext();
+		//mSSLCtx = EdTask::getCurrentTask()->getSSLContext();
+		mEdSSLCtx = EdSSLContext::getDefaultEdSSL();
+		mSSLCtx = mEdSSLCtx->getContext();
 	}
 	else
 	{
-		mSSLCtx = pctx;
+		mEdSSLCtx = pctx;
+		mSSLCtx = mEdSSLCtx->getContext();
 	}
 
 	mIsSSLServer = false;

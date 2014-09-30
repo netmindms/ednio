@@ -48,9 +48,7 @@ EdTask::EdTask(int nmsgq)
 	mMsgFd = -1;
 
 	mRunMode = MODE_EDEV;
-#if USE_SSL
-	mDefaultSSLCtx = NULL;
-#endif
+
 }
 
 EdTask::~EdTask()
@@ -560,14 +558,6 @@ int EdTask::esOpen(void* user)
 	memset(&mCtx, 0, sizeof(EdContext));
 	mCtx.mode = mRunMode;
 
-#if 0
-#if USE_SSL
-	//const SSL_METHOD *method = TLSv1_client_method();
-	const SSL_METHOD *method = TLSv1_method();
-	mCtx.sslCtx = SSL_CTX_new(method);
-	dbgd("new ssl context = %p", mCtx.sslCtx);
-#endif
-#endif
 
 	if (mCtx.mode == MODE_EDEV)
 	{
@@ -713,14 +703,6 @@ void EdTask::taskProc()
 	cleanupAllTimer();
 	esClose(pctx);
 	_tEdContext = NULL;
-
-#if USE_SSL
-	if (mDefaultSSLCtx != NULL)
-	{
-		EdSSL::freeCtx(mDefaultSSLCtx);
-		mDefaultSSLCtx = NULL;
-	}
-#endif
 }
 
 void EdTask::edEventLoop(EdContext* pctx)
@@ -836,15 +818,6 @@ void EdTask::esClose(EdContext* pctx)
 		pctx->epfd = -1;
 	}
 
-#if 0
-#if USE_SSL
-	if(pctx->sslCtx)
-	{
-		SSL_CTX_free(pctx->sslCtx);
-		pctx->sslCtx = NULL;
-	}
-#endif
-#endif
 
 	// check free resource
 	if (pctx->evt_alloc_cnt > 0)
@@ -939,43 +912,6 @@ void EdTask::FreeEvent::OnEventFd(int cnt)
 	getCurrentTask()->freeReservedObjs();
 }
 #endif
-
-#if USE_SSL
-SSL_CTX* EdTask::getSSLContext(int ver)
-{
-	if (mDefaultSSLCtx == NULL)
-	{
-		if (EdSSLIsInit() == false)
-		{
-			EdSSLInit();
-		}
-		mDefaultSSLCtx = EdSSL::buildCtx(ver);
-	}
-
-	return mDefaultSSLCtx;
-}
-
-int EdTask::setSSLCert(const char* certfile, const char* privkeyfile)
-{
-	int ret;
-	SSL_CTX *pctx = getSSLContext();
-
-	ret = SSL_CTX_use_certificate_file(pctx, certfile, SSL_FILETYPE_PEM);
-	dbgd("set cert file, ret=%d", ret);
-	ret = SSL_CTX_use_PrivateKey_file(pctx, privkeyfile, SSL_FILETYPE_PEM);
-	dbgd("set key file, ret=%d", ret);
-
-	if (!SSL_CTX_check_private_key(pctx))
-	{
-		dbge("### private key check error......");
-		return -1;
-	}
-	return 0;
-}
-
-#endif
-
-
 
 EdTask* EdTask::getCurrentTask()
 {

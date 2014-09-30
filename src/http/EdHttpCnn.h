@@ -15,7 +15,6 @@
 #include <list>
 #include "../EdSocket.h"
 #include "http_parser.h"
-#include "EsHttpTrans.h"
 #include "../edssl/EdSmartSocket.h"
 #include "EdHttpController.h"
 
@@ -37,15 +36,15 @@ enum SEND_RESULT_E {
 	HTTP_SEND_PENDING,
 };
 
-class EsHttpTask;
+class EdHttpTask;
 
-class EsHttpCnn : public EdObject, public EdSmartSocket::INet
+class EdHttpCnn : public EdObject, public EdSmartSocket::INet
 {
-	friend class EsHttpTask;
+	friend class EdHttpTask;
 	friend class EdHttpController;
 public:
-	EsHttpCnn();
-	virtual ~EsHttpCnn();
+	EdHttpCnn();
+	virtual ~EdHttpCnn();
 	virtual void IOnNet(EdSmartSocket* psock, int event);
 
 private:
@@ -68,7 +67,7 @@ private:
 	void procHeader();
 	void procReqLine();
 
-	int initCnn(int fd, u32 handle, EsHttpTask* ptask, int socket_mode);
+	int initCnn(int fd, u32 handle, EdHttpTask* ptask, int socket_mode);
 	void procRead();
 	void procDisconnected();
 	int scheduleTransmit();
@@ -79,7 +78,7 @@ private:
 	void closeAllCtrls();
 
 private:
-	EsHttpTask* mTask;
+	EdHttpTask* mTask;
 	u32 mHandle;
 	int mBufSize;
 	void *mReadBuf;

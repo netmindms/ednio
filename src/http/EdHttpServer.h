@@ -10,7 +10,7 @@
 
 #include <list>
 
-#include "EsHttpTask.h"
+#include "EdHttpTask.h"
 
 
 namespace edft {
@@ -19,11 +19,11 @@ enum {
 	UV_START = EDM_USER+1,
 };
 
-class EsHttpServer: public EdSocket::ISocketCb
+class EdHttpServer: public EdSocket::ISocketCb
 {
 public:
-	EsHttpServer();
-	virtual ~EsHttpServer();
+	EdHttpServer();
+	virtual ~EdHttpServer();
 	//virtual int OnEventProc(EdMsg* pmsg);
 	virtual void IOnSocketEvent(EdSocket *psock, int event);
 
@@ -32,7 +32,7 @@ public:
 		mSvcMutex.lock();
 		for(int i=0;i<num;i++)
 		{
-			EsHttpTask *ptask = new T;
+			EdHttpTask *ptask = new T;
 			ptask->run();
 			mSvcList[mSvcCount++] = ptask;
 		}
@@ -46,7 +46,7 @@ private:
 	EdMutex mSvcMutex;
 	EdSocket mSvrSock;
 	EdSocket mSSLSvrSock;
-	EsHttpTask *mSvcList[100];
+	EdHttpTask *mSvcList[100];
 	int mSvcCount;
 	int mSvcRound;
 };

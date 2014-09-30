@@ -12,7 +12,7 @@
 
 #include <list>
 #include "../EdObject.h"
-#include "EsHttpMsg.h"
+#include "EdHttpMsg.h"
 #include "EdHttpWriter.h"
 #include "EdHttpReader.h"
 #include "EdHttpType.h"
@@ -22,13 +22,13 @@ namespace edft
 
 #define SEND_BUF_SIZE (8*1024)
 
-class EsHttpCnn;
+class EdHttpCnn;
 
 
 class EdHttpController : public EdObject
 {
-	friend class EsHttpTask;
-	friend class EsHttpCnn;
+	friend class EdHttpTask;
+	friend class EdHttpCnn;
 public:
 	EdHttpController();
 	virtual ~EdHttpController();
@@ -54,9 +54,9 @@ private:
 	EdHttpWriter* mWriter;
 
 	//EsHttpTrans* mTrans;
-	EsHttpCnn* mCnn;
-	EsHttpMsg mReqMsg;
-	EsHttpMsg mRespMsg;
+	EdHttpCnn* mCnn;
+	EdHttpMsg mReqMsg;
+	EdHttpMsg mRespMsg;
 
 	char mStatusCode[4];
 	bool mIsFinalResponsed;
@@ -76,7 +76,7 @@ private:
 	// body data stream
 	EdHttpReader* mBodyReader;
 
-	void setConnection(EsHttpCnn* pcnn);
+	void setConnection(EdHttpCnn* pcnn);
 	void addReqHeader(string* name, string* val);
 	void setUrl(string *url);
 	void sendResp(char* code, void *textbody, int len, char* cont_type);
@@ -87,7 +87,7 @@ private:
 #if 0
 	int getSendPacketData(void* buf, int len);
 #endif
-	void initCtrl(EsHttpCnn* pcnn);
+	void initCtrl(EdHttpCnn* pcnn);
 };
 
 } /* namespace edft */

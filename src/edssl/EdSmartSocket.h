@@ -10,10 +10,12 @@
 
 #include "../config.h"
 
+
 #include <openssl/evp.h>
 #include <openssl/ossl_typ.h>
 #include <openssl/ssl.h>
 
+#include "EdSSLContext.h"
 #include "../EdSocket.h"
 
 namespace edft
@@ -98,12 +100,12 @@ public:
 	SSL *getSSL();
 	SSL_CTX* getSSLContext();
 
-	int openSSLClientSock(SSL_CTX *pctx=NULL);
+	int openSSLClientSock(EdSSLContext *pctx=NULL);
 
 	/**
 	 * @brief Open a socket for incoming ssl connection.
 	 */
-	void openSSLChildSock(int fd, SSL_CTX* psslctx=NULL);
+	void openSSLChildSock(int fd, EdSSLContext* psslctx=NULL);
 
 	/**
 	 * @brief Set ssl event callback.
@@ -124,6 +126,7 @@ private:
 private:
 	SSL *mSSL;
 	SSL_CTX *mSSLCtx;
+	EdSSLContext *mEdSSLCtx;
 	bool mSessionConencted;
 	//ISSLSocketCb *mSSLCallback;
 	bool mIsSSLServer;

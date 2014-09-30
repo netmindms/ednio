@@ -9,36 +9,36 @@
 #define DBG_LEVEL DBG_DEBUG
 
 #include "../edslog.h"
-#include "EsHttpServer.h"
+#include "EdHttpServer.h"
 
 namespace edft {
 
 
-EsHttpServer::EsHttpServer()
+EdHttpServer::EdHttpServer()
 {
 	mSvcCount = 0;
 	mSvcRound = 0;
 }
 
-EsHttpServer::~EsHttpServer()
+EdHttpServer::~EdHttpServer()
 {
 	// TODO Auto-generated destructor stub
 }
 
 
-void EsHttpServer::IOnSocketEvent(EdSocket* psock, int event)
+void EdHttpServer::IOnSocketEvent(EdSocket* psock, int event)
 {
 	if(event == SOCK_EVENT_INCOMING_ACCEPT) {
 		int fd = psock->accept();
 		dbgd("new incoming cnn, fd=%d", fd);
 		if(mSvcCount>0) {
 			int idx = (mSvcRound++ % mSvcCount);
-			mSvcList[idx]->postMsg(UV_HTTPCNN, fd, psock==&mSvrSock ? 0:1);
+			mSvcList[idx]->postMsg(EDMX_HTTPCNN, fd, psock==&mSvrSock ? 0:1);
 		}
 	}
 }
 
-int EsHttpServer::open(int port, bool ssl)
+int EdHttpServer::open(int port, bool ssl)
 {
 	EdSocket *psock;
 	if(ssl == false) {
@@ -55,7 +55,7 @@ int EsHttpServer::open(int port, bool ssl)
 	return ret;
 }
 
-void EsHttpServer::close()
+void EdHttpServer::close()
 {
 	dbgd("http server closing...task cnt=%d", mSvcCount);
 	mSvrSock.close();
@@ -70,15 +70,6 @@ void EsHttpServer::close()
 
 }
 
-#if 0
-void EsHttpServer::addService(EsHttpTask* ptask)
-{
-	mSvcMutex.lock();
-	mSvcList[mSvcCount++] = ptask;
-	ptask->run();
-	mSvcMutex.unlock();
-}
-#endif
 
 
 }

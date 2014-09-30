@@ -10,18 +10,17 @@
 #include <stack>
 #include <unordered_map>
 #include "../edslog.h"
-#include "EsHttpCnn.h"
-#include "EsHttpTask.h"
+#include "EdHttpCnn.h"
+#include "EdHttpTask.h"
 #include "http_parser.h"
 #include "../EdFile.h"
-#include "EsHttpMsg.h"
+#include "EdHttpMsg.h"
 #include "EdHttp.h"
-#include "EsHttpBodyStream.h"
 
 namespace edft
 {
 
-EsHttpCnn::EsHttpCnn()
+EdHttpCnn::EdHttpCnn()
 {
 	dbgd("http cnn const......");
 
@@ -60,7 +59,7 @@ EsHttpCnn::EsHttpCnn()
 	mTxTrying = false;
 }
 
-EsHttpCnn::~EsHttpCnn()
+EdHttpCnn::~EdHttpCnn()
 {
 	if (mReadBuf != NULL)
 	{
@@ -69,7 +68,7 @@ EsHttpCnn::~EsHttpCnn()
 	}
 }
 
-void EsHttpCnn::close()
+void EdHttpCnn::close()
 {
 	mSock.socketClose();
 	closeAllCtrls();
@@ -82,7 +81,7 @@ void EsHttpCnn::close()
 
 }
 
-int EsHttpCnn::initCnn(int fd, u32 handle, EsHttpTask *ptask, int socket_mode)
+int EdHttpCnn::initCnn(int fd, u32 handle, EdHttpTask *ptask, int socket_mode)
 {
 	mSock.setOnNetListener(this);
 	mSock.socketOpenChild(fd, socket_mode);
@@ -106,7 +105,7 @@ int EsHttpCnn::initCnn(int fd, u32 handle, EsHttpTask *ptask, int socket_mode)
 	return -1;
 }
 
-void EsHttpCnn::procRead()
+void EdHttpCnn::procRead()
 {
 	int rdcnt = mSock.recvPacket(mReadBuf, mBufSize);
 	dbgv("proc read cnt=%d", rdcnt);
@@ -116,7 +115,7 @@ void EsHttpCnn::procRead()
 	}
 }
 
-void EsHttpCnn::procDisconnected()
+void EdHttpCnn::procDisconnected()
 {
 	close();
 	mTask->freeConnection(this);
@@ -125,51 +124,51 @@ void EsHttpCnn::procDisconnected()
 	//
 }
 
-int EsHttpCnn::head_field_cb(http_parser* parser, const char *at, size_t length)
+int EdHttpCnn::head_field_cb(http_parser* parser, const char *at, size_t length)
 {
-	EsHttpCnn* pcnn = (EsHttpCnn*) parser->data;
+	EdHttpCnn* pcnn = (EdHttpCnn*) parser->data;
 	return pcnn->headerNameCb(parser, at, length);
 }
 
-int EsHttpCnn::head_val_cb(http_parser* parser, const char *at, size_t length)
+int EdHttpCnn::head_val_cb(http_parser* parser, const char *at, size_t length)
 {
-	EsHttpCnn *pcnn = (EsHttpCnn*) parser->data;
+	EdHttpCnn *pcnn = (EdHttpCnn*) parser->data;
 	return pcnn->headerValCb(parser, at, length);
 }
 
-int EsHttpCnn::body_cb(http_parser* parser, const char *at, size_t length)
+int EdHttpCnn::body_cb(http_parser* parser, const char *at, size_t length)
 {
-	EsHttpCnn *pcnn = (EsHttpCnn*) parser->data;
+	EdHttpCnn *pcnn = (EdHttpCnn*) parser->data;
 	return pcnn->bodyDataCb(parser, at, length);
 }
 
-int EsHttpCnn::msg_begin(http_parser* parser)
+int EdHttpCnn::msg_begin(http_parser* parser)
 {
-	EsHttpCnn *pcnn = (EsHttpCnn*) parser->data;
+	EdHttpCnn *pcnn = (EdHttpCnn*) parser->data;
 	return pcnn->dgMsgBeginCb(parser);
 
 }
 
-int EsHttpCnn::msg_end(http_parser* parser)
+int EdHttpCnn::msg_end(http_parser* parser)
 {
-	EsHttpCnn *pcnn = (EsHttpCnn*) parser->data;
+	EdHttpCnn *pcnn = (EdHttpCnn*) parser->data;
 	return pcnn->dgMsgEndCb(parser);
 }
 
-int EsHttpCnn::on_url(http_parser* parser, const char* at, size_t length)
+int EdHttpCnn::on_url(http_parser* parser, const char* at, size_t length)
 {
-	EsHttpCnn *pcnn = (EsHttpCnn*) parser->data;
+	EdHttpCnn *pcnn = (EdHttpCnn*) parser->data;
 	return pcnn->dgUrlCb(parser, at, length);
 }
 
-int EsHttpCnn::on_headers_complete(http_parser* parser)
+int EdHttpCnn::on_headers_complete(http_parser* parser)
 {
-	EsHttpCnn *pcnn = (EsHttpCnn*) parser->data;
+	EdHttpCnn *pcnn = (EdHttpCnn*) parser->data;
 	return pcnn->dgHeaderComp(parser);
 
 }
 
-int EsHttpCnn::headerNameCb(http_parser*, const char* at, size_t length)
+int EdHttpCnn::headerNameCb(http_parser*, const char* at, size_t length)
 {
 	string tmp(at, length);
 	dbgv("name cb, %s", tmp.c_str());
@@ -194,7 +193,7 @@ int EsHttpCnn::headerNameCb(http_parser*, const char* at, size_t length)
 	return 0;
 }
 
-int EsHttpCnn::headerValCb(http_parser*, const char* at, size_t length)
+int EdHttpCnn::headerValCb(http_parser*, const char* at, size_t length)
 {
 	string tmp(at, length);
 	dbgv("val cb, %s", tmp.c_str());
@@ -208,7 +207,7 @@ int EsHttpCnn::headerValCb(http_parser*, const char* at, size_t length)
 
 }
 
-int EsHttpCnn::dgHeaderComp(http_parser* parser)
+int EdHttpCnn::dgHeaderComp(http_parser* parser)
 {
 	if (mIsHdrVal)
 	{
@@ -230,7 +229,7 @@ int EsHttpCnn::dgHeaderComp(http_parser* parser)
 	return 0;
 }
 
-int EsHttpCnn::bodyDataCb(http_parser*, const char* at, size_t length)
+int EdHttpCnn::bodyDataCb(http_parser*, const char* at, size_t length)
 {
 	dbgd("body data len=%d", length);
 	if(mCurCtrl != NULL) {
@@ -239,7 +238,7 @@ int EsHttpCnn::bodyDataCb(http_parser*, const char* at, size_t length)
 	return length;
 }
 
-int EsHttpCnn::dgMsgBeginCb(http_parser* parser)
+int EdHttpCnn::dgMsgBeginCb(http_parser* parser)
 {
 
 	mPs = PS_FIRST_LINE;
@@ -255,7 +254,7 @@ int EsHttpCnn::dgMsgBeginCb(http_parser* parser)
 	return 0;
 }
 
-int EsHttpCnn::dgMsgEndCb(http_parser* parser)
+int EdHttpCnn::dgMsgEndCb(http_parser* parser)
 {
 	dbgd("http msg end...");
 	if(mCurUrl != NULL)
@@ -267,7 +266,7 @@ int EsHttpCnn::dgMsgEndCb(http_parser* parser)
 	return 0;
 }
 
-int EsHttpCnn::dgUrlCb(http_parser* parser, const char* at, size_t length)
+int EdHttpCnn::dgUrlCb(http_parser* parser, const char* at, size_t length)
 {
 	if (mCurUrl == NULL)
 		mCurUrl = new string(at, length);
@@ -277,17 +276,17 @@ int EsHttpCnn::dgUrlCb(http_parser* parser, const char* at, size_t length)
 	return 0;
 }
 
-int EsHttpCnn::on_status(http_parser* parser, const char* at, size_t length)
+int EdHttpCnn::on_status(http_parser* parser, const char* at, size_t length)
 {
 	return 0;
 }
 
-int EsHttpCnn::statusCb(http_parser* parser, const char* at, size_t length)
+int EdHttpCnn::statusCb(http_parser* parser, const char* at, size_t length)
 {
 	return 0;
 }
 
-void EsHttpCnn::procHeader()
+void EdHttpCnn::procHeader()
 {
 	if (mCurCtrl != NULL)
 		mCurCtrl->addReqHeader(mCurHdrName, mCurHdrVal);
@@ -298,7 +297,7 @@ void EsHttpCnn::procHeader()
 	mCurHdrName = mCurHdrVal = NULL;
 }
 
-void EsHttpCnn::procReqLine()
+void EdHttpCnn::procReqLine()
 {
 	dbgd("url = %s", mCurUrl->c_str());
 	mPs = PS_HEADER;
@@ -314,7 +313,7 @@ void EsHttpCnn::procReqLine()
 }
 
 
-int EsHttpCnn::scheduleTransmit()
+int EdHttpCnn::scheduleTransmit()
 {
 	dbgd("scheduling transmit..., ready ctrl cnt=%d", mCtrlList.size());
 	//if (mCurSendCtrl != NULL)
@@ -362,7 +361,7 @@ int EsHttpCnn::scheduleTransmit()
 	return mCtrlList.size();
 }
 
-void EsHttpCnn::IOnNet(EdSmartSocket* psock, int event)
+void EdHttpCnn::IOnNet(EdSmartSocket* psock, int event)
 {
 	if (event == NETEV_READ)
 	{
@@ -381,7 +380,7 @@ void EsHttpCnn::IOnNet(EdSmartSocket* psock, int event)
 	}
 }
 
-int EsHttpCnn::sendCtrlStream(EdHttpController* pctl, int maxlen)
+int EdHttpCnn::sendCtrlStream(EdHttpController* pctl, int maxlen)
 {
 	int retVal = SEND_FAIL;
 	packet_buf_t bf;
@@ -426,7 +425,7 @@ int EsHttpCnn::sendCtrlStream(EdHttpController* pctl, int maxlen)
 }
 
 
-void EsHttpCnn::closeAllCtrls()
+void EdHttpCnn::closeAllCtrls()
 {
 	EdHttpController* pctrl;
 	for (; mCtrlList.size() > 0;)
@@ -441,7 +440,7 @@ void EsHttpCnn::closeAllCtrls()
 }
 
 
-void EsHttpCnn::reqTx(EdHttpController* pctl)
+void EdHttpCnn::reqTx(EdHttpController* pctl)
 {
 	if(mTxTrying==false)
 	{

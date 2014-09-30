@@ -10,7 +10,7 @@
 #include "../edslog.h"
 #include "../EdNio.h"
 #include "EdSSLSocket.h"
-
+#include "../edssl/EdSSLContext.h"
 #include <openssl/err.h>
 
 namespace edft
@@ -254,7 +254,7 @@ void EdSSLSocket::openSSLChildSock(int fd, SSL_CTX* pctx)
 	mIsSSLServer = true;
 	if (pctx == NULL)
 	{
-		mSSLCtx = EdTask::getCurrentTask()->getSSLContext();
+		mSSLCtx = EdSSLContext::getDefaultEdSSL()->getContext();
 	}
 	else
 	{
@@ -272,7 +272,7 @@ int EdSSLSocket::openSSLClientSock(SSL_CTX* pctx)
 		return fd;
 	if (pctx == NULL)
 	{
-		mSSLCtx = EdTask::getCurrentTask()->getSSLContext();
+		mSSLCtx = EdSSLContext::getDefaultEdSSL()->getContext();
 	}
 	else
 	{
