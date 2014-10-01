@@ -69,7 +69,7 @@ private:
 
 	int initCnn(int fd, u32 handle, EdHttpTask* ptask, int socket_mode);
 	void procRead();
-	void procDisconnected();
+	void procDisconnectedNeedEnd();
 	int scheduleTransmit();
 	int sendCtrlStream(EdHttpController* pctl, int maxlen);
 	void reqTx(EdHttpController* pctl);

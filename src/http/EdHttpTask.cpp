@@ -5,7 +5,7 @@
  *      Author: netmind
  */
 
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 #define DBGTAG "htask"
 #include "../config.h"
 
@@ -49,24 +49,29 @@ int EdHttpTask::OnEventProc(EdMsg* pmsg)
 	return 0;
 }
 
-void EdHttpTask::IOnSocketEvent(EdSocket* psock, int event)
-{
-	EdHttpCnn *pcnn = (EdHttpCnn*) psock;
-	if (event == SOCK_EVENT_READ)
-	{
-		pcnn->procRead();
-	}
-	else if (event == SOCK_EVENT_DISCONNECTED)
-	{
-		dbgd("sock disconneted...fd=%d", psock->getFd());
-		pcnn->procDisconnected();
-		mCnns.freeObj(pcnn);
-	}
-}
+//void EdHttpTask::IOnSocketEvent(EdSocket* psock, int event)
+//{
+//	EdHttpCnn *pcnn = (EdHttpCnn*) psock;
+//	if (event == SOCK_EVENT_READ)
+//	{
+//		pcnn->procRead();
+//	}
+//	else if (event == SOCK_EVENT_DISCONNECTED)
+//	{
+//		dbgd("sock disconneted...fd=%d", psock->getFd());
+//		pcnn->procDisconnected();
+//		mCnns.freeObj(pcnn);
+//	}
+//}
 
 int EdHttpTask::setDefaultCertFile(const char* crtfile, const char* keyfile)
 {
 	return EdSSLContext::getDefaultEdSSL()->setSSLCertFile(crtfile, keyfile);
+}
+
+int EdHttpTask::setDefaultCertMem(const void *crt, int crtlen, const void* key, int keylen)
+{
+	return EdSSLContext::getDefaultEdSSL()->setSSLCertMem((void*)crt, crtlen, (void*)key, keylen);
 }
 
 void EdHttpTask::setDefaultCertPassword(const char* pw)
@@ -114,8 +119,10 @@ void EdHttpTask::release()
 	}
 }
 
-void EdHttpTask::freeConnection(EdHttpCnn* pcnn)
+void EdHttpTask::removeConnection(EdHttpCnn* pcnn)
 {
+	dbgd("remove connection, cnn=%x", pcnn);
+	mCnns.remove(pcnn);
 	mCnns.freeObj(pcnn);
 }
 

@@ -48,7 +48,7 @@ EdTask::EdTask(int nmsgq)
 	mMsgFd = -1;
 
 	mRunMode = MODE_EDEV;
-
+	lastSockErrorNo = 0;
 }
 
 EdTask::~EdTask()
@@ -684,7 +684,7 @@ int EdTask::esMain(EdContext* psys)
 
 void EdTask::taskProc()
 {
-	dbgd("start thread miain......");
+	dbgd("start thread main, run mode=%d", mRunMode);
 	_tEdTask = this;
 	EdContext* pctx = &mCtx;
 	_tEdContext = pctx;
@@ -918,5 +918,10 @@ EdTask* EdTask::getCurrentTask()
 	return _tEdTask;
 }
 
-} // namespace edft
 
+int EdTask::getRunMode()
+{
+	return mRunMode;
+}
+
+} // namespace edft

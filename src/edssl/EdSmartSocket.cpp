@@ -6,7 +6,7 @@
  */
 
 #define DBG_LEVEL DBG_WARN
-#define DBGTAG "smsock"
+#define DBGTAG "smsck"
 #include "../edslog.h"
 #include "../EdNio.h"
 #include "EdSmartSocket.h"
@@ -167,8 +167,9 @@ int EdSmartSocket::recvPacket(void* buf, int bufsize)
 			changeSSLSockEvent(err, false);
 			if (err == SSL_ERROR_ZERO_RETURN)
 			{
-				SSL_shutdown(mSSL);
-				postReserveDisconnect();
+				//SSL_shutdown(mSSL);
+				//postReserveDisconnect();
+				mTask->lastSockErrorNo = EINPROGRESS;
 			}
 			return -1;
 		}
@@ -176,12 +177,15 @@ int EdSmartSocket::recvPacket(void* buf, int bufsize)
 		{
 			int err = SSL_get_error(mSSL, rret);
 			dbgd(" rret is zero, err=%d", err);
-			SSL_shutdown(mSSL);
-			postReserveDisconnect();
+
+//			SSL_shutdown(mSSL);
+//			postReserveDisconnect();
+			mTask->lastSockErrorNo = EINPROGRESS;
 			return 0;
 		}
 		else
 		{
+			mTask->lastSockErrorNo = 0;
 			return rret;
 		}
 	}
@@ -290,7 +294,7 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize, bool takebuffer)
 				if (wret < 0)
 					wret = 0;
 				mPendingSize = bufsize;
-				mPendingBuf = (void*)buf;
+				mPendingBuf = (void*) buf;
 				mPendingWriteCnt = bufsize - wret;
 			}
 			changeEvent(EVT_READ | EVT_WRITE | EVT_HANGUP);
@@ -314,7 +318,7 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize, bool takebuffer)
 		}
 		else
 		{
-			mPendingBuf = (void*)buf;
+			mPendingBuf = (void*) buf;
 			mPendingSize = bufsize;
 			mPendingWriteCnt = 0;
 		}
@@ -365,6 +369,17 @@ void EdSmartSocket::socketClose()
 
 }
 
+void EdSmartSocket::procSSLErrCloseNeedEnd()
+{
+	mTask->lastSockErrorNo = EINPROGRESS;
+	OnSSLDisconnected();
+	if (EdTask::getCurrentTask()->lastSockErrorNo != 0)
+	{
+		dbgd("*** auto closing ssl socket... ");
+		socketClose();
+	}
+}
+
 void EdSmartSocket::procSSLConnect(void)
 {
 	int cret;
@@ -377,13 +392,20 @@ void EdSmartSocket::procSSLConnect(void)
 	if (cret == 1)
 	{
 		mSessionConencted = true;
+		mTask->lastSockErrorNo = 0;
 		OnSSLConnected();
 	}
 	else if (cret == 0)
 	{
 		dbgd("### session shutdown ...");
-		SSL_shutdown(mSSL);
-		OnSSLDisconnected();
+		procSSLErrCloseNeedEnd();
+//		mTask->lastSockErrorNo = EINPROGRESS;
+//		OnSSLDisconnected();
+//		if (EdTask::getCurrentTask()->lastSockErrorNo == EINPROGRESS)
+//		{
+//			dbgd("*** auto closing ssl socket... ");
+//			socketClose();
+//		}
 	}
 	else
 	{
@@ -394,15 +416,35 @@ void EdSmartSocket::procSSLConnect(void)
 			long l = ERR_get_error();
 			char errbuf[1024];
 			ERR_error_string(l, errbuf);
-			dbgd("ssl error ssl  = %s", errbuf);
-			SSL_shutdown(mSSL);
+			dbgd("ssl error string  = %s", errbuf);
+			procSSLErrCloseNeedEnd();
+//			mTask->lastSockErrorNo = EINPROGRESS;
+//			OnSSLDisconnected();
+//			if (EdTask::getCurrentTask()->lastSockErrorNo == EINPROGRESS)
+//			{
+//				dbgd("*** auto closing ssl socket... ");
+//				socketClose();
+//			}
 		}
 		else
 		{
 			changeSSLSockEvent(err, false);
 			if (err == SSL_ERROR_ZERO_RETURN || err == SSL_ERROR_SYSCALL)
 			{
-				postReserveDisconnect();
+				//postReserveDisconnect();
+				procSSLErrCloseNeedEnd();
+//				mTask->lastSockErrorNo = EINPROGRESS;
+//				OnSSLDisconnected();
+//				if (EdTask::getCurrentTask()->lastSockErrorNo == EINPROGRESS)
+//				{
+//					dbgd("*** auto closing ssl socket... ");
+//					socketClose();
+//				}
+			}
+			else
+			{
+				dbgd("##### unknown ssl state, sslerr=%d", err);
+				mTask->lastSockErrorNo = 0;
 			}
 		}
 	}

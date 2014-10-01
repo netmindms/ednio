@@ -29,6 +29,7 @@ typedef int64_t i64;
 #define HANDLE_TO_OBJ(H, OBJS, FILED_NAME, MAX) (HIDX(H) >= MAX ? NULL : ( OBJS[HIDX(H)].FILED_NAME==H ? &OBJS[HIDX(H)] : NULL ) )
 
 #define CHECK_DELETE_OBJ(PTR) { if(PTR != NULL) { delete PTR;PTR=NULL;} }
+#define CHECK_FREE_MEM(PTR) { if(PTR != NULL) { free(PTR);PTR=NULL;} }
 
 typedef struct {
 	void* buf;

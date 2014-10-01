@@ -122,6 +122,7 @@ private:
 	void changeSSLSockEvent(int err, bool bwrite);
 	void procNormalOnWrite();
 	void procSSLOnWrite();
+	void procSSLErrCloseNeedEnd();
 
 private:
 	SSL *mSSL;

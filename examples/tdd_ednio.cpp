@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 
+#include "EdType.h"
 #include "EdNio.h"
 #include "EdTask.h"
 #include "EdTimer.h"
@@ -117,6 +118,46 @@ public:
 		mTestList.push_back(t);
 	}
 };
+
+// test task
+void testtask(int mode)
+{
+	enum {
+		TS_NORMAL = EDM_USER+1,
+	};
+	class MainTask: public TestTask
+	{
+		int OnEventProc(EdMsg* pmsg)
+		{
+			if(pmsg->msgid == EDM_INIT)
+			{
+				addTest(TS_NORMAL);
+				nextTest();
+			}
+			else if(pmsg->msgid == EDM_CLOSE)
+			{
+
+			}
+			else if(pmsg->msgid == TS_NORMAL)
+			{
+				logs("== Start normal test...");
+				logs("== Normal test ok...\n");
+				nextTest();
+			}
+			return 0;
+		}
+	};
+
+
+	logm(">>>> Test: Task, mode=%d", mode);
+	fdcheck_start();
+	auto task = new MainTask;
+	task->run(mode);
+	task->wait();
+	delete task;
+	fdcheck_end();
+	logm("<<<< Task test OK\n");
+}
 
 // message exchanging test
 void testmsg(int mode)
@@ -985,11 +1026,13 @@ void testHttpSever(int mode)
 	class MyController;
 	class FileCtrl;
 
-
 	class MyHttpTask: public EdHttpTask
 	{
 		EdHttpStringWriter *mWriter;
 		EdHttpStringReader *mReader;
+		void *crtmem;
+		void *keymem;
+
 	public:
 
 		virtual int OnEventProc(EdMsg* pmsg)
@@ -998,9 +1041,32 @@ void testHttpSever(int mode)
 			if (pmsg->msgid == EDM_INIT)
 			{
 				setDefaultCertPassword("ks2662");
+				/*
+				EdFile file;
+				file.openFile("/home/netmind/testkey/netsvr.crt");
+				int csize = file.getSize("/home/netmind/testkey/netsvr.crt");
+				crtmem = malloc(csize);
+				file.readFile(crtmem, csize);
+				file.closeFile();
+
+				file.openFile("/home/netmind/testkey/netsvr.key");
+				int ksize = file.getSize("/home/netmind/testkey/netsvr.key");
+				keymem = malloc(ksize);
+				file.readFile(keymem, ksize);
+				file.closeFile();
+				setDefaultCertMem(crtmem, csize, keymem, ksize);
+				*/
+
 				setDefaultCertFile("/home/netmind/testkey/server.crt", "/home/netmind/testkey/server.key");
+				//setDefaultCertFile("/home/netmind/testkey/netsvr.crt", "/home/netmind/testkey/netsvr.key");
+
 				regController<MyController>("/userinfo", NULL);
 				regController<FileCtrl>("/getfile", NULL);
+			}
+			else if(pmsg->msgid == EDM_CLOSE)
+			{
+				CHECK_FREE_MEM(crtmem);
+				CHECK_FREE_MEM(keymem);
 			}
 			return ret;
 		}
@@ -1052,23 +1118,27 @@ void testHttpSever(int mode)
 
 	};
 
-	class FileCtrl : public EdHttpController {
+	class FileCtrl: public EdHttpController
+	{
 		EdHttpFileReader reader;
-		void OnInit() {
+		void OnInit()
+		{
 			logs("file ctrl on init...");
-		};
-		virtual void OnRequest() {
+		}
+		;
+		virtual void OnRequest()
+		{
 			reader.open("/home/netmind/bb");
 			setRespBodyReader(&reader, "application/zip");
 			setHttpResult("200");
-		};
+		}
+		;
 
 		virtual void OnComplete(int result)
 		{
 			logs("file ctrl complete, result=%d", result);
 			reader.close();
 		}
-
 
 	};
 
@@ -1123,6 +1193,7 @@ void testHttpSever(int mode)
 	logm(">>>> Test: Http Server, mode=%d", mode);
 	fdcheck_start();
 	HttpTestTask *task = new HttpTestTask;
+	mode = 1;
 	task->runMain(mode);
 	fdcheck_end();
 	logm("<<<< HttpServer OK\n\n");
@@ -1150,13 +1221,14 @@ void testssl(int mode)
 				ssl = NULL;
 				smartSock = NULL;
 
-				//addTest(TS_SSL);
-				addTest(TS_SMART_SOCK);
+				addTest(TS_SSL);
+				//addTest(TS_SMART_SOCK);
 				nextTest();
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
 
+				EdSSLContext::freeDefaultEdSSL();
 			}
 			else if (pmsg->msgid == TS_SSL)
 			{
@@ -1199,6 +1271,7 @@ void testssl(int mode)
 					assert(0);
 				}
 				ssl->close();
+
 				logs("== basic ssl client test OK...\r\n");
 				nextTest();
 			}
@@ -1566,6 +1639,65 @@ void testsmartsock(int mode)
 	logm("<<<< smart socket test OK\n");
 }
 
+void testreadclose(int mode)
+{
+	enum {
+		TS_NORMAL = EDM_USER+1,
+	};
+	class MainTask: public TestTask, public EdSocket::ISocketCb
+	{
+		EdSocket *sock;
+		int OnEventProc(EdMsg* pmsg)
+		{
+			if(pmsg->msgid == EDM_INIT)
+			{
+				addTest(TS_NORMAL);
+				nextTest();
+			}
+			else if(pmsg->msgid == EDM_CLOSE)
+			{
+
+			}
+			else if(pmsg->msgid == TS_NORMAL)
+			{
+				logs("== Start normal test...");
+				sock = new  EdSocket;
+				sock->setOnListener(this);
+				sock->connect("127.0.0.1", 4040);
+			}
+			return 0;
+		}
+
+		void IOnSocketEvent(EdSocket *psock, int event) {
+			if(event == SOCK_EVENT_READ) {
+				logs("sevt read...");
+				char buf[200];
+				int rcnt = psock->recv(buf, 100);
+				logs("    rcnt = %d", rcnt);
+			} else if(event == SOCK_EVENT_DISCONNECTED) {
+				logs("sevt disc...");
+				psock->close();
+				delete psock;
+				nextTest();
+			} else if(event == SOCK_EVENT_CONNECTED) {
+				logs("sevt conn...");
+			} else if(event == SOCK_EVENT_WRITE) {
+				logs("sevt write...");
+			}
+		}
+	};
+
+
+	logm(">>>> Test: Task, mode=%d", mode);
+	fdcheck_start();
+	auto task = new MainTask;
+	task->run(mode);
+	task->wait();
+	delete task;
+	fdcheck_end();
+	logm("<<<< Task test OK\n");
+}
+
 #include "http/http_parser.h"
 int main()
 {
@@ -1612,12 +1744,13 @@ int main()
 #endif
 
 	EdNioInit();
-	for (int i = 0; i < 1; i++)
+	for (int i = 0; i < 2; i++)
 	{
-		testHttpSever(i);
+		//testreadclose(i);
+		//testHttpSever(i);
 		//testsmartsock(i);
 		//testHttpBase(i);
-//		testssl(i);
+		testssl(i);
 //		testMultiTaskInstance(1);
 //		testreservefree(i);
 //		testtimer(i);

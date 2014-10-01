@@ -5,7 +5,7 @@
  *      Author: netmind
  */
 
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 #define DBGTAG "sslsc"
 #include "../edslog.h"
 #include "../EdNio.h"
@@ -95,24 +95,29 @@ int EdSSLSocket::recv(void* buf, int bufsize)
 		changeSSLSockEvent(err, false);
 		if (err == SSL_ERROR_ZERO_RETURN)
 		{
-			SSL_shutdown(mSSL);
-			postReserveDisconnect();
+			//SSL_shutdown(mSSL);
+			//postReserveDisconnect();
+			mTask->lastSockErrorNo = EINPROGRESS;
 		}
 		return -1;
 	}
 	else if (rret == 0)
 	{
 		int err = SSL_get_error(mSSL, rret);
-		dbgd(" rret is zero, err=%d", err);
-		SSL_shutdown(mSSL);
-		postReserveDisconnect();
+		dbgd(" ssl err=%d", err);
+		//SSL_shutdown(mSSL);
+		//postReserveDisconnect();
+		mTask->lastSockErrorNo = EINPROGRESS;
 		return 0;
 	}
 	else
 	{
+		mTask->lastSockErrorNo = 0;
 		return rret;
 	}
 }
+
+
 
 void EdSSLSocket::procSSLRead(void)
 {
@@ -222,8 +227,9 @@ void EdSSLSocket::procSSLConnect(void)
 	else if (cret == 0)
 	{
 		dbgd("### session shutdown ...");
-		SSL_shutdown(mSSL);
-		OnSSLDisconnected();
+		procSSLErrCloseNeedEnd();
+		//SSL_shutdown(mSSL);
+		//OnSSLDisconnected();
 	}
 	else
 	{
@@ -235,14 +241,20 @@ void EdSSLSocket::procSSLConnect(void)
 			char errbuf[1024];
 			ERR_error_string(l, errbuf);
 			dbgd("ssl error ssl  = %s", errbuf);
-			SSL_shutdown(mSSL);
+			//SSL_shutdown(mSSL);
+			procSSLErrCloseNeedEnd();
 		}
 		else
 		{
 			changeSSLSockEvent(err, false);
 			if (err == SSL_ERROR_ZERO_RETURN || err == SSL_ERROR_SYSCALL)
 			{
-				postReserveDisconnect();
+				procSSLErrCloseNeedEnd();
+				//postReserveDisconnect();
+			}
+			else
+			{
+				mTask->lastSockErrorNo = 0;
 			}
 		}
 	}
@@ -286,6 +298,18 @@ int EdSSLSocket::openSSLClientSock(SSL_CTX* pctx)
 void EdSSLSocket::sslAccept()
 {
 	procSSLConnect();
+}
+
+void EdSSLSocket::procSSLErrCloseNeedEnd()
+{
+	mTask->lastSockErrorNo = EINPROGRESS;
+	OnSSLDisconnected();
+	if (EdTask::getCurrentTask()->lastSockErrorNo != 0)
+	{
+		dbgd("*** auto closing ssl socket... ");
+		//socketClose();
+		close();
+	}
 }
 
 } /* namespace edft */

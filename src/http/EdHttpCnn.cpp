@@ -116,13 +116,10 @@ void EdHttpCnn::procRead()
 	}
 }
 
-void EdHttpCnn::procDisconnected()
+void EdHttpCnn::procDisconnectedNeedEnd()
 {
 	close();
-	mTask->freeConnection(this);
-	// after this line, any code not allowed.
-	//
-	//
+	mTask->removeConnection(this);
 }
 
 int EdHttpCnn::head_field_cb(http_parser* parser, const char *at, size_t length)
@@ -377,7 +374,8 @@ void EdHttpCnn::IOnNet(EdSmartSocket* psock, int event)
 	}
 	else if (event == NETEV_DISCONNECTED)
 	{
-		procDisconnected();
+		dbgd("smsocket disconnected...");
+		procDisconnectedNeedEnd();
 	}
 }
 

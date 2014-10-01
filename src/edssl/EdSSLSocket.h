@@ -99,7 +99,7 @@ private:
 	void procSSLRead(void);
 	void procSSLConnect(void);
 	void changeSSLSockEvent(int err, bool bwrite);
-
+	void procSSLErrCloseNeedEnd();
 
 private:
 	SSL *mSSL;
