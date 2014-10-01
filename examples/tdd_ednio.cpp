@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 
+#include "EdType.h"
 #include "EdNio.h"
 #include "EdTask.h"
 #include "EdTimer.h"
@@ -990,6 +991,9 @@ void testHttpSever(int mode)
 	{
 		EdHttpStringWriter *mWriter;
 		EdHttpStringReader *mReader;
+		void *crtmem;
+		void *keymem;
+
 	public:
 
 		virtual int OnEventProc(EdMsg* pmsg)
@@ -997,10 +1001,30 @@ void testHttpSever(int mode)
 			int ret = EdHttpTask::OnEventProc(pmsg);
 			if (pmsg->msgid == EDM_INIT)
 			{
+				EdFile file;
+				file.openFile("/home/netmind/testkey/netsvr.crt");
+				int csize = file.getSize("/home/netmind/testkey/netsvr.crt");
+				crtmem = malloc(csize);
+				file.readFile(crtmem, csize);
+				file.closeFile();
+
+				file.openFile("/home/netmind/testkey/netsvr.key");
+				int ksize = file.getSize("/home/netmind/testkey/netsvr.key");
+				keymem = malloc(ksize);
+				file.readFile(keymem, ksize);
+				file.closeFile();
+
 				setDefaultCertPassword("ks2662");
-				setDefaultCertFile("/home/netmind/testkey/netsvr.crt", "/home/netmind/testkey/netsvr.key");
+				setDefaultCertMem(crtmem, csize, keymem, ksize);
+				//setDefaultCertFile("/home/netmind/testkey/netsvr.crt", "/home/netmind/testkey/netsvr.key");
+
 				regController<MyController>("/userinfo", NULL);
 				regController<FileCtrl>("/getfile", NULL);
+			}
+			else if(pmsg->msgid == EDM_CLOSE)
+			{
+				CHECK_FREE_MEM(crtmem);
+				CHECK_FREE_MEM(keymem);
 			}
 			return ret;
 		}

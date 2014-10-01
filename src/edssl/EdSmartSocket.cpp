@@ -5,7 +5,7 @@
  *      Author: netmind
  */
 
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 #define DBGTAG "smsock"
 #include "../edslog.h"
 #include "../EdNio.h"
@@ -382,7 +382,8 @@ void EdSmartSocket::procSSLConnect(void)
 	else if (cret == 0)
 	{
 		dbgd("### session shutdown ...");
-		SSL_shutdown(mSSL);
+		//SSL_shutdown(mSSL);mSSL=NULL;
+		socketClose();
 		OnSSLDisconnected();
 	}
 	else
@@ -395,7 +396,9 @@ void EdSmartSocket::procSSLConnect(void)
 			char errbuf[1024];
 			ERR_error_string(l, errbuf);
 			dbgd("ssl error ssl  = %s", errbuf);
-			SSL_shutdown(mSSL);
+			socketClose();
+			//SSL_shutdown(mSSL);mSSL=NULL;
+			OnSSLDisconnected();
 		}
 		else
 		{

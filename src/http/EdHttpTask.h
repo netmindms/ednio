@@ -27,7 +27,7 @@ enum {
 };
 
 
-class EdHttpTask: public EdTask, public EdSocket::ISocketCb
+class EdHttpTask: public EdTask
 {
 	friend class EdHttpCnn;
 
@@ -35,9 +35,10 @@ public:
 	EdHttpTask();
 	virtual ~EdHttpTask();
 	virtual int OnEventProc(EdMsg* pmsg);
-	virtual void IOnSocketEvent(EdSocket *psock, int event);
+	//virtual void IOnSocketEvent(EdSocket *psock, int event);
 
 	int setDefaultCertFile(const char* crtfile, const char* keyfile);
+	int setDefaultCertMem(const void *crt, int crtlen, const void* key, int keylen);
 	void setDefaultCertPassword(const char* pw);
 	int openDefaultCertFile(const char* crtfile, const char* keyfile, const char* pw);
 
@@ -74,7 +75,7 @@ private:
 	EdHttpController*allocController(const char *url);
 	void freeController(EdHttpController* pctrl);
 	void release();
-	void freeConnection(EdHttpCnn *pcnn);
+	void removeConnection(EdHttpCnn *pcnn);
 
 
 };
