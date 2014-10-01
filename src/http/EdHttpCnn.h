@@ -8,14 +8,14 @@
 #ifndef ESHTTPCNN_H_
 #define ESHTTPCNN_H_
 
+#include "../config.h"
 
 #include <unordered_map>
-#include <vector>
 #include <string>
 #include <list>
 #include "../EdSocket.h"
-#include "http_parser.h"
 #include "../edssl/EdSmartSocket.h"
+#include "http_parser.h"
 #include "EdHttpController.h"
 
 using namespace std;

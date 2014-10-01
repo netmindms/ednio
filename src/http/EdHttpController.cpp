@@ -1,20 +1,16 @@
-#include <algorithm>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <string>
-
-#include "../EdType.h"
-
 /*
  * EdHttpController.cpp
  *
  *  Created on: Sep 11, 2014
  *      Author: netmind
  */
+
+#include "../config.h"
+
 #define DBGTAG "htctr"
 #define DBG_LEVEL DBG_WARN
 
+#include "../EdType.h"
 #include "../edslog.h"
 #include "EdHttpController.h"
 #include "EdHttpCnn.h"

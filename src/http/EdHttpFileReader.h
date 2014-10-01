@@ -7,6 +7,9 @@
 
 #ifndef EDHTTPFILEREADER_H_
 #define EDHTTPFILEREADER_H_
+
+#include "../config.h"
+
 #include "EdHttpReader.h"
 #include "../EdFile.h"
 

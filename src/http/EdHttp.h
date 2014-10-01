@@ -8,6 +8,8 @@
 #ifndef EDHTTP_H_
 #define EDHTTP_H_
 
+#include "../config.h"
+
 #define HTTPHDR_DATE "Date"
 #define HTTPHDR_SERVER "Server"
 #define HTTPHDR_CONTENT_LEN "Content-Length"

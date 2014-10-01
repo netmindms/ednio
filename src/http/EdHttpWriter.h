@@ -7,7 +7,7 @@
 
 #ifndef EDHTTPWRITER_H_
 #define EDHTTPWRITER_H_
-
+#include "../config.h"
 namespace edft
 {
 

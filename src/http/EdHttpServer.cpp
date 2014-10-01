@@ -8,6 +8,8 @@
 #define DBGTAG "htsvr"
 #define DBG_LEVEL DBG_DEBUG
 
+#include "../config.h"
+
 #include "../edslog.h"
 #include "EdHttpServer.h"
 

@@ -4,6 +4,7 @@
  *  Created on: Jul 7, 2014
  *      Author: netmind
  */
+#include "../config.h"
 
 #include <stdexcept>
 #include "EdHttpMsg.h"

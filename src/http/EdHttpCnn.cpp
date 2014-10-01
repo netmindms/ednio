@@ -4,6 +4,7 @@
  *  Created on: Jul 4, 2014
  *      Author: netmind
  */
+#include "../config.h"
 
 #define DBGTAG "htcnn"
 #define DBG_LEVEL DBG_WARN

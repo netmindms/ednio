@@ -7,7 +7,7 @@
 
 #ifndef EDNOTFOUNDHTTPCONTROLLER_H_
 #define EDNOTFOUNDHTTPCONTROLLER_H_
-
+#include "../config.h"
 #include "EdHttpController.h"
 #include "EdHttpStringReader.h"
 

@@ -8,6 +8,8 @@
 #ifndef EDURL_H_
 #define EDURL_H_
 
+#include "../config.h"
+
 #include <string>
 using namespace std;
 

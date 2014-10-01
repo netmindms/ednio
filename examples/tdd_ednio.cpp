@@ -998,7 +998,7 @@ void testHttpSever(int mode)
 			if (pmsg->msgid == EDM_INIT)
 			{
 				setDefaultCertPassword("ks2662");
-				setDefaultCertFile("/home/netmind/testkey/netsvr.crt", "/home/netmind/testkey/netsvr.key");
+				setDefaultCertFile("/home/netmind/testkey/server.crt", "/home/netmind/testkey/server.key");
 				regController<MyController>("/userinfo", NULL);
 				regController<FileCtrl>("/getfile", NULL);
 			}

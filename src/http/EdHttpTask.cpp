@@ -7,6 +7,7 @@
 
 #define DBG_LEVEL DBG_WARN
 #define DBGTAG "htask"
+#include "../config.h"
 
 #include "../edslog.h"
 #include "EdHttpTask.h"

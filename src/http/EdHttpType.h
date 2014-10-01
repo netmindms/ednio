@@ -7,6 +7,8 @@
 
 #ifndef EDHTTPTYPE_H_
 #define EDHTTPTYPE_H_
+#include "../config.h"
+
 
 namespace edft {
 
