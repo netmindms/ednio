@@ -108,6 +108,7 @@ void EdEvent::deregisterEvent(void)
 #endif
 	}
 	mIsReg = false;
+	mTask = NULL;
 }
 
 void EdEvent::esevent_cb(edevt_t* pevt, int fd, int events)

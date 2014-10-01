@@ -48,7 +48,7 @@ EdTask::EdTask(int nmsgq)
 	mMsgFd = -1;
 
 	mRunMode = MODE_EDEV;
-
+	lastSockErrorNo = 0;
 }
 
 EdTask::~EdTask()

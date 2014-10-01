@@ -4,9 +4,9 @@
  *  Created on: Jun 11, 2014
  *      Author: khkim
  */
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 #define DBGTAG "edsck"
-
+#include "EdTask.h"
 #include "EdSocket.h"
 #include "edslog.h"
 #include "EdType.h"
@@ -39,7 +39,7 @@ void EdSocket::openChildSock(int fd)
 	setFd(fd);
 	mStatus = SOCK_STATUS_CONNECTED;
 	mType = SOCK_TYPE_TCP;
-	registerEvent(EVT_READ|EVT_HANGUP);
+	registerEvent(EVT_READ | EVT_HANGUP);
 }
 
 void EdSocket::acceptSock(EdSocket* pchild, ISocketCb *cb)
@@ -82,7 +82,6 @@ int EdSocket::bindSock(int port, const char* addr)
 		openSock(SOCK_TYPE_TCP);
 	}
 
-
 	if (mType == SOCK_TYPE_TCP || mType == SOCK_TYPE_UDP)
 	{
 		struct sockaddr_in inaddr;
@@ -105,7 +104,7 @@ int EdSocket::bindSock(int port, const char* addr)
 		int len = strlen(addr) + sizeof(uaddr.sun_family);
 		retVal = bind(mFd, (struct sockaddr*) &uaddr, len);
 		if (!retVal)
-			mIsBinded = true;
+		mIsBinded = true;
 	}
 #endif
 	else
@@ -121,6 +120,10 @@ void EdSocket::close()
 	{
 		dbgd("close socket, fd=%d", mFd);
 		::close(mFd);
+		if (mTask != NULL)
+		{
+			mTask->lastSockErrorNo = 0;
+		}
 		deregisterEvent();
 		mFd = -1;
 		mStatus = SOCK_STATUS_DISCONNECTED;
@@ -183,9 +186,9 @@ int EdSocket::openSock(int type)
 		fd = socket(AF_INET, SOCK_DGRAM, 0);
 #if 0
 	else if (type == SOCK_TYPE_UNIXDGRAM)
-		fd = socket(AF_UNIX, SOCK_DGRAM, 0);
+	fd = socket(AF_UNIX, SOCK_DGRAM, 0);
 	else if (type == SOCK_TYPE_UNIXSTREAM)
-		fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	fd = socket(AF_UNIX, SOCK_STREAM, 0);
 #endif
 	else
 	{
@@ -205,37 +208,15 @@ int EdSocket::openSock(int type)
 int EdSocket::recv(void* buf, int size)
 {
 	int ret = read(mFd, buf, size);
+	mTask->lastSockErrorNo = errno;
 	if (ret == 0)
 	{
 		int sockerr;
 		socklen_t socklen = sizeof(sockerr);
 		getsockopt(mFd, SOL_SOCKET, SO_ERROR, &sockerr, &socklen);
-		dbgv("### read error: sock err=%d, bufsize=%d", sockerr, size);
-		if (1)
-		{ //sockerr == ECONNRESET) {
-			postReserveDisconnect();
-#if 0
-			if(mType == SOCK_TYPE_TCP)
-			{
-				mStatus = SOCK_STATUS_DISCONNECTED;
-				mRaiseDisconnect = 1; // disconnected by remote
-			}
-#endif
-		}
+		dbgv("### read error: sock err=%d, bufsize=%d, errno=%d", sockerr, size, mTask->lastSockErrorNo);
 	}
-	/*
-	 else if(ret<0)
-	 {
-	 int sockerr;
-	 socklen_t socklen = sizeof(sockerr);
-	 getsockopt(mFd, SOL_SOCKET, SO_ERROR, &sockerr, &socklen);
-	 dbgv("### read ret negtive: sock err=%d, bufsize=%d", sockerr, size);
 
-	 if(sockerr == 0) {
-	 mStatus = SOCK_STATUS_DISCONNECTED;
-	 mRaiseDisconnect = 1; // disconnected by remote
-	 }
-	 }*/
 	return ret;
 }
 
@@ -291,13 +272,25 @@ void EdSocket::OnEventRead()
 	{
 		mRaiseDisconnect = 0;
 		OnRead();
-
+#if 1
+		/* Note:
+		 */
+		if (EdTask::getCurrentTask()->lastSockErrorNo == EINPROGRESS)
+		{
+			OnDisconnected();
+			if (EdTask::getCurrentTask()->lastSockErrorNo != 0)
+			{
+				dbgd("  socket not closed by user in disconnected status !!!, closing socket automatically...");
+				close();
+			}
+		}
+#else
 		if (mRaiseDisconnect != 0)
 		{
 			close();
 			OnDisconnected();
 		}
-
+#endif
 	}
 	else
 	{
