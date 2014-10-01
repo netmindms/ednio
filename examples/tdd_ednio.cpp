@@ -118,6 +118,46 @@ public:
 	}
 };
 
+// test task
+void testtask(int mode)
+{
+	enum {
+		TS_NORMAL = EDM_USER+1,
+	};
+	class MainTask: public TestTask
+	{
+		int OnEventProc(EdMsg* pmsg)
+		{
+			if(pmsg->msgid == EDM_INIT)
+			{
+				addTest(TS_NORMAL);
+				nextTest();
+			}
+			else if(pmsg->msgid == EDM_CLOSE)
+			{
+
+			}
+			else if(pmsg->msgid == TS_NORMAL)
+			{
+				logs("== Start normal test...");
+				logs("== Normal test ok...\n");
+				nextTest();
+			}
+			return 0;
+		}
+	};
+
+
+	logm(">>>> Test: Task, mode=%d", mode);
+	fdcheck_start();
+	auto task = new MainTask;
+	task->run(mode);
+	task->wait();
+	delete task;
+	fdcheck_end();
+	logm("<<<< Task test OK\n");
+}
+
 // message exchanging test
 void testmsg(int mode)
 {
@@ -985,7 +1025,6 @@ void testHttpSever(int mode)
 	class MyController;
 	class FileCtrl;
 
-
 	class MyHttpTask: public EdHttpTask
 	{
 		EdHttpStringWriter *mWriter;
@@ -1052,23 +1091,27 @@ void testHttpSever(int mode)
 
 	};
 
-	class FileCtrl : public EdHttpController {
+	class FileCtrl: public EdHttpController
+	{
 		EdHttpFileReader reader;
-		void OnInit() {
+		void OnInit()
+		{
 			logs("file ctrl on init...");
-		};
-		virtual void OnRequest() {
+		}
+		;
+		virtual void OnRequest()
+		{
 			reader.open("/home/netmind/bb");
 			setRespBodyReader(&reader, "application/zip");
 			setHttpResult("200");
-		};
+		}
+		;
 
 		virtual void OnComplete(int result)
 		{
 			logs("file ctrl complete, result=%d", result);
 			reader.close();
 		}
-
 
 	};
 
@@ -1566,6 +1609,65 @@ void testsmartsock(int mode)
 	logm("<<<< smart socket test OK\n");
 }
 
+void testreadclose(int mode)
+{
+	enum {
+		TS_NORMAL = EDM_USER+1,
+	};
+	class MainTask: public TestTask, public EdSocket::ISocketCb
+	{
+		EdSocket *sock;
+		int OnEventProc(EdMsg* pmsg)
+		{
+			if(pmsg->msgid == EDM_INIT)
+			{
+				addTest(TS_NORMAL);
+				nextTest();
+			}
+			else if(pmsg->msgid == EDM_CLOSE)
+			{
+
+			}
+			else if(pmsg->msgid == TS_NORMAL)
+			{
+				logs("== Start normal test...");
+				sock = new  EdSocket;
+				sock->setOnListener(this);
+				sock->connect("127.0.0.1", 4040);
+			}
+			return 0;
+		}
+
+		void IOnSocketEvent(EdSocket *psock, int event) {
+			if(event == SOCK_EVENT_READ) {
+				logs("sevt read...");
+				char buf[200];
+				int rcnt = psock->recv(buf, 100);
+				logs("    rcnt = %d", rcnt);
+			} else if(event == SOCK_EVENT_DISCONNECTED) {
+				logs("sevt disc...");
+				psock->close();
+				delete psock;
+				nextTest();
+			} else if(event == SOCK_EVENT_CONNECTED) {
+				logs("sevt conn...");
+			} else if(event == SOCK_EVENT_WRITE) {
+				logs("sevt write...");
+			}
+		}
+	};
+
+
+	logm(">>>> Test: Task, mode=%d", mode);
+	fdcheck_start();
+	auto task = new MainTask;
+	task->run(mode);
+	task->wait();
+	delete task;
+	fdcheck_end();
+	logm("<<<< Task test OK\n");
+}
+
 #include "http/http_parser.h"
 int main()
 {
@@ -1612,9 +1714,11 @@ int main()
 #endif
 
 	EdNioInit();
-	for (int i = 0; i < 1; i++)
+	for (int i = 0; i < 2; i++)
 	{
-		testHttpSever(i);
+		testreadclose(i);
+		//testreadclose(i);
+		//testHttpSever(i);
 		//testsmartsock(i);
 		//testHttpBase(i);
 //		testssl(i);
