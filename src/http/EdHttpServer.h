@@ -29,11 +29,12 @@ public:
 
 	template<typename T>	void startService(int num=1)
 	{
+		int mode = EdTask::getCurrentTask()->getRunMode();
 		mSvcMutex.lock();
 		for(int i=0;i<num;i++)
 		{
 			EdHttpTask *ptask = new T;
-			ptask->run();
+			ptask->run(mode);
 			mSvcList[mSvcCount++] = ptask;
 		}
 		mSvcMutex.unlock();

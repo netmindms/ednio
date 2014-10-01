@@ -6,7 +6,7 @@
  */
 
 #define DBGTAG "htcnn"
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 #include <stack>
 #include <unordered_map>
 #include "../edslog.h"
@@ -115,13 +115,10 @@ void EdHttpCnn::procRead()
 	}
 }
 
-void EdHttpCnn::procDisconnected()
+void EdHttpCnn::procDisconnectedNeedEnd()
 {
 	close();
 	mTask->removeConnection(this);
-	// after this line, any code not allowed.
-	//
-	//
 }
 
 int EdHttpCnn::head_field_cb(http_parser* parser, const char *at, size_t length)
@@ -377,7 +374,7 @@ void EdHttpCnn::IOnNet(EdSmartSocket* psock, int event)
 	else if (event == NETEV_DISCONNECTED)
 	{
 		dbgd("smsocket disconnected...");
-		procDisconnected();
+		procDisconnectedNeedEnd();
 	}
 }
 

@@ -186,6 +186,8 @@ public:
 	void killTimer(u32 id);
 	void cleanupAllTimer();
 
+	int getRunMode();
+
 	void reserveFree(EdObject* obj);
 	static EdTask* getCurrentTask();
 	int lastSockErrorNo;

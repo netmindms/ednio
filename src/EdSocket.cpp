@@ -214,7 +214,7 @@ int EdSocket::recv(void* buf, int size)
 		int sockerr;
 		socklen_t socklen = sizeof(sockerr);
 		getsockopt(mFd, SOL_SOCKET, SO_ERROR, &sockerr, &socklen);
-		dbgv("### read error: sock err=%d, bufsize=%d, errno=%d", sockerr, size, mTask->lastSockErrorNo);
+		dbgd("### read error: sock err=%d, bufsize=%d, errno=%d", sockerr, size, mTask->lastSockErrorNo);
 	}
 
 	return ret;
@@ -275,7 +275,7 @@ void EdSocket::OnEventRead()
 #if 1
 		/* Note:
 		 */
-		if (EdTask::getCurrentTask()->lastSockErrorNo == EINPROGRESS)
+		if (EdTask::getCurrentTask()->lastSockErrorNo != 0)
 		{
 			OnDisconnected();
 			if (EdTask::getCurrentTask()->lastSockErrorNo != 0)

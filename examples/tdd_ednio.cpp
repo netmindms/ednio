@@ -1190,6 +1190,7 @@ void testHttpSever(int mode)
 	logm(">>>> Test: Http Server, mode=%d", mode);
 	fdcheck_start();
 	HttpTestTask *task = new HttpTestTask;
+	mode = 1;
 	task->runMain(mode);
 	fdcheck_end();
 	logm("<<<< HttpServer OK\n\n");
@@ -1217,13 +1218,14 @@ void testssl(int mode)
 				ssl = NULL;
 				smartSock = NULL;
 
-				//addTest(TS_SSL);
-				addTest(TS_SMART_SOCK);
+				addTest(TS_SSL);
+				//addTest(TS_SMART_SOCK);
 				nextTest();
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
 
+				EdSSLContext::freeDefaultEdSSL();
 			}
 			else if (pmsg->msgid == TS_SSL)
 			{
@@ -1266,6 +1268,7 @@ void testssl(int mode)
 					assert(0);
 				}
 				ssl->close();
+
 				logs("== basic ssl client test OK...\r\n");
 				nextTest();
 			}
@@ -1740,12 +1743,11 @@ int main()
 	EdNioInit();
 	for (int i = 0; i < 2; i++)
 	{
-		testreadclose(i);
 		//testreadclose(i);
 		//testHttpSever(i);
 		//testsmartsock(i);
 		//testHttpBase(i);
-//		testssl(i);
+		testssl(i);
 //		testMultiTaskInstance(1);
 //		testreservefree(i);
 //		testtimer(i);
