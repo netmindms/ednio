@@ -41,12 +41,16 @@ public:
 	void setReqBodyWriter(EdHttpWriter* writer);
 	void setRespBodyReader(EdHttpReader* reader, const char *type);
 	const char* getReqHeader(char* name);
+	const string* getReqHeaderString(const char* name);
 	long getReqContentLen();
 	void *getUserData();
 	const string* getReqUrl();
 
 protected:
 	void setHttpResult(const char *code);
+private:
+	int feedBodyData(void* buf, int len);
+	bool checkExpect();
 
 private:
 	void* mUserData;
@@ -60,17 +64,15 @@ private:
 
 	char mStatusCode[4];
 	bool mIsFinalResponsed;
+	bool mIsContinueResponse;
 	bool mTxTrying;
+	bool mIsBodyTxComplete;
 
 	std::list<packet_buf_t> mPacketList;
 
 	// header response stream data
 	string mHeaderEncStr;
-#if 0
-	char *mEncStartStream;
-	int mEncHeaderReadCnt;
-	int mEncHeaderSize;
-#endif
+
 	packet_buf_t mHdrPkt;
 
 	// body data stream
@@ -79,10 +81,8 @@ private:
 	void setConnection(EdHttpCnn* pcnn);
 	void addReqHeader(string* name, string* val);
 	void setUrl(string *url);
-	void sendResp(char* code, void *textbody, int len, char* cont_type);
 	void encodeResp();
-	int getRespEncodeStream(void* buf, int len);
-	int transmitRespStream();
+
 	void getSendPacket(packet_buf_t* pinfo);
 #if 0
 	int getSendPacketData(void* buf, int len);

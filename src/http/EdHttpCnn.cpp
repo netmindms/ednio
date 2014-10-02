@@ -7,7 +7,7 @@
 #include "../config.h"
 
 #define DBGTAG "htcnn"
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 #include <stack>
 #include <unordered_map>
 #include "../edslog.h"
@@ -137,7 +137,7 @@ int EdHttpCnn::head_val_cb(http_parser* parser, const char *at, size_t length)
 int EdHttpCnn::body_cb(http_parser* parser, const char *at, size_t length)
 {
 	EdHttpCnn *pcnn = (EdHttpCnn*) parser->data;
-	return pcnn->bodyDataCb(parser, at, length);
+	return pcnn->dgbodyDataCb(parser, at, length);
 }
 
 int EdHttpCnn::msg_begin(http_parser* parser)
@@ -219,7 +219,8 @@ int EdHttpCnn::dgHeaderComp(http_parser* parser)
 		mTxTrying = true;
 		mCurCtrl->OnRequest();
 		mTxTrying = false;
-		if(mCurCtrl->mIsFinalResponsed==true)
+		mCurCtrl->checkExpect(); // check Expect header...
+		if(mCurCtrl->mIsFinalResponsed==true || mCurCtrl->mIsContinueResponse == true)
 		{
 			scheduleTransmit();
 		}
@@ -227,13 +228,13 @@ int EdHttpCnn::dgHeaderComp(http_parser* parser)
 	return 0;
 }
 
-int EdHttpCnn::bodyDataCb(http_parser*, const char* at, size_t length)
+int EdHttpCnn::dgbodyDataCb(http_parser* parser, const char* at, size_t length)
 {
 	dbgd("body data len=%d", length);
-	if(mCurCtrl != NULL) {
-
+	if(mCurCtrl != NULL && mCurCtrl->mWriter != NULL) {
+		mCurCtrl->mWriter->writeData(at, length);
 	}
-	return length;
+	return 0;
 }
 
 int EdHttpCnn::dgMsgBeginCb(http_parser* parser)
@@ -415,7 +416,8 @@ int EdHttpCnn::sendCtrlStream(EdHttpController* pctl, int maxlen)
 		}
 		else
 		{
-			retVal = SEND_OK;
+			if(pctl->mIsBodyTxComplete == true) retVal = SEND_OK;
+			else retVal = SEND_PENDING;
 			break;
 		}
 	}

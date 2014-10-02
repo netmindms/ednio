@@ -55,7 +55,7 @@ private:
 	static int on_headers_complete(http_parser *parser);
 	int dgHeaderComp(http_parser *parser);
 	static int body_cb(http_parser*, const char *at, size_t length);
-	int bodyDataCb(http_parser*, const char *at, size_t length);
+	int dgbodyDataCb(http_parser*, const char *at, size_t length);
 	static int msg_begin(http_parser* parser);
 	int dgMsgBeginCb(http_parser* parser);
 	static int msg_end(http_parser*);
@@ -103,6 +103,7 @@ private:
 	EdHttpController* mCurCtrl;
 	EdHttpController* mCurSendCtrl;
 	EdSmartSocket mSock;
+	long mReceivedBodySize;
 
 	bool mTxTrying;
 

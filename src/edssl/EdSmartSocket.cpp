@@ -53,6 +53,7 @@ int EdSmartSocket::socketOpen(int mode)
 
 void EdSmartSocket::OnRead()
 {
+	//dbgd("OnRead...");
 	if (mMode == SOCKET_NORMAL)
 	{
 		if (mOnLis != NULL)
@@ -148,6 +149,7 @@ void EdSmartSocket::changeSSLSockEvent(int err, bool bwrite)
 	else if (err == SSL_ERROR_ZERO_RETURN)
 	{
 		dbgd("ssl error zero return...");
+		mSSLWantEvent = 0;
 	}
 }
 
@@ -161,8 +163,7 @@ int EdSmartSocket::recvPacket(void* buf, int bufsize)
 	}
 	else
 	{
-		int sslrcnt = SSL_pending(mSSL);
-		dbgd("  ssl pending read cnt=%d", sslrcnt);
+		mSSLWantEvent = 0;
 		rret = SSL_read(mSSL, buf, bufsize);
 		dbgd("  ssl read cnt=%d", rret);
 		if (rret < 0)
@@ -327,7 +328,7 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize, bool takebuffer)
 			mPendingSize = bufsize;
 			mPendingWriteCnt = 0;
 		}
-
+		mSSLWantEvent = 0;
 		wret = SSL_write(mSSL, mPendingBuf, mPendingSize);
 		if (wret == bufsize)
 		{
@@ -575,6 +576,7 @@ void EdSmartSocket::procSSLOnWrite()
 	if (mPendingBuf != NULL)
 	{
 		int wret;
+		mSSLWantEvent = 0;
 		wret = SSL_write(mSSL, (u8*) mPendingBuf + mPendingWriteCnt, mPendingSize - mPendingWriteCnt);
 		if (wret > 0)
 		{

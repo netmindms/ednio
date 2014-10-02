@@ -26,6 +26,8 @@
 #include "http/EdHttpServer.h"
 #include "http/EdHttpTask.h"
 #include "http/EdHttpFileReader.h"
+#include "http/EdHttpFileWriter.h"
+
 #include "edssl/EdSSLContext.h"
 #include "edssl/EdSSLSocket.h"
 #include "edssl/EdSmartSocket.h"
@@ -1025,6 +1027,7 @@ void testHttpSever(int mode)
 	class MyHttpTask;
 	class MyController;
 	class FileCtrl;
+	class UpFileCtrl;
 
 	class MyHttpTask: public EdHttpTask
 	{
@@ -1057,11 +1060,12 @@ void testHttpSever(int mode)
 				setDefaultCertMem(crtmem, csize, keymem, ksize);
 				*/
 
-				setDefaultCertFile("/home/netmind/testkey/server.crt", "/home/netmind/testkey/server.key");
-				//setDefaultCertFile("/home/netmind/testkey/netsvr.crt", "/home/netmind/testkey/netsvr.key");
+				//setDefaultCertFile("/home/netmind/testkey/server.crt", "/home/netmind/testkey/server.key");
+				setDefaultCertFile("/home/netmind/testkey/netsvr.crt", "/home/netmind/testkey/netsvr.key");
 
 				regController<MyController>("/userinfo", NULL);
 				regController<FileCtrl>("/getfile", NULL);
+				regController<UpFileCtrl>("/upfile", NULL);
 			}
 			else if(pmsg->msgid == EDM_CLOSE)
 			{
@@ -1140,6 +1144,29 @@ void testHttpSever(int mode)
 			reader.close();
 		}
 
+	};
+
+	class UpFileCtrl: public EdHttpController
+	{
+		EdHttpFileWriter *writer;
+		void OnInit()
+		{
+			writer = NULL;
+		}
+
+		void OnRequest()
+		{
+			logs("upfile request,...");
+			writer = new EdHttpFileWriter;
+			writer->open("/tmp/upfile.dat");
+			setReqBodyWriter(writer);
+		}
+
+		void OnComplete(int result)
+		{
+			logs("upfile complete, result=%d", result);
+			CHECK_DELETE_OBJ(writer);
+		}
 	};
 
 	class HttpTestTask: public TestTask
@@ -1744,7 +1771,7 @@ int main()
 #endif
 
 	EdNioInit();
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < 1; i++)
 	{
 		//testreadclose(i);
 		testHttpSever(i);

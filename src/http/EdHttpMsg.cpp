@@ -9,7 +9,8 @@
 #include <stdexcept>
 #include "EdHttpMsg.h"
 
-namespace edft {
+namespace edft
+{
 
 EdHttpMsg::EdHttpMsg()
 {
@@ -41,10 +42,34 @@ void EdHttpMsg::addHdr(const char* name, const char* val)
 
 const char* EdHttpMsg::getHdr(const char* name)
 {
-	try {
+#if 1
+	const string *ps = getHdrString(name);
+	if(ps !=NULL) {
+		return ps->c_str();
+	} else {
+		return NULL;
+	}
+
+#else
+	try
+	{
 		string &val = mHeaders.at(name);
 		return val.c_str();
-	} catch(out_of_range &exp) {
+	} catch (out_of_range &exp)
+	{
+		return NULL;
+	}
+#endif
+}
+
+const string* EdHttpMsg::getHdrString(const char* name)
+{
+	try
+	{
+		string &val = mHeaders.at(name);
+		return &val;
+	} catch (out_of_range &exp)
+	{
 		return NULL;
 	}
 }
@@ -54,7 +79,8 @@ void EdHttpMsg::encodeRespMsg(string* outbuf)
 	*outbuf += mStatusLine;
 
 	unordered_map<string, string>::iterator it;
-	for(it = mHeaders.begin();it != mHeaders.end(); it++) {
+	for (it = mHeaders.begin(); it != mHeaders.end(); it++)
+	{
 		*outbuf += (it->first + ": " + it->second + "\r\n");
 	}
 
@@ -67,7 +93,6 @@ void EdHttpMsg::free()
 	mStatusLine = "";
 	mUrl = "";
 }
-
 
 const string* EdHttpMsg::getUrl()
 {

@@ -21,7 +21,7 @@ class EdHttpStringWriter : public EdHttpWriter
 public:
 	EdHttpStringWriter();
 	virtual ~EdHttpStringWriter();
-	virtual long Write(void* buf, long len);
+	virtual long writeData(void* buf, long len);
 	string *getString();
 
 private:
