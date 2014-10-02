@@ -5,7 +5,7 @@
  *      Author: netmind
  */
 
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 #define DBGTAG "smsck"
 #include "../edslog.h"
 #include "../EdNio.h"
@@ -29,6 +29,7 @@ EdSmartSocket::EdSmartSocket()
 	mPendingBuf = NULL;
 	mPendingSize = 0;
 	mPendingWriteCnt = 0;
+	mSSLWantEvent = 0;
 }
 
 EdSmartSocket::~EdSmartSocket()
@@ -53,6 +54,7 @@ int EdSmartSocket::socketOpen(int mode)
 
 void EdSmartSocket::OnRead()
 {
+	//dbgd("OnRead...");
 	if (mMode == SOCKET_NORMAL)
 	{
 		if (mOnLis != NULL)
@@ -135,16 +137,19 @@ void EdSmartSocket::changeSSLSockEvent(int err, bool bwrite)
 {
 	if (err == SSL_ERROR_WANT_WRITE)
 	{
+		mSSLWantEvent = EVT_WRITE;
 		changeEvent(EVT_WRITE);
 		dbgd("change write event.......");
 	}
 	else if (err == SSL_ERROR_WANT_READ)
 	{
+		mSSLWantEvent = EVT_READ;
 		changeEvent(EVT_READ);
 		dbgd("change read event.......");
 	}
 	else if (err == SSL_ERROR_ZERO_RETURN)
 	{
+		mSSLWantEvent = 0;
 		dbgd("zero return...");
 	}
 }
@@ -159,6 +164,7 @@ int EdSmartSocket::recvPacket(void* buf, int bufsize)
 	}
 	else
 	{
+		mSSLWantEvent = 0;
 		rret = SSL_read(mSSL, buf, bufsize);
 		if (rret < 0)
 		{
@@ -322,7 +328,7 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize, bool takebuffer)
 			mPendingSize = bufsize;
 			mPendingWriteCnt = 0;
 		}
-
+		mSSLWantEvent = 0;
 		wret = SSL_write(mSSL, mPendingBuf, mPendingSize);
 		if (wret == bufsize)
 		{
@@ -570,6 +576,7 @@ void EdSmartSocket::procSSLOnWrite()
 	if (mPendingBuf != NULL)
 	{
 		int wret;
+		mSSLWantEvent = 0;
 		wret = SSL_write(mSSL, (u8*) mPendingBuf + mPendingWriteCnt, mPendingSize - mPendingWriteCnt);
 		if (wret > 0)
 		{

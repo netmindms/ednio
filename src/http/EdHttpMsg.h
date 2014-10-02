@@ -30,7 +30,7 @@ public:
 	void addHdr(string *hdr, string *val);
 	void addHdr(const char* name, const char* val);
 	const char* getHdr(const char* name);
-
+	const string* getHdrString(const char* name);
 	void encodeRespMsg(string *outbuf);
 
 	void free();

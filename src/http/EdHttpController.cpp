@@ -8,7 +8,7 @@
 #include "../config.h"
 
 #define DBGTAG "htctr"
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 
 #include "../EdType.h"
 #include "../edslog.h"
@@ -19,26 +19,24 @@
 namespace edft
 {
 
+#define CLEAR_ALL_MEMBERS() { 	mWriter = NULL, \
+	mBodyReader = NULL, \
+	mIsFinalResponsed = false, \
+	mIsContinueResponse = false, \
+	mCnn = NULL, \
+	mUserData = NULL, \
+	mTxTrying = false, \
+	mIsBodyTxComplete = false, \
+	memset(mStatusCode, 0, sizeof(mStatusCode)); \
+}
+
 EdHttpController::EdHttpController()
 {
-	mWriter = NULL;
-	mBodyReader = NULL;
-	mIsFinalResponsed = false;
-	mCnn = NULL;
-	mUserData = NULL;
-	mTxTrying = false;
-#if 0
-	mEncStartStream = NULL;
-	mEncHeaderSize = 0;
-	mEncHeaderReadCnt = 0;
-#endif
-	memset(mStatusCode, 0, sizeof(mStatusCode));
-
+	CLEAR_ALL_MEMBERS();
 }
 
 EdHttpController::~EdHttpController()
 {
-	// TODO Auto-generated destructor stub
 }
 
 void EdHttpController::OnRequest()
@@ -75,6 +73,9 @@ void EdHttpController::setHttpResult(const char* code)
 {
 	if (mIsFinalResponsed == false)
 	{
+		if(mBodyReader != NULL) mIsBodyTxComplete = false;
+		else mIsBodyTxComplete = true;
+
 		memcpy(mStatusCode, code, 4);
 		encodeResp();
 		mCnn->reqTx(this);
@@ -117,6 +118,11 @@ const char* EdHttpController::getReqHeader(char* name)
 	return mReqMsg.getHdr(name);
 }
 
+const string* EdHttpController::getReqHeaderString(const char* name)
+{
+	return mReqMsg.getHdrString(name);
+}
+
 void EdHttpController::setUrl(string *url)
 {
 	mReqMsg.setUrl(url);
@@ -150,62 +156,15 @@ void EdHttpController::encodeResp()
 
 	mHeaderEncStr.clear();
 	resp->encodeRespMsg(&mHeaderEncStr);
-#if 1
-#else
-	mEncHeaderReadCnt = 0;
-	mEncHeaderSize = mHeaderEncStr.size();
-	mEncStartStream = (char*) malloc(mHeaderEncStr.size());
-	memcpy(mEncStartStream, mHeaderEncStr.c_str(), mEncHeaderSize);
-#endif
+
 	mIsFinalResponsed = true;
 }
-
-#if 0
-void EdHttpController::sendResp(char* code, void *textbody, int len, char* cont_type)
-{
-#if 1
-	EsHttpTextBody *body = new EsHttpTextBody((char*) textbody, len);
-	setRespBody(body);
-	memcpy(mStatusCode, code, 4);
-	mIsFinalResponsed = true;
-//mCnn->sendResponse(this);
-#else
-	char tmp[100];
-
-// status line
-	string firstline = string("HTTP/1.1 ") + code + " " + es_get_http_desp(code) + "\r\n";
-	mRespMsg.setStatusLine(&firstline);
-
-// Date header
-	es_get_httpDate(tmp);
-	mRespMsg.addHdr(HTTPHDR_DATE, tmp);
-
-	mRespMsg.addHdr(HTTPHDR_SERVER, "ESEV/0.2.0");
-	if(len > 0)
-	{
-		char tmp[100];
-		sprintf(tmp, "%d", len);
-		mRespMsg.addHdr(HTTPHDR_CONTENT_LEN, tmp);
-		mRespMsg.addHdr(HTTPHDR_CONTENT_TYPE, cont_type);
-	}
-
-	string outbuf;
-	mRespMsg.encodeRespMsg(&outbuf);
-	if(len>0)
-	{
-		outbuf.append((char*)textbody, len);
-	}
-	mCnn->send(outbuf.c_str(), outbuf.size());
-#endif
-}
-#endif
 
 void EdHttpController::close()
 {
 	mReqMsg.free();
 	mRespMsg.free();
 
-#if 1
 // clear response packet bufs
 	packet_buf_t pkt;
 	for (; mPacketList.size() > 0;)
@@ -215,13 +174,8 @@ void EdHttpController::close()
 		mPacketList.pop_front();
 	}
 
-#else
-	if(mEncStartStream != NULL)
-	{
-		free(mEncStartStream);
-		mEncStartStream = NULL;
-	}
-#endif
+	CLEAR_ALL_MEMBERS();
+
 }
 
 void EdHttpController::getSendPacket(packet_buf_t* pinfo)
@@ -230,6 +184,16 @@ void EdHttpController::getSendPacket(packet_buf_t* pinfo)
 
 	pinfo->len = 0;
 	pinfo->buf = NULL;
+
+	if(mIsContinueResponse == true) {
+#define CONTINUE_MSG "HTTP/1.1 100 Continue\r\n"
+		pinfo->buf = strdup(CONTINUE_MSG);
+		pinfo->len = strlen(CONTINUE_MSG);
+		mIsContinueResponse = false;
+		dbgd("  get packet for 100 continue...");
+		return;
+	}
+
 
 	if (mHeaderEncStr.size() > 0)
 	{
@@ -256,6 +220,10 @@ void EdHttpController::getSendPacket(packet_buf_t* pinfo)
 			if (rcnt > 0)
 			{
 				pinfo->len += rcnt;
+			}
+			else
+			{
+				mIsBodyTxComplete = true;
 			}
 		}
 	}
@@ -286,6 +254,7 @@ int EdHttpController::getSendPacketData(void* buf, int len)
 
 void EdHttpController::initCtrl(EdHttpCnn* pcnn)
 {
+
 	mCnn = pcnn;
 }
 
@@ -301,6 +270,28 @@ void* EdHttpController::getUserData()
 const string* EdHttpController::getReqUrl()
 {
 	return mReqMsg.getUrl();
+}
+
+
+int EdHttpController::feedBodyData(void* buf, int len)
+{
+	if(mWriter != NULL) {
+		return mWriter->writeData(buf, len);
+	} else {
+		return -1;
+	}
+}
+
+bool EdHttpController::checkExpect()
+{
+	const string *ps = mReqMsg.getHdrString("Expect");
+	if(ps != NULL && !ps->compare("100-continue"))
+	{
+		dbgd("Expect header exists", ps->c_str());
+		mIsContinueResponse = true;
+	}
+
+	return mIsContinueResponse;
 }
 
 } /* namespace edft */

@@ -134,6 +134,7 @@ private:
 	INet* mOnLis;
 	int mMode; // 0: Normal mode, 1: ssl mode
 	void* mPendingBuf; int mPendingWriteCnt; int mPendingSize;
+	int mSSLWantEvent;
 };
 
 } /* namespace edft */

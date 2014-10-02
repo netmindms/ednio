@@ -208,13 +208,13 @@ int EdSocket::openSock(int type)
 int EdSocket::recv(void* buf, int size)
 {
 	int ret = read(mFd, buf, size);
-	mTask->lastSockErrorNo = errno;
 	if (ret == 0)
 	{
+		mTask->lastSockErrorNo = EBADFD;
 		int sockerr;
 		socklen_t socklen = sizeof(sockerr);
 		getsockopt(mFd, SOL_SOCKET, SO_ERROR, &sockerr, &socklen);
-		dbgd("### read error: sock err=%d, bufsize=%d, errno=%d", sockerr, size, mTask->lastSockErrorNo);
+		dbgd("### read error: ret=%d, sock err=%d, bufsize=%d, errno=%d", ret, sockerr, size, errno);
 	}
 
 	return ret;
