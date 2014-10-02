@@ -5,7 +5,7 @@
  *      Author: netmind
  */
 
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 #define DBGTAG "smsck"
 #include "../edslog.h"
 #include "../EdNio.h"
@@ -22,13 +22,13 @@ EdSmartSocket::EdSmartSocket()
 	mSSLCtx = NULL;
 	mSSL = NULL;
 	mSessionConencted = false;
-	//mSSLCallback = NULL;
 	mIsSSLServer = false;
 	mOnLis = NULL;
 	mMode = 0;
 	mPendingBuf = NULL;
 	mPendingSize = 0;
 	mPendingWriteCnt = 0;
+	mSSLWantEvent = 0;
 }
 
 EdSmartSocket::~EdSmartSocket()
@@ -135,17 +135,19 @@ void EdSmartSocket::changeSSLSockEvent(int err, bool bwrite)
 {
 	if (err == SSL_ERROR_WANT_WRITE)
 	{
+		mSSLWantEvent = EVT_WRITE;
 		changeEvent(EVT_WRITE);
-		dbgd("change write event.......");
+		dbgd("ssl want write event.......");
 	}
 	else if (err == SSL_ERROR_WANT_READ)
 	{
+		mSSLWantEvent = EVT_READ;
 		changeEvent(EVT_READ);
-		dbgd("change read event.......");
+		dbgd("ssl want read event.......");
 	}
 	else if (err == SSL_ERROR_ZERO_RETURN)
 	{
-		dbgd("zero return...");
+		dbgd("ssl error zero return...");
 	}
 }
 
@@ -159,7 +161,10 @@ int EdSmartSocket::recvPacket(void* buf, int bufsize)
 	}
 	else
 	{
+		int sslrcnt = SSL_pending(mSSL);
+		dbgd("  ssl pending read cnt=%d", sslrcnt);
 		rret = SSL_read(mSSL, buf, bufsize);
+		dbgd("  ssl read cnt=%d", rret);
 		if (rret < 0)
 		{
 			int err = SSL_get_error(mSSL, rret);

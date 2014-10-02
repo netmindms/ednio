@@ -1747,10 +1747,10 @@ int main()
 	for (int i = 0; i < 2; i++)
 	{
 		//testreadclose(i);
-		//testHttpSever(i);
+		testHttpSever(i);
 		//testsmartsock(i);
 		//testHttpBase(i);
-		testssl(i);
+		//testssl(i);
 //		testMultiTaskInstance(1);
 //		testreservefree(i);
 //		testtimer(i);
