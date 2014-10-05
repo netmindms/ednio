@@ -18,29 +18,34 @@ using namespace std;
 namespace edft
 {
 
-#define REMOVEWSP(LEN,IDX,PTR) {\
+#define HP_REMOVEWS(LEN,IDX,PTR) {\
 	for(;IDX<LEN && *PTR==' ';IDX++,PTR++);\
 	if(IDX>LEN) goto PARSE_END; \
 }
 
-#define GETSYM(LEN,IDX,PTR,D1,SYM,SLEN) {\
-	REMOVEWSP(LEN,IDX,PTR); \
+#define HP_STEP(LEN, IDX, PTR) { \
+	PTR++, IDX++;\
+	if(IDX>LEN) goto PARSE_END; \
+}
+
+#define HP_GETWORD(LEN,IDX,PTR,D1,SYM,SLEN) {\
+	HP_REMOVEWS(LEN,IDX,PTR); \
 	SYM = PTR; \
 	for(;IDX<LEN && *PTR != D1 ;IDX++,PTR++);\
 	SLEN = PTR-SYM;\
 	if(IDX>LEN) goto PARSE_END; \
 }
 
-#define GETSYM2(LEN,IDX,PTR,D1,D2,SYM,SLEN) {\
-	REMOVEWSP(LEN,IDX,PTR); \
+#define HP_GETWORD2(LEN,IDX,PTR,D1,D2,SYM,SLEN) {\
+	HP_REMOVEWS(LEN,IDX,PTR); \
 	SYM = PTR; \
 	for(;IDX<LEN && *PTR != D1 && *PTR != D2  ;IDX++,PTR++);\
 	SLEN = PTR-SYM;\
 	if(IDX>LEN) goto PARSE_END; \
 }
 
-#define GETSYM3(LEN,IDX,PTR,D1,D2,D3,SYM,SLEN) {\
-	REMOVEWSP(LEN,IDX,PTR); \
+#define HP_GETWORD3(LEN,IDX,PTR,D1,D2,D3,SYM,SLEN) {\
+	HP_REMOVEWS(LEN,IDX,PTR); \
 	SYM = PTR; \
 	for(;IDX<LEN && *PTR != D1 && *PTR != D2 && *PTR!=D3 ;IDX++,PTR++);\
 	SLEN = PTR-SYM;\
@@ -49,53 +54,92 @@ namespace edft
 
 EdHttpHdrValue::EdHttpHdrValue()
 {
-	// TODO Auto-generated constructor stub
 
 }
 
 EdHttpHdrValue::~EdHttpHdrValue()
 {
-	// TODO Auto-generated destructor stub
 }
 
-void EdHttpHdrValue::parse(const char* str, int len)
+struct tagval
+{
+	string name;
+	string val;
+};
+
+void EdHttpHdrValue::parseGeneral(const char* str, int len)
 {
 	int idx;
 	const char* ptr;
 	const char* sym;
-	int wn=0;
-	int slen=0;
-	std::string words[100];
-	int mode=0;
-	for(idx=0,ptr=str,mode=0;;)
+	int slen = 0;
+	const char* v1, *v2;
+	int l1, l2;
+
+	for (idx = 0, ptr = str;;)
 	{
-		GETSYM3(len, idx, ptr, ' ', '=',';',sym,slen);
-		if(mode==0)
+		HP_GETWORD2(len, idx, ptr, '=', ';', sym, slen);
+		if (slen == 0)
 		{
-			string s;
-			s.append(sym, slen);
-			dbgd("tag name=%s", s.c_str());
-			GETSYM3(len, idx, ptr, ' ', '=',';', sym,slen);
+			HP_STEP(len, idx, ptr);
+			continue;
+		}
+		v1 = sym, l1 = slen;
+		HP_GETWORD2(len, idx, ptr, '=', ';', sym, slen);
+		if (*ptr == '=')
+		{
+			HP_STEP(len, idx, ptr);
+			HP_GETWORD2(len, idx, ptr, '"', ';', sym, slen);
+			if (*ptr == '"')
+			{
+				HP_STEP(len, idx, ptr);
+				HP_GETWORD(len, idx, ptr, '"', sym, slen);
+
+			}
+			if (slen > 0)
+			{
+				v2 = sym, l2 = slen;
+				OnTag(v1, l1, v2, l2);
+			}
+			HP_STEP(len, idx, ptr);
 		}
 		else
 		{
-
-		}
-
-		REMOVEWSP(len, idx, ptr);
-		if(*ptr == '=') {
-			string s;
-			s.append(sym, slen);
-			dbgd("sym=%s", s.c_str());
-			mode=1;
-
-		} else if(*ptr == ';') {
-			mode=0;
+			OnTag(v1, l1, NULL, 0);
+			HP_STEP(len, idx, ptr);
+			continue;
 		}
 
 	}
-	PARSE_END:
-	return;
+	PARSE_END: return;
 }
+
+void EdHttpHdrValue::OnTag(const char* name, int nlen, const char* val, int vlen)
+{
+
+	//dbgd("name=%s,  val=%s", n.c_str(), v.c_str());
+}
+
+void EdHttpHdrValue::parseDate(const char* str, int len)
+{
+	int idx;
+	int slen;
+	const char* ptr;
+	const char* sym;
+
+	idx = 0, ptr = str, slen=0;
+	for (;;)
+	{
+		HP_GETWORD2(len, idx, ptr, ' ', ',', sym, slen);
+		if (slen > 0)
+			OnTag(sym, slen, NULL, 0);
+		HP_STEP(len, idx, ptr);
+	}
+
+
+	PARSE_END: return;
+}
+
+
 
 } /* namespace edft */

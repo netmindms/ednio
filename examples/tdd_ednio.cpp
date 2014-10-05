@@ -7,10 +7,11 @@
 //============================================================================
 
 #define DBGTAG "main0"
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 
 #include <sys/types.h>
 #include <dirent.h>
+#include <vector>
 
 #include "EdType.h"
 #include "EdNio.h"
@@ -27,6 +28,7 @@
 #include "http/EdHttpTask.h"
 #include "http/EdHttpFileReader.h"
 #include "http/EdHttpFileWriter.h"
+#include "http/EdHdrDate.h"
 
 #include "edssl/EdSSLContext.h"
 #include "edssl/EdSSLSocket.h"
@@ -124,23 +126,24 @@ public:
 // test task
 void testtask(int mode)
 {
-	enum {
-		TS_NORMAL = EDM_USER+1,
+	enum
+	{
+		TS_NORMAL = EDM_USER + 1,
 	};
 	class MainTask: public TestTask
 	{
 		int OnEventProc(EdMsg* pmsg)
 		{
-			if(pmsg->msgid == EDM_INIT)
+			if (pmsg->msgid == EDM_INIT)
 			{
 				addTest(TS_NORMAL);
 				nextTest();
 			}
-			else if(pmsg->msgid == EDM_CLOSE)
+			else if (pmsg->msgid == EDM_CLOSE)
 			{
 
 			}
-			else if(pmsg->msgid == TS_NORMAL)
+			else if (pmsg->msgid == TS_NORMAL)
 			{
 				logs("== Start normal test...");
 				logs("== Normal test ok...\n");
@@ -149,7 +152,6 @@ void testtask(int mode)
 			return 0;
 		}
 	};
-
 
 	logm(">>>> Test: Task, mode=%d", mode);
 	fdcheck_start();
@@ -1022,12 +1024,13 @@ void testHttpSever(int mode)
 
 	enum
 	{
-		TS_NORMAL = EDM_USER + 1, TS_SERVER_END,
+		TS_NORMAL = EDM_USER + 1, TS_SERVER_END, TS_MULTIPART,
 	};
 	class MyHttpTask;
 	class MyController;
 	class FileCtrl;
 	class UpFileCtrl;
+	class MultipartCtrl;
 
 	class MyHttpTask: public EdHttpTask
 	{
@@ -1045,20 +1048,20 @@ void testHttpSever(int mode)
 			{
 				setDefaultCertPassword("ks2662");
 				/*
-				EdFile file;
-				file.openFile("/home/netmind/testkey/netsvr.crt");
-				int csize = file.getSize("/home/netmind/testkey/netsvr.crt");
-				crtmem = malloc(csize);
-				file.readFile(crtmem, csize);
-				file.closeFile();
+				 EdFile file;
+				 file.openFile("/home/netmind/testkey/netsvr.crt");
+				 int csize = file.getSize("/home/netmind/testkey/netsvr.crt");
+				 crtmem = malloc(csize);
+				 file.readFile(crtmem, csize);
+				 file.closeFile();
 
-				file.openFile("/home/netmind/testkey/netsvr.key");
-				int ksize = file.getSize("/home/netmind/testkey/netsvr.key");
-				keymem = malloc(ksize);
-				file.readFile(keymem, ksize);
-				file.closeFile();
-				setDefaultCertMem(crtmem, csize, keymem, ksize);
-				*/
+				 file.openFile("/home/netmind/testkey/netsvr.key");
+				 int ksize = file.getSize("/home/netmind/testkey/netsvr.key");
+				 keymem = malloc(ksize);
+				 file.readFile(keymem, ksize);
+				 file.closeFile();
+				 setDefaultCertMem(crtmem, csize, keymem, ksize);
+				 */
 
 				//setDefaultCertFile("/home/netmind/testkey/server.crt", "/home/netmind/testkey/server.key");
 				setDefaultCertFile("/home/netmind/testkey/netsvr.crt", "/home/netmind/testkey/netsvr.key");
@@ -1066,8 +1069,9 @@ void testHttpSever(int mode)
 				regController<MyController>("/userinfo", NULL);
 				regController<FileCtrl>("/getfile", NULL);
 				regController<UpFileCtrl>("/upfile", NULL);
+				regController<MultipartCtrl>("/multi", NULL);
 			}
-			else if(pmsg->msgid == EDM_CLOSE)
+			else if (pmsg->msgid == EDM_CLOSE)
 			{
 				CHECK_FREE_MEM(crtmem);
 				CHECK_FREE_MEM(keymem);
@@ -1166,6 +1170,18 @@ void testHttpSever(int mode)
 		{
 			logs("upfile complete, result=%d", result);
 			CHECK_DELETE_OBJ(writer);
+		}
+	};
+
+	class MultipartCtrl: public EdHttpController
+	{
+		void OnRequest()
+		{
+			logs("multipart url requested...");
+		}
+		void OnComplete(int result)
+		{
+			logs("multipart curl complete, result=%d", result);
 		}
 	};
 
@@ -1668,52 +1684,60 @@ void testsmartsock(int mode)
 
 void testreadclose(int mode)
 {
-	enum {
-		TS_NORMAL = EDM_USER+1,
+	enum
+	{
+		TS_NORMAL = EDM_USER + 1,
 	};
 	class MainTask: public TestTask, public EdSocket::ISocketCb
 	{
 		EdSocket *sock;
 		int OnEventProc(EdMsg* pmsg)
 		{
-			if(pmsg->msgid == EDM_INIT)
+			if (pmsg->msgid == EDM_INIT)
 			{
 				addTest(TS_NORMAL);
 				nextTest();
 			}
-			else if(pmsg->msgid == EDM_CLOSE)
+			else if (pmsg->msgid == EDM_CLOSE)
 			{
 
 			}
-			else if(pmsg->msgid == TS_NORMAL)
+			else if (pmsg->msgid == TS_NORMAL)
 			{
 				logs("== Start normal test...");
-				sock = new  EdSocket;
+				sock = new EdSocket;
 				sock->setOnListener(this);
 				sock->connect("127.0.0.1", 4040);
 			}
 			return 0;
 		}
 
-		void IOnSocketEvent(EdSocket *psock, int event) {
-			if(event == SOCK_EVENT_READ) {
+		void IOnSocketEvent(EdSocket *psock, int event)
+		{
+			if (event == SOCK_EVENT_READ)
+			{
 				logs("sevt read...");
 				char buf[200];
 				int rcnt = psock->recv(buf, 100);
 				logs("    rcnt = %d", rcnt);
-			} else if(event == SOCK_EVENT_DISCONNECTED) {
+			}
+			else if (event == SOCK_EVENT_DISCONNECTED)
+			{
 				logs("sevt disc...");
 				psock->close();
 				delete psock;
 				nextTest();
-			} else if(event == SOCK_EVENT_CONNECTED) {
+			}
+			else if (event == SOCK_EVENT_CONNECTED)
+			{
 				logs("sevt conn...");
-			} else if(event == SOCK_EVENT_WRITE) {
+			}
+			else if (event == SOCK_EVENT_WRITE)
+			{
 				logs("sevt write...");
 			}
 		}
 	};
-
 
 	logm(">>>> Test: Task, mode=%d", mode);
 	fdcheck_start();
@@ -1725,7 +1749,78 @@ void testreadclose(int mode)
 	logm("<<<< Task test OK\n");
 }
 
+#include <string.h>
 #include "http/http_parser.h"
+//#include "http/multipart_parser.h"
+#include "MultipartParser.h"
+
+void testmultipartapi()
+{
+	class Mp
+	{
+	public:
+		static void onPartBegin(const char *buffer, size_t start, size_t end, void *userData)
+		{
+			printf("onPartBegin\n");
+		}
+
+		static void onHeaderField(const char *buffer, size_t start, size_t end, void *userData)
+		{
+			printf("onHeaderField: (%s)\n", string(buffer + start, end - start).c_str());
+		}
+
+		static void onHeaderValue(const char *buffer, size_t start, size_t end, void *userData)
+		{
+			printf("onHeaderValue: (%s)\n", string(buffer + start, end - start).c_str());
+		}
+
+		static void onPartData(const char *buffer, size_t start, size_t end, void *userData)
+		{
+			printf("onPartData: (%s)\n", string(buffer + start, end - start).c_str());
+		}
+
+		static void onPartEnd(const char *buffer, size_t start, size_t end, void *userData)
+		{
+			printf("onPartEnd\n");
+		}
+
+		static void onEnd(const char *buffer, size_t start, size_t end, void *userData)
+		{
+			printf("onEnd\n");
+		}
+	};
+	MultipartParser parser;
+
+	parser.onPartBegin = Mp::onPartBegin;
+	parser.onHeaderField = Mp::onHeaderField;
+	parser.onHeaderValue = Mp::onHeaderValue;
+	parser.onPartData = Mp::onPartData;
+	parser.onPartEnd = Mp::onPartEnd;
+	parser.onEnd = Mp::onEnd;
+
+	static char testmsg[]="--abcd\r\n"
+							"content-type: text/plain\r\n"
+							"content-disposition: form-data; name=\"field1\"; filename=\"field1\"\r\n"
+							"foo-bar: abc\r\n"
+							"x: y\r\n\r\n"
+							"hello world\r\n\r\n"
+							"x\r\n\r\n"
+							"--abcd--\r\n";
+	int cnt=0;
+	int bufsize = strlen(testmsg);
+	int feedlen;
+	parser.setBoundary("abcd");
+	int rdcnt=0;
+	for(;;) {
+		feedlen = min(bufsize-cnt, 5);
+	   cnt = parser.feed(testmsg+rdcnt, feedlen);
+	   if(cnt == 0)
+		   break;
+	   else
+		   rdcnt += cnt;
+	}
+}
+
 int main()
 {
 

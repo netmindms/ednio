@@ -16,6 +16,8 @@
 #include "EdHttpWriter.h"
 #include "EdHttpReader.h"
 #include "EdHttpType.h"
+#include "EdHttpHdr.h"
+#include "EdMultipartInfo.h"
 
 namespace edft
 {
@@ -37,6 +39,9 @@ public:
 	virtual void OnContentRecvComplete();
 	//virtual void OnContentSendComplete();
 	virtual void OnComplete(int result);
+	virtual void OnNewMultipart(EdMultipartInfo* pinfo);
+	virtual void OnMultipartData(EdMultipartInfo* pinfo);
+
 	void close();
 	void setReqBodyWriter(EdHttpWriter* writer);
 	void setRespBodyReader(EdHttpReader* reader, const char *type);
@@ -51,6 +56,7 @@ protected:
 private:
 	int feedBodyData(void* buf, int len);
 	bool checkExpect();
+	void checkHeaders();
 
 private:
 	void* mUserData;
@@ -61,6 +67,8 @@ private:
 	EdHttpCnn* mCnn;
 	EdHttpMsg mReqMsg;
 	EdHttpMsg mRespMsg;
+	EdHdrContentType* mReqCtype;
+	bool mIsMultipartBody;
 
 	char mStatusCode[4];
 	bool mIsFinalResponsed;
@@ -82,6 +90,7 @@ private:
 	void addReqHeader(string* name, string* val);
 	void setUrl(string *url);
 	void encodeResp();
+	const char* getBoundary();
 
 	void getSendPacket(packet_buf_t* pinfo);
 #if 0

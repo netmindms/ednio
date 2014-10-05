@@ -10,6 +10,7 @@
 #define DBGTAG "htctr"
 #define DBG_LEVEL DBG_DEBUG
 
+#include <string.h>
 #include "../EdType.h"
 #include "../edslog.h"
 #include "EdHttpController.h"
@@ -27,6 +28,7 @@ namespace edft
 	mUserData = NULL, \
 	mTxTrying = false, \
 	mIsBodyTxComplete = false, \
+	mIsMultipartBody = false, \
 	memset(mStatusCode, 0, sizeof(mStatusCode)); \
 }
 
@@ -292,6 +294,41 @@ bool EdHttpController::checkExpect()
 	}
 
 	return mIsContinueResponse;
+}
+
+
+void EdHttpController::checkHeaders()
+{
+	const char *type = mReqMsg.getHdr("Content-Type");
+	if(type!=NULL)
+	{
+		mReqCtype = new EdHdrContentType;
+		mReqCtype->parse(type, strlen(type));
+		if( !memcmp(mReqCtype->getType(), "multipart", sizeof("multipart")-1) ) {
+			mIsMultipartBody = true;
+		}
+	}
+
+
+}
+
+
+const char* EdHttpController::getBoundary()
+{
+	if(mIsMultipartBody==true) {
+		return mReqCtype->getParam("boundary");
+	} else {
+		return NULL;
+	}
+}
+
+
+void EdHttpController::OnNewMultipart(EdMultipartInfo* pinfo)
+{
+}
+
+void EdHttpController::OnMultipartData(EdMultipartInfo* pinfo)
+{
 }
 
 } /* namespace edft */

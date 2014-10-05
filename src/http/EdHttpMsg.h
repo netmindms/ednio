@@ -17,6 +17,7 @@ using namespace std;
 
 namespace edft {
 
+
 class EdHttpMsg
 {
 	friend class EsHttpTrans;

@@ -17,6 +17,7 @@
 #include "../edssl/EdSmartSocket.h"
 #include "http_parser.h"
 #include "EdHttpController.h"
+#include "EdHttpMultipartParser.h"
 
 using namespace std;
 
@@ -49,9 +50,9 @@ public:
 
 private:
 	static int head_field_cb(http_parser*, const char *at, size_t length);
-	int headerNameCb(http_parser*, const char *at, size_t length);
+	int dgHeaderNameCb(http_parser*, const char *at, size_t length);
 	static int head_val_cb(http_parser*, const char *at, size_t length);
-	int headerValCb(http_parser*, const char *at, size_t length);
+	int dgHeaderValCb(http_parser*, const char *at, size_t length);
 	static int on_headers_complete(http_parser *parser);
 	int dgHeaderComp(http_parser *parser);
 	static int body_cb(http_parser*, const char *at, size_t length);
@@ -66,12 +67,17 @@ private:
 	int statusCb(http_parser *parser, const char *at, size_t length);
 	void procHeader();
 	void procReqLine();
+	void checkHeaders();
+
+	// multipart
+
 
 	int initCnn(int fd, u32 handle, EdHttpTask* ptask, int socket_mode);
 	void procRead();
 	void procDisconnectedNeedEnd();
-	int scheduleTransmit();
+	int scheduleTransmitNeedEnd();
 	int sendCtrlStream(EdHttpController* pctl, int maxlen);
+	void initMultipart();
 	void reqTx(EdHttpController* pctl);
 
 	void close();
@@ -104,8 +110,9 @@ private:
 	EdHttpController* mCurSendCtrl;
 	EdSmartSocket mSock;
 	long mReceivedBodySize;
-
 	bool mTxTrying;
+	EdHttpMultipartParser *mMpParser;
+
 
 };
 
