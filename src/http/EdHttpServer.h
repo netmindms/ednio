@@ -26,9 +26,11 @@ public:
 	virtual ~EdHttpServer();
 	//virtual int OnEventProc(EdMsg* pmsg);
 	virtual void IOnSocketEvent(EdSocket *psock, int event);
+	void initCommon();
 
 	template<typename T>	void startService(int num=1)
 	{
+		initCommon();
 		int mode = EdTask::getCurrentTask()->getRunMode();
 		mSvcMutex.lock();
 		for(int i=0;i<num;i++)
@@ -42,6 +44,7 @@ public:
 
 	int open(int port, bool ssl=false);
 	void close();
+
 
 private:
 	EdMutex mSvcMutex;

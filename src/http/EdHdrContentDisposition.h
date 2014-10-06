@@ -28,7 +28,8 @@ public:
 private:
 	string mDesc;
 	string mBoundary;
-
+	string mName;
+	string mFileName;
 };
 
 } /* namespace edft */

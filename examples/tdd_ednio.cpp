@@ -1063,7 +1063,6 @@ void testHttpSever(int mode)
 				 setDefaultCertMem(crtmem, csize, keymem, ksize);
 				 */
 
-				//setDefaultCertFile("/home/netmind/testkey/server.crt", "/home/netmind/testkey/server.key");
 				setDefaultCertFile("/home/netmind/testkey/netsvr.crt", "/home/netmind/testkey/netsvr.key");
 
 				regController<MyController>("/userinfo", NULL);
@@ -1752,8 +1751,9 @@ void testreadclose(int mode)
 #include <string.h>
 #include "http/http_parser.h"
 //#include "http/multipart_parser.h"
-#include "MultipartParser.h"
+//#include "MultipartParser.h"
 
+#if 0
 void testmultipartapi()
 {
 	class Mp
@@ -1820,7 +1820,8 @@ void testmultipartapi()
 		   rdcnt += cnt;
 	}
 }
-
+#endif
+#include <unordered_map>
 int main()
 {
 
@@ -1864,7 +1865,12 @@ int main()
 		}
 	}
 #endif
-
+	int s = sizeof(EdSmartSocket);
+//	s = sizeof(string);
+	s = sizeof(std::unordered_map<int, int>);
+//	s = sizeof(std::list<EdHttpController*>);
+	s = sizeof(http_parser);
+//	s = sizeof(http_parser_settings);
 	EdNioInit();
 	for (int i = 0; i < 1; i++)
 	{

@@ -17,36 +17,36 @@
 #include "../edssl/EdSmartSocket.h"
 #include "http_parser.h"
 #include "EdHttpController.h"
-#include "EdHttpMultipartParser.h"
+#include "MultipartParser.h"
 
 using namespace std;
 
-namespace edft {
+namespace edft
+{
 
-
-enum PARSER_STATUS_E {
-	PS_INIT,
-	PS_FIRST_LINE,
-	PS_HEADER,
-	PS_BODY,
+enum PARSER_STATUS_E
+{
+	PS_INIT, PS_FIRST_LINE, PS_HEADER, PS_BODY,
 };
 
-enum SEND_RESULT_E {
-	HTTP_SEND_FAIL=-1,
-	HTTP_SEND_OK =0,
-	HTTP_SEND_PENDING,
+enum SEND_RESULT_E
+{
+	HTTP_SEND_FAIL = -1, HTTP_SEND_OK = 0, HTTP_SEND_PENDING,
 };
 
 class EdHttpTask;
 
-class EdHttpCnn : public EdObject, public EdSmartSocket::INet
+class EdHttpCnn: public EdObject, public EdSmartSocket::INet
 {
 	friend class EdHttpTask;
 	friend class EdHttpController;
+
 public:
+
 	EdHttpCnn();
 	virtual ~EdHttpCnn();
 	virtual void IOnNet(EdSmartSocket* psock, int event);
+	static void initHttpParser();
 
 private:
 	static int head_field_cb(http_parser*, const char *at, size_t length);
@@ -69,8 +69,21 @@ private:
 	void procReqLine();
 	void checkHeaders();
 
-	// multipart
-
+	// multipart parser
+	static void mpPartBeginCb(const char *buffer, size_t start, size_t end, void *userData);
+	static void mpHeaderFieldCb(const char *buffer, size_t start, size_t end, void *userData);
+	static void mpHeaderValueCb(const char *buffer, size_t start, size_t end, void *userData);
+	static void mpPartDataCb(const char *buffer, size_t start, size_t end, void *userData);
+	static void mpPartEndCb(const char *buffer, size_t start, size_t end, void *userData);
+	static void mpEndCb(const char *buffer, size_t start, size_t end, void *userData);
+	void dgMpPartBeginCb(const char *buffer, size_t start, size_t end);
+	void dgMpHeaderFieldCb(const char *buffer, size_t start, size_t end);
+	void dgMpHeaderValueCb(const char *buffer, size_t start, size_t end);
+	void dgMpPartDataCb(const char *buffer, size_t start, size_t end);
+	void dgMpPartEndCb(const char *buffer, size_t start, size_t end);
+	void dgMpEndCb(const char *buffer, size_t start, size_t end);
+	void initMultipart(const char* boundary);
+	void feedMultipart(const char* buf, int len);
 
 	int initCnn(int fd, u32 handle, EdHttpTask* ptask, int socket_mode);
 	void procRead();
@@ -78,6 +91,7 @@ private:
 	int scheduleTransmitNeedEnd();
 	int sendCtrlStream(EdHttpController* pctl, int maxlen);
 	void initMultipart();
+	void closeMultipart();
 	void reqTx(EdHttpController* pctl);
 
 	void close();
@@ -89,10 +103,12 @@ private:
 	int mBufSize;
 	void *mReadBuf;
 
-	union {
-		struct {
-		u16 _hidx;
-		u16 _rn;
+	union
+	{
+		struct
+		{
+			u16 _hidx;
+			u16 _rn;
 		};
 		u32 mTrhseed;
 	};
@@ -102,7 +118,13 @@ private:
 	PARSER_STATUS_E mPs;
 
 	http_parser mParser;
-	http_parser_settings mParserSettings;
+	//static http_parser_settings mParserSettings;
+
+	// multipart parser variable
+	MultipartParser *mMpParser;
+	string mCurMpHdrName;
+	string mCurMpHdrVal;
+	unordered_map<string, string> mMpHdrList;
 
 	// controller list
 	std::list<EdHttpController*> mCtrlList;
@@ -111,9 +133,6 @@ private:
 	EdSmartSocket mSock;
 	long mReceivedBodySize;
 	bool mTxTrying;
-	EdHttpMultipartParser *mMpParser;
-
-
 };
 
 } // namespace edft

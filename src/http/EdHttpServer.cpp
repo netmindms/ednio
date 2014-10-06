@@ -12,6 +12,7 @@
 
 #include "../edslog.h"
 #include "EdHttpServer.h"
+#include "EdHttpCnn.h"
 
 namespace edft {
 
@@ -73,5 +74,10 @@ void EdHttpServer::close()
 }
 
 
+void EdHttpServer::initCommon()
+{
+	dbgd("init server....");
+	EdHttpCnn::initHttpParser();
+}
 
 }

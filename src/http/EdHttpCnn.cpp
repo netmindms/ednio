@@ -6,7 +6,7 @@
  */
 #include "../config.h"
 
-#define DBGTAG "htcnn"
+#define DBGTAG "HTCNN"
 #define DBG_LEVEL DBG_DEBUG
 
 #include <stack>
@@ -22,6 +22,7 @@
 namespace edft
 {
 
+static http_parser_settings _parserSettings;
 
 EdHttpCnn::EdHttpCnn()
 {
@@ -42,19 +43,20 @@ EdHttpCnn::EdHttpCnn()
 	mCurUrl = NULL;
 	mIsHdrVal = false;
 	mCurHdrName = mCurHdrVal = NULL;
-	memset(&mParserSettings, 0, sizeof(mParserSettings));
-	mParserSettings.on_message_begin = msg_begin;
-	mParserSettings.on_message_complete = msg_end;
-	mParserSettings.on_url = on_url;
-	mParserSettings.on_status = on_status;
-	mParserSettings.on_header_field = head_field_cb;
-	mParserSettings.on_header_value = head_val_cb;
-	mParserSettings.on_headers_complete = on_headers_complete;
-	mParserSettings.on_body = body_cb;
-	memset(&mParser, 0, sizeof(mParser));
 
-	// multipart parser setting
-	mMpParser = NULL;
+	// initialize callbacks just one time because static callback doesn't change.
+//	if (_parserSettings.on_header_field != head_field_cb)
+//	{
+//		_parserSettings.on_message_begin = msg_begin;
+//		_parserSettings.on_message_complete = msg_end;
+//		_parserSettings.on_url = on_url;
+//		_parserSettings.on_status = on_status;
+//		_parserSettings.on_header_field = head_field_cb;
+//		_parserSettings.on_header_value = head_val_cb;
+//		_parserSettings.on_headers_complete = on_headers_complete;
+//		_parserSettings.on_body = body_cb;
+//	}
+	memset(&mParser, 0, sizeof(mParser));
 
 	//mBufSize = 8 * 1024;
 	//mReadBuf = (char*) malloc(mBufSize);
@@ -112,7 +114,7 @@ void EdHttpCnn::procRead()
 	dbgd("proc read cnt=%d", rdcnt);
 	if (rdcnt > 0)
 	{
-		http_parser_execute(&mParser, &mParserSettings, (char*) mReadBuf, rdcnt);
+		http_parser_execute(&mParser, &_parserSettings, (char*) mReadBuf, rdcnt);
 	}
 }
 
@@ -235,7 +237,7 @@ int EdHttpCnn::dgHeaderComp(http_parser* parser)
 int EdHttpCnn::dgbodyDataCb(http_parser* parser, const char* at, size_t length)
 {
 	dbgd("body data len=%d", length);
-	if(mCurCtrl == NULL)
+	if (mCurCtrl == NULL)
 		return 0;
 
 	if (mCurCtrl->mIsMultipartBody == false)
@@ -279,6 +281,7 @@ int EdHttpCnn::dgMsgEndCb(http_parser* parser)
 	}
 	CHECK_DELETE_OBJ(mCurHdrName);
 	CHECK_DELETE_OBJ(mCurHdrVal);
+	closeMultipart();
 	return 0;
 }
 
@@ -356,7 +359,8 @@ int EdHttpCnn::scheduleTransmitNeedEnd()
 			mCurSendCtrl->OnComplete(0);
 			mCurSendCtrl->close();
 			mTask->freeController(mCurSendCtrl);
-			if(mCurSendCtrl == mCurCtrl) {
+			if (mCurSendCtrl == mCurCtrl)
+			{
 				mCurCtrl = NULL;
 			}
 			mCurSendCtrl = NULL;
@@ -473,20 +477,150 @@ void EdHttpCnn::reqTx(EdHttpController* pctl)
 	}
 }
 
-void EdHttpCnn::initMultipart()
-{
-
-}
-
 void EdHttpCnn::checkHeaders()
 {
 	mCurCtrl->checkHeaders();
-	if(mCurCtrl->mIsMultipartBody == true)
+	if (mCurCtrl->mIsMultipartBody == true)
 	{
 		dbgd("mutlipart parser init, boundary=%s", mCurCtrl->getBoundary());
-		mMpParser = new EdHttpMultipartParser;
-		mMpParser->init(mCurCtrl->getBoundary());
+		initMultipart(mCurCtrl->getBoundary());
+
 	}
+}
+
+// multipart parser
+//
+void EdHttpCnn::mpPartBeginCb(const char *buffer, size_t start, size_t end, void *userData)
+{
+	EdHttpCnn *dg = (EdHttpCnn*) userData;
+	dg->dgMpPartBeginCb(buffer, start, end);
+}
+
+void EdHttpCnn::mpHeaderFieldCb(const char *buffer, size_t start, size_t end, void *userData)
+{
+	EdHttpCnn *dg = (EdHttpCnn*) userData;
+	dg->dgMpHeaderFieldCb(buffer, start, end);
+
+}
+
+void EdHttpCnn::mpHeaderValueCb(const char *buffer, size_t start, size_t end, void *userData)
+{
+	EdHttpCnn *dg = (EdHttpCnn*) userData;
+	dg->dgMpHeaderValueCb(buffer, start, end);
+}
+
+void EdHttpCnn::mpPartDataCb(const char *buffer, size_t start, size_t end, void *userData)
+{
+	EdHttpCnn *dg = (EdHttpCnn*) userData;
+	dg->dgMpPartDataCb(buffer, start, end);
+}
+
+void EdHttpCnn::mpPartEndCb(const char *buffer, size_t start, size_t end, void *userData)
+{
+	EdHttpCnn *dg = (EdHttpCnn*) userData;
+	dg->dgMpPartEndCb(buffer, start, end);
+}
+
+void EdHttpCnn::mpEndCb(const char *buffer, size_t start, size_t end, void *userData)
+{
+	EdHttpCnn* mp = (EdHttpCnn*) userData;
+	mp->dgMpEndCb(buffer, start, end);
+
+}
+
+void EdHttpCnn::dgMpPartBeginCb(const char* buffer, size_t start, size_t end)
+{
+	dbgd("part begin...");
+}
+
+void EdHttpCnn::dgMpHeaderFieldCb(const char* buffer, size_t start, size_t end)
+{
+	//dbgd("hdr filed cb, slice=%s", string(buffer+start, end-start).c_str());
+	if (mCurMpHdrVal.size() != 0)
+	{
+		dbgd("part header complete, name=%s, val=%s", mCurMpHdrName.c_str(), mCurMpHdrVal.c_str());
+		mMpHdrList[mCurMpHdrName] = mCurMpHdrVal;
+		mCurMpHdrName.clear();
+		mCurMpHdrVal.clear();
+	}
+
+	mCurMpHdrName.append(buffer + start, end - start);
+	//dbgd("onHeaderField: (%s)\n", string(buffer + start, end - start).c_str());
+}
+
+void EdHttpCnn::dgMpHeaderValueCb(const char* buffer, size_t start, size_t end)
+{
+
+	dbgd("hdr val cb, hdr slice=%s", string(buffer + start, end - start).c_str());
+	mCurMpHdrVal.append(buffer + start, end - start);
+
+}
+
+void EdHttpCnn::dgMpPartDataCb(const char* buffer, size_t start, size_t end)
+{
+	dbgd("part data cb...");
+	if (mCurMpHdrName.size() > 0)
+	{
+		dbgd("last header complete, name=%s, val=%s", mCurMpHdrName.c_str(), mCurMpHdrVal.c_str());
+		mMpHdrList[mCurMpHdrName] = mCurMpHdrVal;
+		mCurMpHdrName.clear();
+		mCurMpHdrVal.clear();
+	}
+}
+
+void EdHttpCnn::dgMpPartEndCb(const char* buffer, size_t start, size_t end)
+{
+	dbgd("part end cb...");
+}
+
+void EdHttpCnn::dgMpEndCb(const char* buffer, size_t start, size_t end)
+{
+	dbgd("end cb...");
+	mCurMpHdrVal.clear();
+	mCurMpHdrName.clear();
+}
+
+void EdHttpCnn::initMultipart(const char* boundary)
+{
+	dbgd("multi part parser init, size=%d, cnn size=%d", sizeof(MultipartParser), sizeof(EdHttpCnn));
+	mMpParser = new MultipartParser;
+	// set callback
+	mMpParser->onPartBegin = mpPartBeginCb;
+	mMpParser->onHeaderField = mpHeaderFieldCb;
+	mMpParser->onHeaderValue = mpHeaderValueCb;
+	mMpParser->onPartData = mpPartDataCb;
+	mMpParser->onPartEnd = mpPartEndCb;
+	mMpParser->onEnd = mpEndCb;
+
+	mMpParser->setBoundary(boundary);
+	mMpParser->userData = (void*) this;
+	mCurMpHdrName.clear();
+	mCurMpHdrVal.clear();
+}
+
+void EdHttpCnn::closeMultipart()
+{
+	dbgd("multi part parser close ...");
+	if (mMpParser != NULL)
+	{
+		delete mMpParser;
+		mMpParser = NULL;
+		mCurMpHdrName.clear();
+		mCurMpHdrVal.clear();
+	}
+}
+
+void EdHttpCnn::initHttpParser()
+{
+	// initialize callbacks just one time because static callback doesn't change.
+	_parserSettings.on_message_begin = msg_begin;
+	_parserSettings.on_message_complete = msg_end;
+	_parserSettings.on_url = on_url;
+	_parserSettings.on_status = on_status;
+	_parserSettings.on_header_field = head_field_cb;
+	_parserSettings.on_header_value = head_val_cb;
+	_parserSettings.on_headers_complete = on_headers_complete;
+	_parserSettings.on_body = body_cb;
 }
 
 } // namespace edft
