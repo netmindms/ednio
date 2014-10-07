@@ -22,6 +22,7 @@ public:
 	EdHttpStringWriter();
 	virtual ~EdHttpStringWriter();
 	virtual long writeData(const void* buf, long len);
+	virtual void close();
 	long getWriteCount(); // interface implement
 
 	string *getString();

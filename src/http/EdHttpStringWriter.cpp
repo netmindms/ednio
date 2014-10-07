@@ -37,4 +37,9 @@ long edft::EdHttpStringWriter::getWriteCount()
 	return mString.size();
 }
 
+
+void edft::EdHttpStringWriter::close()
+{
+}
+
 } /* namespace edft */

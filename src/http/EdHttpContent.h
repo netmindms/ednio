@@ -31,17 +31,17 @@ class EdHttpContent
 public:
 	EdHttpContent(bool multi);
 	virtual ~EdHttpContent();
-//	const char* getName();
-//	const char* getFilename();
 	string *getName();
 	string* getFileName();
 
-	void setUser(void *obj);
-	void setUser(uint64_t ldata);
-	void setUser(uint32_t wdata);
-	void* getUserObj();
-	uint64_t getUserLong();
-	uint32_t getUserInt();
+//	void setUser(void *obj);
+//	void setUser(uint64_t ldata);
+//	void setUser(uint32_t wdata);
+//	void* getUserObj();
+//	uint64_t getUserLong();
+//	uint32_t getUserInt();
+	void setWriter(EdHttpWriter* wr);
+	EdHttpWriter *writer;
 
 private:
 	//void addHdr(const char* name, int len);
@@ -50,12 +50,13 @@ private:
 	void lookup();
 
 private:
-	union
-	{
-		uint32_t uwdata;
-		uint64_t uldata;
-		void* uobj;
-	};
+//	union
+//	{
+//		uint32_t uwdata;
+//		uint64_t uldata;
+//		void* uobj;
+//	};
+
 	bool mIsMultipart;
 	EdObjList<_hdr_t> mHdrList;
 	EdHdrContentDisposition* mCDisp;

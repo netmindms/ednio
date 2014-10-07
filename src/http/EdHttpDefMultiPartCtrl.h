@@ -24,7 +24,7 @@ public:
 	virtual ~EdHttpDefMultiPartCtrl();
 	void OnDataNew(EdHttpContent* pctt);
 	void OnDataContinue(EdHttpContent* pctt, const void* buf, int len);
-	void OnDataRecvComplete(EdHttpContent* pctt);
+	void OnDataRecvComplete(EdHttpContent *pct);
 
 	void setFileFolder(const char* path);
 	string* getData(const char* name);
@@ -32,7 +32,6 @@ public:
 
 private:
 	typedef struct {
-		//string name;
 		string fileName;
 		EdHttpWriter *writer;
 	} _cinfo_t;

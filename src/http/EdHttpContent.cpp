@@ -12,11 +12,10 @@ namespace edft
 
 EdHttpContent::EdHttpContent(bool multi)
 {
-	//mName = NULL;
-	//mFilename = NULL;
 	mIsMultipart = multi;
 	mCDisp = NULL;
-	uobj = NULL;
+//	uobj = NULL;
+	writer = NULL;
 }
 
 EdHttpContent::~EdHttpContent()
@@ -29,6 +28,8 @@ EdHttpContent::~EdHttpContent()
 			break;
 		mHdrList.freeObj(ph);
 	}
+
+	CHECK_DELETE_OBJ(mCDisp);
 }
 
 string* EdHttpContent::getName()
@@ -73,7 +74,7 @@ bool EdHttpContent::isValidMp()
 		return false;
 }
 
-
+#if 0
 void EdHttpContent::setUser(void* obj)
 {
 	uobj = obj;
@@ -102,6 +103,12 @@ uint64_t EdHttpContent::getUserLong()
 uint32_t EdHttpContent::getUserInt()
 {
 	return uwdata;
+}
+#endif
+
+void EdHttpContent::setWriter(EdHttpWriter* wr)
+{
+	writer = wr;
 }
 
 } /* namespace edft */

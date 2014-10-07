@@ -78,6 +78,7 @@ int get_num_fds()
 	DIR *dir = opendir(buf);
 	while ((dp = readdir(dir)) != NULL)
 	{
+		//if(!(dp->d_type & DT_DIR))	logs("file = %s", dp->d_name);
 		fd_count++;
 	}
 	closedir(dir);
@@ -1037,8 +1038,6 @@ void testHttpSever(int mode)
 	{
 		EdHttpStringWriter *mWriter;
 		EdHttpStringReader *mReader;
-		void *crtmem;
-		void *keymem;
 
 	public:
 
@@ -1047,6 +1046,7 @@ void testHttpSever(int mode)
 			int ret = EdHttpTask::OnEventProc(pmsg);
 			if (pmsg->msgid == EDM_INIT)
 			{
+
 				setDefaultCertPassword("ks2662");
 				/*
 				 EdFile file;
@@ -1073,8 +1073,6 @@ void testHttpSever(int mode)
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
-				CHECK_FREE_MEM(crtmem);
-				CHECK_FREE_MEM(keymem);
 			}
 			return ret;
 		}
@@ -1134,7 +1132,7 @@ void testHttpSever(int mode)
 			logs("file ctrl on init...");
 		}
 		;
-		virtual void OnRequest()
+		virtual void OnRequestHeader()
 		{
 			reader.open("/home/netmind/bb");
 			setRespBodyReader(&reader, "application/zip");
@@ -1158,7 +1156,7 @@ void testHttpSever(int mode)
 			writer = NULL;
 		}
 
-		void OnRequest()
+		void OnRequestHeader()
 		{
 			logs("upfile request,...");
 			writer = new EdHttpFileWriter;
@@ -1176,8 +1174,12 @@ void testHttpSever(int mode)
 	class MultipartCtrl: public EdHttpDefMultiPartCtrl
 	{
 		EdHttpStringReader reader;
+		void OnRequestHeader() {
+			setFileFolder("/tmp");
+		}
 		void OnRequestMsg() {
 			logs("on multipart request msg, ");
+
 			string *info = getData("info");
 			if(info != NULL) {
 				logs("info = %s", info->c_str());
@@ -1186,6 +1188,7 @@ void testHttpSever(int mode)
 				setHttpResult("200");
 			} else {
 				logs("### Fail: not found info value ... ");
+				setHttpResult("400");
 			}
 		}
 	};

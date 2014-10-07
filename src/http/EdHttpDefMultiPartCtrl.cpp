@@ -26,6 +26,7 @@ EdHttpDefMultiPartCtrl::~EdHttpDefMultiPartCtrl()
 {
 	for(auto itr = mCttList.begin() ; itr != mCttList.end();itr++)
 	{
+		delete itr->second->writer;
 		delete (itr->second);
 	}
 }
@@ -33,36 +34,31 @@ EdHttpDefMultiPartCtrl::~EdHttpDefMultiPartCtrl()
 void EdHttpDefMultiPartCtrl::OnDataNew(EdHttpContent* pctt)
 {
 	_cinfo_t *pc = new _cinfo_t;
-	//pc->name = *(pctt->getName());
 	pc->fileName = *(pctt->getFileName());
-
-	EdHttpWriter *wr;
 	if (pc->fileName.size() > 0 && mFolder.size() > 0)
 	{
 		EdHttpFileWriter *fwr = new EdHttpFileWriter;
 		fwr->open(string(mFolder + "/" + pc->fileName).c_str());
-		wr = fwr;
+		pc->writer = fwr;
+		pctt->setWriter(fwr);
 	}
 	else
 	{
-		wr = new EdHttpStringWriter;
+		pc->writer = new EdHttpStringWriter;
+		pctt->setWriter(pc->writer);
 	}
-	pc->writer = wr;
-	pctt->setUser(pc);
+	//pctt->setUser(pc);
 	mCttList[*pctt->getName()] = pc; // TODO: duplicate check
 }
 
 void EdHttpDefMultiPartCtrl::OnDataContinue(EdHttpContent* pctt, const void* buf, int len)
 {
-	_cinfo_t* pc = (_cinfo_t*) pctt->getUserObj();
-	pc->writer->writeData(buf, len);
+	pctt->writer->writeData(buf, len);
 }
 
-void EdHttpDefMultiPartCtrl::OnDataRecvComplete(EdHttpContent* pctt)
+void EdHttpDefMultiPartCtrl::OnDataRecvComplete(EdHttpContent* pct)
 {
-//	_cinfo_t *pc = pctt->getUserObj();
-//	delete pc->writer;
-//	delete pc;
+	pct->writer->close();
 }
 
 void EdHttpDefMultiPartCtrl::setFileFolder(const char* path)
@@ -97,5 +93,8 @@ string* EdHttpDefMultiPartCtrl::getFile(const char* name, long* plen)
 		return NULL;
 	}
 }
+
+
+
 
 } /* namespace edft */

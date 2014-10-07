@@ -20,9 +20,9 @@ public:
 	EdHttpFileWriter();
 	virtual ~EdHttpFileWriter();
 	int open(const char* path);
-	long writeData(const void *buf, long len);
-	long getWriteCount();
-	void close();
+	virtual long writeData(const void *buf, long len);
+	virtual long getWriteCount();
+	virtual void close();
 private:
 	EdFile mFile;
 	long mWriteCnt;

@@ -29,6 +29,7 @@ namespace edft
 	mTxTrying = false, \
 	mIsBodyTxComplete = false, \
 	mIsMultipartBody = false, \
+	mReqCtype = NULL, \
 	memset(mStatusCode, 0, sizeof(mStatusCode)); \
 }
 
@@ -39,6 +40,8 @@ EdHttpController::EdHttpController()
 
 EdHttpController::~EdHttpController()
 {
+	dbgd("dest http ctrl,...ctype=%x", mReqCtype);
+	CHECK_DELETE_OBJ(mReqCtype);
 }
 
 void EdHttpController::OnRequestHeader()
@@ -156,6 +159,11 @@ void EdHttpController::encodeResp()
 	resp->addHdr(HTTPHDR_DATE, tmp);
 	resp->addHdr(HTTPHDR_SERVER, "ESEV/0.2.0");
 
+	if(mBodyReader == NULL)
+	{
+		resp->addHdr(HTTPHDR_CONTENT_LEN, "0");
+	}
+
 	mHeaderEncStr.clear();
 	resp->encodeRespMsg(&mHeaderEncStr);
 
@@ -188,7 +196,7 @@ void EdHttpController::getSendPacket(packet_buf_t* pinfo)
 	pinfo->buf = NULL;
 
 	if(mIsContinueResponse == true) {
-#define CONTINUE_MSG "HTTP/1.1 100 Continue\r\n"
+#define CONTINUE_MSG "HTTP/1.1 100 Continue\r\n\r\n"
 		pinfo->buf = strdup(CONTINUE_MSG);
 		pinfo->len = strlen(CONTINUE_MSG);
 		mIsContinueResponse = false;
@@ -303,6 +311,7 @@ void EdHttpController::checkHeaders()
 	if(type!=NULL)
 	{
 		mReqCtype = new EdHdrContentType;
+		dbgd("new ctype=%x", mReqCtype);
 		mReqCtype->parse(type, strlen(type));
 		if( !memcmp(mReqCtype->getType(), "multipart", sizeof("multipart")-1) ) {
 			mIsMultipartBody = true;
