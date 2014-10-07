@@ -41,7 +41,7 @@ EdHttpController::~EdHttpController()
 {
 }
 
-void EdHttpController::OnRequest()
+void EdHttpController::OnRequestHeader()
 {
 }
 
@@ -331,4 +331,22 @@ void EdHttpController::OnMultipartData(EdMultipartInfo* pinfo)
 {
 }
 
+
+void EdHttpController::OnDataNew(EdHttpContent* pct)
+{
+}
+
+void EdHttpController::OnDataContinue(EdHttpContent* pct, const void* buf, int len)
+{
+}
+
+void EdHttpController::OnDataRecvComplete(EdHttpContent* pct)
+{
+}
+
+void EdHttpController::OnRequestMsg()
+{
+}
+
 } /* namespace edft */
+

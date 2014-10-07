@@ -21,11 +21,14 @@ class EdHttpStringWriter : public EdHttpWriter
 public:
 	EdHttpStringWriter();
 	virtual ~EdHttpStringWriter();
-	virtual long writeData(void* buf, long len);
+	virtual long writeData(const void* buf, long len);
+	long getWriteCount(); // interface implement
+
 	string *getString();
 
 private:
 	std::string mString;
+
 };
 
 } /* namespace edft */

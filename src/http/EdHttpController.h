@@ -18,6 +18,7 @@
 #include "EdHttpType.h"
 #include "EdHttpHdr.h"
 #include "EdMultipartInfo.h"
+#include "EdHttpContent.h"
 
 namespace edft
 {
@@ -35,12 +36,16 @@ public:
 	EdHttpController();
 	virtual ~EdHttpController();
 	virtual void OnInit();
-	virtual void OnRequest();
+	virtual void OnRequestHeader();
 	virtual void OnContentRecvComplete();
 	//virtual void OnContentSendComplete();
 	virtual void OnComplete(int result);
 	virtual void OnNewMultipart(EdMultipartInfo* pinfo);
 	virtual void OnMultipartData(EdMultipartInfo* pinfo);
+	virtual void OnDataNew(EdHttpContent *pct);
+	virtual void OnDataContinue(EdHttpContent *pct, const void *buf, int len);
+	virtual void OnDataRecvComplete(EdHttpContent *pct);
+	virtual void OnRequestMsg();
 
 	void close();
 	void setReqBodyWriter(EdHttpWriter* writer);

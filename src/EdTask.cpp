@@ -43,6 +43,7 @@ EdTask::EdTask(int nmsgq)
 	memset(&mCtx, 0, sizeof(mCtx));
 #if USE_LIBEVENT
 	mLibMsgEvent = NULL;
+	mFreeEvent = NULL;
 #endif
 	mEdMsgEvt = NULL;
 	mMsgFd = -1;

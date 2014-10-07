@@ -15,6 +15,7 @@ class EdHttpWriter
 {
 public:
 	virtual long writeData(const void *buf, long len)=0;
+	virtual long getWriteCount()=0;
 };
 
 } /* namespace edft */

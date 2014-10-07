@@ -19,7 +19,7 @@ class EdNotFoundHttpController: public EdHttpController
 public:
 	EdNotFoundHttpController();
 	virtual ~EdNotFoundHttpController();
-	void OnRequest();
+	void OnRequestHeader();
 private:
 	EdHttpStringReader mReader;
 };

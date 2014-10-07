@@ -24,10 +24,11 @@ public:
 	void parse(const char* str, int len);
 	void OnTag(const char *tname, int nlen, const char* tval, int vlen);
 	const char* getBoundary();
+	string *getName();
+	string *getFileName();
 
 private:
 	string mDesc;
-	string mBoundary;
 	string mName;
 	string mFileName;
 };

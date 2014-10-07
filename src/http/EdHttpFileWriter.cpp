@@ -12,7 +12,7 @@ namespace edft
 
 EdHttpFileWriter::EdHttpFileWriter()
 {
-
+	mWriteCnt = 0;
 }
 
 EdHttpFileWriter::~EdHttpFileWriter()
@@ -26,12 +26,21 @@ int EdHttpFileWriter::open(const char* path)
 
 long EdHttpFileWriter::writeData(const void* buf, long len)
 {
+	mWriteCnt += len;
 	return mFile.writeFile(buf, len);
+}
+
+long edft::EdHttpFileWriter::getWriteCount()
+{
+	return mWriteCnt;
 }
 
 void EdHttpFileWriter::close()
 {
 	mFile.closeFile();
 }
+
+
+
 
 } /* namespace edft */

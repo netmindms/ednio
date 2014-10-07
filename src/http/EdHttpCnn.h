@@ -26,7 +26,7 @@ namespace edft
 
 enum PARSER_STATUS_E
 {
-	PS_INIT, PS_FIRST_LINE, PS_HEADER, PS_BODY,
+	PS_INIT, PS_FIRST_LINE, PS_HEADER, PS_BODY, PS_MP_HEADER, PS_MP_DATA,
 };
 
 enum SEND_RESULT_E
@@ -130,6 +130,7 @@ private:
 	std::list<EdHttpController*> mCtrlList;
 	EdHttpController* mCurCtrl;
 	EdHttpController* mCurSendCtrl;
+	EdHttpContent* mCurContent;
 	EdSmartSocket mSock;
 	long mReceivedBodySize;
 	bool mTxTrying;

@@ -18,31 +18,48 @@ using namespace std;
 namespace edft
 {
 
-
-typedef struct {
+typedef struct
+{
 	string name;
 	string val;
 } _hdr_t;
 
 class EdHttpContent
 {
+	friend class EdHttpCnn;
+
 public:
 	EdHttpContent(bool multi);
 	virtual ~EdHttpContent();
-	const char* getName();
-	const char* getFilename();
+//	const char* getName();
+//	const char* getFilename();
+	string *getName();
+	string* getFileName();
+
+	void setUser(void *obj);
+	void setUser(uint64_t ldata);
+	void setUser(uint32_t wdata);
+	void* getUserObj();
+	uint64_t getUserLong();
+	uint32_t getUserInt();
+
 private:
 	//void addHdr(const char* name, int len);
 	void addHdr(string *name, string *val);
+	bool isValidMp();
 	void lookup();
 
 private:
-	char* mName;
-	char* mFilename;
+	union
+	{
+		uint32_t uwdata;
+		uint64_t uldata;
+		void* uobj;
+	};
 	bool mIsMultipart;
 	EdObjList<_hdr_t> mHdrList;
-	EdHttpWriter* mWriter;
 	EdHdrContentDisposition* mCDisp;
+
 };
 
 } /* namespace edft */

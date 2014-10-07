@@ -29,6 +29,7 @@
 #include "http/EdHttpFileReader.h"
 #include "http/EdHttpFileWriter.h"
 #include "http/EdHdrDate.h"
+#include "http/EdHttpDefMultiPartCtrl.h"
 
 #include "edssl/EdSSLContext.h"
 #include "edssl/EdSSLSocket.h"
@@ -1092,7 +1093,7 @@ void testHttpSever(int mode)
 			mMyTask = (MyHttpTask*) EdTask::getCurrentTask();
 			logs("mycont const.....");
 		}
-		virtual void OnRequest()
+		virtual void OnRequestHeader()
 		{
 			logs("after 100msec, send response...");
 			mTimer.setOnListener(this);
@@ -1172,15 +1173,20 @@ void testHttpSever(int mode)
 		}
 	};
 
-	class MultipartCtrl: public EdHttpController
+	class MultipartCtrl: public EdHttpDefMultiPartCtrl
 	{
-		void OnRequest()
-		{
-			logs("multipart url requested...");
-		}
-		void OnComplete(int result)
-		{
-			logs("multipart curl complete, result=%d", result);
+		EdHttpStringReader reader;
+		void OnRequestMsg() {
+			logs("on multipart request msg, ");
+			string *info = getData("info");
+			if(info != NULL) {
+				logs("info = %s", info->c_str());
+				reader.setString("info received...\r\n");
+				setRespBodyReader(&reader, "text/plain");
+				setHttpResult("200");
+			} else {
+				logs("### Fail: not found info value ... ");
+			}
 		}
 	};
 
@@ -1865,6 +1871,7 @@ int main()
 		}
 	}
 #endif
+
 	int s = sizeof(EdSmartSocket);
 //	s = sizeof(string);
 	s = sizeof(std::unordered_map<int, int>);

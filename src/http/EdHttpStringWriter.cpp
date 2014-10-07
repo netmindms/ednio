@@ -20,7 +20,7 @@ EdHttpStringWriter::~EdHttpStringWriter()
 
 }
 
-long EdHttpStringWriter::writeData(void* buf, long len)
+long EdHttpStringWriter::writeData(const void* buf, long len)
 {
 	mString.append((char*)buf, len);
 	return len;
@@ -29,6 +29,12 @@ long EdHttpStringWriter::writeData(void* buf, long len)
 string* EdHttpStringWriter::getString()
 {
 	return &mString;
+}
+
+
+long edft::EdHttpStringWriter::getWriteCount()
+{
+	return mString.size();
 }
 
 } /* namespace edft */

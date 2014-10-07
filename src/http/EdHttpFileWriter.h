@@ -21,9 +21,11 @@ public:
 	virtual ~EdHttpFileWriter();
 	int open(const char* path);
 	long writeData(const void *buf, long len);
+	long getWriteCount();
 	void close();
 private:
 	EdFile mFile;
+	long mWriteCnt;
 };
 
 } /* namespace edft */

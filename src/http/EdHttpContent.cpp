@@ -12,11 +12,11 @@ namespace edft
 
 EdHttpContent::EdHttpContent(bool multi)
 {
-	mName = NULL;
-	mFilename = NULL;
+	//mName = NULL;
+	//mFilename = NULL;
 	mIsMultipart = multi;
-	mWriter = NULL;
 	mCDisp = NULL;
+	uobj = NULL;
 }
 
 EdHttpContent::~EdHttpContent()
@@ -31,15 +31,16 @@ EdHttpContent::~EdHttpContent()
 	}
 }
 
-const char* EdHttpContent::getName()
+string* EdHttpContent::getName()
 {
-	return mName;
+	return mCDisp->getName();
 }
 
-const char* EdHttpContent::getFilename()
+string* EdHttpContent::getFileName()
 {
-	return mFilename;
+	return mCDisp->getFileName();
 }
+
 
 void EdHttpContent::addHdr(string *pname, string *pval)
 {
@@ -47,12 +48,12 @@ void EdHttpContent::addHdr(string *pname, string *pval)
 	ph->name = *pname;
 	ph->val = *pval;
 	mHdrList.push_back(ph);
-	if(mCDisp==NULL && strcasecmp(pname->c_str(), "Content-Disposition") ) {
+	if(mCDisp==NULL && !strcasecmp(pname->c_str(), "Content-Disposition") ) {
 		mCDisp = new EdHdrContentDisposition;
 		mCDisp->parse(pval->c_str(), pval->size());
-
 	}
 }
+
 
 void EdHttpContent::lookup()
 {
@@ -61,6 +62,46 @@ void EdHttpContent::lookup()
 	{
 		ph = mHdrList.next(ph);
 	}
+}
+
+
+bool EdHttpContent::isValidMp()
+{
+	if(mCDisp && mCDisp->getName() != NULL)
+		return true;
+	else
+		return false;
+}
+
+
+void EdHttpContent::setUser(void* obj)
+{
+	uobj = obj;
+}
+
+void EdHttpContent::setUser(uint64_t ldata)
+{
+	uldata = ldata;
+}
+
+void EdHttpContent::setUser(uint32_t wdata)
+{
+	uwdata = wdata;
+}
+
+void* EdHttpContent::getUserObj()
+{
+	return uobj;
+}
+
+uint64_t EdHttpContent::getUserLong()
+{
+	return uldata;
+}
+
+uint32_t EdHttpContent::getUserInt()
+{
+	return uwdata;
 }
 
 } /* namespace edft */

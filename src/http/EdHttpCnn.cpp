@@ -43,19 +43,7 @@ EdHttpCnn::EdHttpCnn()
 	mCurUrl = NULL;
 	mIsHdrVal = false;
 	mCurHdrName = mCurHdrVal = NULL;
-
-	// initialize callbacks just one time because static callback doesn't change.
-//	if (_parserSettings.on_header_field != head_field_cb)
-//	{
-//		_parserSettings.on_message_begin = msg_begin;
-//		_parserSettings.on_message_complete = msg_end;
-//		_parserSettings.on_url = on_url;
-//		_parserSettings.on_status = on_status;
-//		_parserSettings.on_header_field = head_field_cb;
-//		_parserSettings.on_header_value = head_val_cb;
-//		_parserSettings.on_headers_complete = on_headers_complete;
-//		_parserSettings.on_body = body_cb;
-//	}
+	mCurContent = NULL;
 	memset(&mParser, 0, sizeof(mParser));
 
 	//mBufSize = 8 * 1024;
@@ -223,7 +211,7 @@ int EdHttpCnn::dgHeaderComp(http_parser* parser)
 	{
 		checkHeaders();
 		mTxTrying = true;
-		mCurCtrl->OnRequest();
+		mCurCtrl->OnRequestHeader();
 		mTxTrying = false;
 		mCurCtrl->checkExpect(); // check Expect header...
 		if (mCurCtrl->mIsFinalResponsed == true || mCurCtrl->mIsContinueResponse == true)
@@ -274,6 +262,18 @@ int EdHttpCnn::dgMsgBeginCb(http_parser* parser)
 int EdHttpCnn::dgMsgEndCb(http_parser* parser)
 {
 	dbgd("http msg end...");
+
+	if (mCurCtrl != NULL)
+	{
+		mTxTrying = true;
+		mCurCtrl->OnRequestMsg();
+		mTxTrying = false;
+		if (mCurCtrl->mIsFinalResponsed == true || mCurCtrl->mIsContinueResponse == true)
+		{
+			scheduleTransmitNeedEnd();
+		}
+	}
+
 	if (mCurUrl != NULL)
 	{
 		delete mCurUrl;
@@ -531,6 +531,8 @@ void EdHttpCnn::mpEndCb(const char *buffer, size_t start, size_t end, void *user
 void EdHttpCnn::dgMpPartBeginCb(const char* buffer, size_t start, size_t end)
 {
 	dbgd("part begin...");
+	mPs = PS_MP_HEADER;
+	mCurContent = new EdHttpContent(true);
 }
 
 void EdHttpCnn::dgMpHeaderFieldCb(const char* buffer, size_t start, size_t end)
@@ -539,6 +541,7 @@ void EdHttpCnn::dgMpHeaderFieldCb(const char* buffer, size_t start, size_t end)
 	if (mCurMpHdrVal.size() != 0)
 	{
 		dbgd("part header complete, name=%s, val=%s", mCurMpHdrName.c_str(), mCurMpHdrVal.c_str());
+		mCurContent->addHdr(&mCurMpHdrName, &mCurMpHdrVal);
 		mMpHdrList[mCurMpHdrName] = mCurMpHdrVal;
 		mCurMpHdrName.clear();
 		mCurMpHdrVal.clear();
@@ -562,20 +565,42 @@ void EdHttpCnn::dgMpPartDataCb(const char* buffer, size_t start, size_t end)
 	if (mCurMpHdrName.size() > 0)
 	{
 		dbgd("last header complete, name=%s, val=%s", mCurMpHdrName.c_str(), mCurMpHdrVal.c_str());
+		mCurContent->addHdr(&mCurMpHdrName, &mCurMpHdrVal);
 		mMpHdrList[mCurMpHdrName] = mCurMpHdrVal;
 		mCurMpHdrName.clear();
 		mCurMpHdrVal.clear();
 	}
+
+	if (mPs == PS_MP_HEADER)
+	{
+		mPs = PS_MP_DATA;
+		if (mCurContent->isValidMp() == true)
+		{
+			mCurCtrl->OnDataNew(mCurContent);
+		}
+		else
+		{
+			delete mCurContent;
+			mCurContent = NULL;
+		}
+
+	}
+
+	if (mCurContent != NULL)
+		mCurCtrl->OnDataContinue(mCurContent, buffer + start, end - start);
 }
 
 void EdHttpCnn::dgMpPartEndCb(const char* buffer, size_t start, size_t end)
 {
 	dbgd("part end cb...");
+	if (mCurContent != NULL)
+		mCurCtrl->OnDataRecvComplete(mCurContent);
+	CHECK_DELETE_OBJ(mCurContent);
 }
 
 void EdHttpCnn::dgMpEndCb(const char* buffer, size_t start, size_t end)
 {
-	dbgd("end cb...");
+	dbgd("mp end cb...");
 	mCurMpHdrVal.clear();
 	mCurMpHdrName.clear();
 }
