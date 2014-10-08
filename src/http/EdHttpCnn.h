@@ -129,10 +129,9 @@ private:
 	// controller list
 	std::list<EdHttpController*> mCtrlList;
 	EdHttpController* mCurCtrl;
-	EdHttpController* mCurSendCtrl;
+	//EdHttpController* mCurSendCtrl;
 	EdHttpContent* mCurContent;
 	EdSmartSocket mSock;
-	long mReceivedBodySize;
 	bool mTxTrying;
 };
 

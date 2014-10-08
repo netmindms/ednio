@@ -26,7 +26,7 @@ static http_parser_settings _parserSettings;
 
 EdHttpCnn::EdHttpCnn()
 {
-	dbgd("http cnn const......");
+	dbgv("Http connection construct......");
 
 	mTask = NULL;
 	mHandle = 0;
@@ -35,7 +35,6 @@ EdHttpCnn::EdHttpCnn()
 	_hidx = 0;
 
 	// init controller
-	mCurSendCtrl = NULL;
 	mCurCtrl = NULL;
 
 	// init parser
@@ -52,6 +51,7 @@ EdHttpCnn::EdHttpCnn()
 	mReadBuf = NULL;
 
 	mTxTrying = false;
+	mMpParser = NULL;
 }
 
 EdHttpCnn::~EdHttpCnn()
@@ -99,7 +99,7 @@ int EdHttpCnn::initCnn(int fd, u32 handle, EdHttpTask *ptask, int socket_mode)
 void EdHttpCnn::procRead()
 {
 	int rdcnt = mSock.recvPacket(mReadBuf, mBufSize);
-	dbgd("proc read cnt=%d", rdcnt);
+	dbgv("proc read cnt=%d", rdcnt);
 	if (rdcnt > 0)
 	{
 		http_parser_execute(&mParser, &_parserSettings, (char*) mReadBuf, rdcnt);
@@ -108,6 +108,7 @@ void EdHttpCnn::procRead()
 
 void EdHttpCnn::procDisconnectedNeedEnd()
 {
+	dbgd("Removing Http connection, fd=%d", mSock.getFd());
 	close();
 	mTask->removeConnection(this);
 }
@@ -158,9 +159,7 @@ int EdHttpCnn::on_headers_complete(http_parser* parser)
 
 int EdHttpCnn::dgHeaderNameCb(http_parser*, const char* at, size_t length)
 {
-
-	//string tmp(at, length);
-	//dbgv("name cb, %s", tmp.c_str());
+	dbgv("parser hdr name cb, str=%s", string(at, length).c_str());
 	if (mPs == PS_FIRST_LINE)
 	{
 		procReqLine();
@@ -184,9 +183,7 @@ int EdHttpCnn::dgHeaderNameCb(http_parser*, const char* at, size_t length)
 
 int EdHttpCnn::dgHeaderValCb(http_parser*, const char* at, size_t length)
 {
-
-	string tmp(at, length);
-	dbgv("val cb, %s", tmp.c_str());
+	dbgv("parser hdr val cb, str=%s", string(at, length).c_str());
 
 	if (mCurHdrVal == NULL)
 		mCurHdrVal = new string();
@@ -202,11 +199,11 @@ int EdHttpCnn::dgHeaderComp(http_parser* parser)
 
 	if (mIsHdrVal)
 	{
-		dbgd("header comp, name=%s, val=%s", mCurHdrName->c_str(), mCurHdrVal->c_str());
+		dbgv("header comp, name=%s, val=%s", mCurHdrName->c_str(), mCurHdrVal->c_str());
 		procHeader();
 		mIsHdrVal = false;
 	}
-
+	dbgd("parser header complete,...");
 	if (mCurCtrl != NULL)
 	{
 		checkHeaders();
@@ -230,10 +227,12 @@ int EdHttpCnn::dgbodyDataCb(http_parser* parser, const char* at, size_t length)
 
 	if (mCurCtrl->mIsMultipartBody == false)
 	{
-		if (mCurCtrl != NULL && mCurCtrl->mWriter != NULL)
+		if (mPs == PS_HEADER)
 		{
-			mCurCtrl->mWriter->writeData(at, length);
+			mPs = PS_BODY;
+			mCurCtrl->OnDataNew(NULL);
 		}
+		mCurCtrl->OnDataContinue(NULL, at, length);
 	}
 	else
 	{
@@ -245,26 +244,24 @@ int EdHttpCnn::dgbodyDataCb(http_parser* parser, const char* at, size_t length)
 
 int EdHttpCnn::dgMsgBeginCb(http_parser* parser)
 {
-
 	mPs = PS_FIRST_LINE;
-
 	mIsHdrVal = false;
 	mCurHdrName = NULL;
 	mCurHdrVal = NULL;
-
-	//mCurTrans = new EsHttpTrans(mTrhseed, this);
-	//mTransMap.push_back(mCurTrans);
-	//_hidx++;
-
 	return 0;
 }
 
 int EdHttpCnn::dgMsgEndCb(http_parser* parser)
 {
-	dbgd("http msg end...");
+	dbgd("http parser ending ...");
 
 	if (mCurCtrl != NULL)
 	{
+		if (mPs == PS_BODY)
+		{
+			dbgd("body data end...");
+			mCurCtrl->OnDataRecvComplete(NULL);
+		}
 		mTxTrying = true;
 		mCurCtrl->OnRequestMsg();
 		mTxTrying = false;
@@ -272,6 +269,7 @@ int EdHttpCnn::dgMsgEndCb(http_parser* parser)
 		{
 			scheduleTransmitNeedEnd();
 		}
+
 	}
 
 	if (mCurUrl != NULL)
@@ -282,6 +280,7 @@ int EdHttpCnn::dgMsgEndCb(http_parser* parser)
 	CHECK_DELETE_OBJ(mCurHdrName);
 	CHECK_DELETE_OBJ(mCurHdrVal);
 	closeMultipart();
+	mPs = PS_INIT;
 	return 0;
 }
 
@@ -318,9 +317,8 @@ void EdHttpCnn::procHeader()
 
 void EdHttpCnn::procReqLine()
 {
-	dbgd("url = %s", mCurUrl->c_str());
+	dbgd("parser reuest line url = %s", mCurUrl->c_str());
 	mPs = PS_HEADER;
-	//EdHttpController* pctl = mTask->OnNewRequest(http_method_str((http_method)mParser.method), mCurUrl->c_str());
 	mCurCtrl = mTask->allocController(mCurUrl->c_str());
 	if (mCurCtrl != NULL)
 	{
@@ -333,37 +331,34 @@ void EdHttpCnn::procReqLine()
 
 int EdHttpCnn::scheduleTransmitNeedEnd()
 {
-	dbgd("scheduling transmit..., ready ctrl cnt=%d", mCtrlList.size());
-	//if (mCurSendCtrl != NULL)
-	//	return 1;
+	dbgd("scheduling transmit..., pending ctrl cnt=%d", mCtrlList.size());
 
 	if (mCtrlList.size() == 0)
 	{
-		dbgd("    no controls to send");
+		dbgw("#####    no controls to send");
 		return 0;
 	}
-
-	//mCurSendCtrl = mCtrlList.front();
 
 	stack<list<EdHttpController*>::iterator> dellist;
 
 	int sr;
+	EdHttpController *sctrl=NULL;
 	auto itr = mCtrlList.begin();
 	for (; itr != mCtrlList.end(); itr++)
 	{
-		mCurSendCtrl = (*itr);
-		sr = sendCtrlStream(mCurSendCtrl, 16 * 1024);
+		sctrl = (*itr);
+		sr = sendCtrlStream(sctrl, 16 * 1024);
 		if (sr == SEND_OK)
 		{
 			dellist.push(itr);
-			mCurSendCtrl->OnComplete(0);
-			mCurSendCtrl->close();
-			mTask->freeController(mCurSendCtrl);
-			if (mCurSendCtrl == mCurCtrl)
+			sctrl->OnComplete(0);
+			sctrl->close();
+			mTask->freeController(sctrl);
+			if (sctrl == mCurCtrl)
 			{
 				mCurCtrl = NULL;
 			}
-			mCurSendCtrl = NULL;
+			sctrl = NULL;
 		}
 		else
 		{
@@ -391,9 +386,6 @@ void EdHttpCnn::IOnNet(EdSmartSocket* psock, int event)
 	}
 	else if (event == NETEV_SENDCOMPLETE)
 	{
-		//mCtrlList.pop_front();
-		//mTask->freeController(mCurSendCtrl);
-		//mCurSendCtrl = NULL;
 		scheduleTransmitNeedEnd();
 	}
 	else if (event == NETEV_DISCONNECTED)
@@ -466,7 +458,6 @@ void EdHttpCnn::closeAllCtrls()
 		pctrl->close();
 		mTask->freeController(pctrl);
 	}
-	mCurSendCtrl = NULL;
 }
 
 void EdHttpCnn::reqTx(EdHttpController* pctl)
@@ -625,9 +616,9 @@ void EdHttpCnn::initMultipart(const char* boundary)
 
 void EdHttpCnn::closeMultipart()
 {
-	dbgd("multi part parser close ...");
 	if (mMpParser != NULL)
 	{
+		dbgd("multi part parser close ...");
 		delete mMpParser;
 		mMpParser = NULL;
 		mCurMpHdrName.clear();

@@ -5,8 +5,9 @@
  *      Author: netmind
  */
 
-#define DBG_LEVEL DBG_DEBUG
-#define DBGTAG "smsck"
+#define DBG_LEVEL DBG_VERBOSE
+#define DBGTAG "SMSCK"
+
 #include "../edslog.h"
 #include "../EdNio.h"
 #include "EdSmartSocket.h"
@@ -53,7 +54,7 @@ int EdSmartSocket::socketOpen(int mode)
 
 void EdSmartSocket::OnRead()
 {
-	//dbgd("OnRead...");
+	dbgv("OnRead...");
 	if (mMode == SOCKET_NORMAL)
 	{
 		if (mOnLis != NULL)
@@ -100,7 +101,7 @@ void EdSmartSocket::OnDisconnected()
 {
 	dbgd("socket disconnected...");
 	bool sscnn = mSessionConencted;
-	socketClose();
+	// TODO: socketClose();
 
 	if (mOnLis != NULL)
 	{
@@ -356,7 +357,7 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize, bool takebuffer)
 
 void EdSmartSocket::socketClose()
 {
-	if (mSSL)
+	if (mSSL != NULL)
 	{
 		dbgd("ssl close, free ssl=%p, state=%d", mSSL, SSL_state(mSSL));
 		SSL_shutdown(mSSL);

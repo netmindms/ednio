@@ -4,7 +4,7 @@
  *  Created on: Oct 5, 2014
  *      Author: netmind
  */
-
+#if 0
 #ifndef EDHTTPMULTIPARTPARSER_H_
 #define EDHTTPMULTIPARTPARSER_H_
 
@@ -61,3 +61,4 @@ private:
 } /* namespace edft */
 
 #endif /* EDHTTPMULTIPARTPARSER_H_ */
+#endif

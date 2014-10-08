@@ -6,18 +6,23 @@
  */
 
 #include "../config.h"
+
+#define DBGTAG "STRWR"
+#define DBG_LEVEL DBG_DEBUG
+
+#include "../edslog.h"
 #include "EdHttpStringWriter.h"
 namespace edft
 {
 
 EdHttpStringWriter::EdHttpStringWriter()
 {
-
+	dbgd("const str writer ...");
 }
 
 EdHttpStringWriter::~EdHttpStringWriter()
 {
-
+	dbgd("dest str writer ... ");
 }
 
 long EdHttpStringWriter::writeData(const void* buf, long len)

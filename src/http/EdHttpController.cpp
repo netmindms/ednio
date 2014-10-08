@@ -20,7 +20,7 @@
 namespace edft
 {
 
-#define CLEAR_ALL_MEMBERS() { 	mWriter = NULL, \
+#define CLEAR_ALL_MEMBERS() {  \
 	mBodyReader = NULL, \
 	mIsFinalResponsed = false, \
 	mIsContinueResponse = false, \
@@ -41,7 +41,7 @@ EdHttpController::EdHttpController()
 EdHttpController::~EdHttpController()
 {
 	dbgd("dest http ctrl,...ctype=%x", mReqCtype);
-	CHECK_DELETE_OBJ(mReqCtype);
+
 }
 
 void EdHttpController::OnRequestHeader()
@@ -60,18 +60,6 @@ void EdHttpController::OnContentSendComplete()
 
 void EdHttpController::OnComplete(int result)
 {
-}
-
-void EdHttpController::setReqBodyWriter(EdHttpWriter* writer)
-{
-	if (mWriter == NULL)
-	{
-		mWriter = writer;
-	}
-	else
-	{
-		dbge("### Body writer already set...");
-	}
 }
 
 void EdHttpController::setHttpResult(const char* code)
@@ -183,6 +171,7 @@ void EdHttpController::close()
 		free(pkt.buf);
 		mPacketList.pop_front();
 	}
+	CHECK_DELETE_OBJ(mReqCtype);
 
 	CLEAR_ALL_MEMBERS();
 
@@ -282,15 +271,6 @@ const string* EdHttpController::getReqUrl()
 	return mReqMsg.getUrl();
 }
 
-
-int EdHttpController::feedBodyData(void* buf, int len)
-{
-	if(mWriter != NULL) {
-		return mWriter->writeData(buf, len);
-	} else {
-		return -1;
-	}
-}
 
 bool EdHttpController::checkExpect()
 {

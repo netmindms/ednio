@@ -35,7 +35,6 @@ public:
 	EdHttpTask();
 	virtual ~EdHttpTask();
 	virtual int OnEventProc(EdMsg* pmsg);
-	//virtual void IOnSocketEvent(EdSocket *psock, int event);
 
 	int setDefaultCertFile(const char* crtfile, const char* keyfile);
 	int setDefaultCertMem(const void *crt, int crtlen, const void* key, int keylen);

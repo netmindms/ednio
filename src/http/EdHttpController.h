@@ -59,14 +59,12 @@ public:
 protected:
 	void setHttpResult(const char *code);
 private:
-	int feedBodyData(void* buf, int len);
 	bool checkExpect();
 	void checkHeaders();
 
 private:
 	void* mUserData;
 
-	EdHttpWriter* mWriter;
 
 	//EsHttpTrans* mTrans;
 	EdHttpCnn* mCnn;
@@ -98,9 +96,6 @@ private:
 	const char* getBoundary();
 
 	void getSendPacket(packet_buf_t* pinfo);
-#if 0
-	int getSendPacketData(void* buf, int len);
-#endif
 	void initCtrl(EdHttpCnn* pcnn);
 };
 

@@ -30,6 +30,7 @@
 #include "http/EdHttpFileWriter.h"
 #include "http/EdHdrDate.h"
 #include "http/EdHttpDefMultiPartCtrl.h"
+#include "http/EdHttpUploadCtrl.h"
 
 #include "edssl/EdSSLContext.h"
 #include "edssl/EdSSLSocket.h"
@@ -1148,48 +1149,47 @@ void testHttpSever(int mode)
 
 	};
 
-	class UpFileCtrl: public EdHttpController
+	class UpFileCtrl: public EdHttpUploadCtrl
 	{
-		EdHttpFileWriter *writer;
 		void OnInit()
 		{
-			writer = NULL;
+			setPath("/tmp/ednio/upfile.dat");
 		}
-
-		void OnRequestHeader()
+		void OnRequestMsg()
 		{
-			logs("upfile request,...");
-			writer = new EdHttpFileWriter;
-			writer->open("/tmp/upfile.dat");
-			setReqBodyWriter(writer);
-		}
-
-		void OnComplete(int result)
-		{
-			logs("upfile complete, result=%d", result);
-			CHECK_DELETE_OBJ(writer);
+			logs("up file request msg...");
+			setHttpResult("200");
 		}
 	};
 
 	class MultipartCtrl: public EdHttpDefMultiPartCtrl
 	{
 		EdHttpStringReader reader;
-		void OnRequestHeader() {
+		void OnRequestHeader()
+		{
 			setFileFolder("/tmp");
 		}
-		void OnRequestMsg() {
+		void OnRequestMsg()
+		{
 			logs("on multipart request msg, ");
 
 			string *info = getData("info");
-			if(info != NULL) {
+			if (info != NULL)
+			{
 				logs("info = %s", info->c_str());
 				reader.setString("info received...\r\n");
 				setRespBodyReader(&reader, "text/plain");
 				setHttpResult("200");
-			} else {
+			}
+			else
+			{
 				logs("### Fail: not found info value ... ");
 				setHttpResult("400");
 			}
+		}
+		void OnComplete(int result)
+		{
+			logs("mp complete, result=%d", result);
 		}
 	};
 
@@ -1244,7 +1244,6 @@ void testHttpSever(int mode)
 	logm(">>>> Test: Http Server, mode=%d", mode);
 	fdcheck_start();
 	HttpTestTask *task = new HttpTestTask;
-	mode = 1;
 	task->runMain(mode);
 	fdcheck_end();
 	logm("<<<< HttpServer OK\n\n");
@@ -1808,25 +1807,26 @@ void testmultipartapi()
 	parser.onEnd = Mp::onEnd;
 
 	static char testmsg[]="--abcd\r\n"
-							"content-type: text/plain\r\n"
-							"content-disposition: form-data; name=\"field1\"; filename=\"field1\"\r\n"
-							"foo-bar: abc\r\n"
-							"x: y\r\n\r\n"
-							"hello world\r\n\r\n"
-							"x\r\n\r\n"
-							"--abcd--\r\n";
+	"content-type: text/plain\r\n"
+	"content-disposition: form-data; name=\"field1\"; filename=\"field1\"\r\n"
+	"foo-bar: abc\r\n"
+	"x: y\r\n\r\n"
+	"hello world\r\n\r\n"
+	"x\r\n\r\n"
+	"--abcd--\r\n";
 	int cnt=0;
 	int bufsize = strlen(testmsg);
 	int feedlen;
 	parser.setBoundary("abcd");
 	int rdcnt=0;
-	for(;;) {
+	for(;;)
+	{
 		feedlen = min(bufsize-cnt, 5);
-	   cnt = parser.feed(testmsg+rdcnt, feedlen);
-	   if(cnt == 0)
-		   break;
-	   else
-		   rdcnt += cnt;
+		cnt = parser.feed(testmsg+rdcnt, feedlen);
+		if(cnt == 0)
+		break;
+		else
+		rdcnt += cnt;
 	}
 }
 #endif
@@ -1875,12 +1875,6 @@ int main()
 	}
 #endif
 
-	int s = sizeof(EdSmartSocket);
-//	s = sizeof(string);
-	s = sizeof(std::unordered_map<int, int>);
-//	s = sizeof(std::list<EdHttpController*>);
-	s = sizeof(http_parser);
-//	s = sizeof(http_parser_settings);
 	EdNioInit();
 	for (int i = 0; i < 1; i++)
 	{

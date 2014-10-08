@@ -24,10 +24,15 @@ EdHttpDefMultiPartCtrl::EdHttpDefMultiPartCtrl()
 
 EdHttpDefMultiPartCtrl::~EdHttpDefMultiPartCtrl()
 {
+	_cinfo_t *pc;
 	for(auto itr = mCttList.begin() ; itr != mCttList.end();itr++)
 	{
-		delete itr->second->writer;
-		delete (itr->second);
+		dbgd("   delete writer=%x", itr->second->writer);
+		pc = itr->second;
+		delete pc->writer;
+		delete pc;
+//		delete itr->second->writer;
+//		delete (itr->second);
 	}
 }
 
@@ -45,6 +50,7 @@ void EdHttpDefMultiPartCtrl::OnDataNew(EdHttpContent* pctt)
 	else
 	{
 		pc->writer = new EdHttpStringWriter;
+		dbgd(" alloc string writer=%x", pc->writer);
 		pctt->setWriter(pc->writer);
 	}
 	//pctt->setUser(pc);

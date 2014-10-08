@@ -5,6 +5,12 @@
  *      Author: netmind
  */
 
+#include "../config.h"
+
+#define DBGTAG "FILWR"
+#define DBG_LEVEL DBG_DEBUG
+
+#include "../edslog.h"
 #include "EdHttpFileWriter.h"
 
 namespace edft
@@ -12,11 +18,13 @@ namespace edft
 
 EdHttpFileWriter::EdHttpFileWriter()
 {
+	dbgd("const file writer ...");
 	mWriteCnt = 0;
 }
 
 EdHttpFileWriter::~EdHttpFileWriter()
 {
+	dbgd("dest file writer ...");
 }
 
 int EdHttpFileWriter::open(const char* path)

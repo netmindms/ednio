@@ -4,6 +4,8 @@
  *  Created on: Oct 5, 2014
  *      Author: netmind
  */
+
+#if 0
 #define DBGTAG "MPPAR"
 #define DBG_LEVEL DBG_DEBUG
 
@@ -179,3 +181,4 @@ void EdHttpMultipartParser::dgEndCb(const char* buffer, size_t start, size_t end
 }
 
 } /* namespace edft */
+#endif
