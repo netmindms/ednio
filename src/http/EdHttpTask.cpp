@@ -27,11 +27,19 @@ EdHttpTask::~EdHttpTask()
 {
 }
 
+
+void EdHttpTask::OnInitHttp()
+{
+
+}
+
+
 int EdHttpTask::OnEventProc(EdMsg* pmsg)
 {
 	if (pmsg->msgid == EDM_INIT)
 	{
 		dbgd("http task init, ...");
+		OnInitHttp();
 	}
 	else if (pmsg->msgid == EDM_CLOSE)
 	{

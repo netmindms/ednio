@@ -40,6 +40,7 @@ public:
 	int request(const char* url);
 	const char* getRespHeader(char *name);
 	CURLM* getMultiCurl();
+	//void setPipelineing(int ispipeline);
 
 private:
 	char* clean_str(char *str);

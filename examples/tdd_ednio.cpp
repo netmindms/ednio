@@ -44,49 +44,48 @@ void levlog(int lev, const char *tagid, int line, const char *fmtstr, ...)
 using namespace std;
 using namespace edft;
 
-
 long _gStartFds;
 
 void init_test()
 {
 #if USE_SSL
 	char gTestKey[] = ""
-	"-----BEGIN RSA PRIVATE KEY-----\n"
-	"Proc-Type: 4,ENCRYPTED\n"
-	"DEK-Info: DES-EDE3-CBC,530F6BF4FC4863E5\n"
-	"\n"
-	"ompWbbl2zkVdwPVzPbe6YCLxOWjLld+JXrb2uDLIVKU6yc4YraUm7S10KXeWp2Ff\n"
-	"WwDR6IGrloliZTCmsBK/Ol93A+awAdftEW95bmMHnrga0ErJ905U7ijzkrlfPOgl\n"
-	"obW8nO24z6XrRPYruxUKizTA9ZGH02Ds4MtbmaL7lGZlPcL/Vm36mJPSslQA08Sv\n"
-	"gsfitXnGWZLENkKr4ThYRpQtrd+NM0KEvXoHU/juc4AjMg+P3nMnwHk1HZuD7mH5\n"
-	"Ks0ulh6w5BVJGvnRFKfiTrNItWJF4zWszc33f/i5lo1yMGMX2qnZyR+Q2WnyAEpz\n"
-	"+8wxqA9Ck4gz5SUIoE6GUGjnV9WsEO+I/0DkD5Dd49qcVSYRG5XPyXUJ+LO+ilAF\n"
-	"HT1G1NHIQ3PVLeVlHUaJW97tdH8iXhG57onVlak/8Jj7l0P6LFmijp1PWaNJX7mh\n"
-	"gXRwkaReAGvC8YbcX99SLwqZvMzAxWEV9y0Ro0VF/qZX5rhnL/4zgMeuE7Ee7wz2\n"
-	"KNcpXzOYQNxKYww66HPBeKgsbMjjA67JD4+5QaaAdK3ENtZMTjhnOk5NkLyEn6cB\n"
-	"20426Pq6e7CJd7Crz+c0Ghev7SmEadLxw1AI3zISxnScWMff4SsFD5vK29Xmj/vx\n"
-	"XqX9IYIWQtEqnzZO1f31wmcO4qrugJB/xbtsLJ1VDuqKPgz7jzOy1CI3H+Z7CrJG\n"
-	"iqj8kTUc8rNDU7GEcFBGSI4FWZsu8Km81x7u62tMin8xuNkw3yGVmnG8ULlpMHe4\n"
-	"fwED4zDbfwWGoBLIKXvH0E1yaQ2DiRci2DiDPMqw5ZV/N7bha3RxkQ==\n"
-	"-----END RSA PRIVATE KEY-----\n";
+			"-----BEGIN RSA PRIVATE KEY-----\n"
+			"Proc-Type: 4,ENCRYPTED\n"
+			"DEK-Info: DES-EDE3-CBC,530F6BF4FC4863E5\n"
+			"\n"
+			"ompWbbl2zkVdwPVzPbe6YCLxOWjLld+JXrb2uDLIVKU6yc4YraUm7S10KXeWp2Ff\n"
+			"WwDR6IGrloliZTCmsBK/Ol93A+awAdftEW95bmMHnrga0ErJ905U7ijzkrlfPOgl\n"
+			"obW8nO24z6XrRPYruxUKizTA9ZGH02Ds4MtbmaL7lGZlPcL/Vm36mJPSslQA08Sv\n"
+			"gsfitXnGWZLENkKr4ThYRpQtrd+NM0KEvXoHU/juc4AjMg+P3nMnwHk1HZuD7mH5\n"
+			"Ks0ulh6w5BVJGvnRFKfiTrNItWJF4zWszc33f/i5lo1yMGMX2qnZyR+Q2WnyAEpz\n"
+			"+8wxqA9Ck4gz5SUIoE6GUGjnV9WsEO+I/0DkD5Dd49qcVSYRG5XPyXUJ+LO+ilAF\n"
+			"HT1G1NHIQ3PVLeVlHUaJW97tdH8iXhG57onVlak/8Jj7l0P6LFmijp1PWaNJX7mh\n"
+			"gXRwkaReAGvC8YbcX99SLwqZvMzAxWEV9y0Ro0VF/qZX5rhnL/4zgMeuE7Ee7wz2\n"
+			"KNcpXzOYQNxKYww66HPBeKgsbMjjA67JD4+5QaaAdK3ENtZMTjhnOk5NkLyEn6cB\n"
+			"20426Pq6e7CJd7Crz+c0Ghev7SmEadLxw1AI3zISxnScWMff4SsFD5vK29Xmj/vx\n"
+			"XqX9IYIWQtEqnzZO1f31wmcO4qrugJB/xbtsLJ1VDuqKPgz7jzOy1CI3H+Z7CrJG\n"
+			"iqj8kTUc8rNDU7GEcFBGSI4FWZsu8Km81x7u62tMin8xuNkw3yGVmnG8ULlpMHe4\n"
+			"fwED4zDbfwWGoBLIKXvH0E1yaQ2DiRci2DiDPMqw5ZV/N7bha3RxkQ==\n"
+			"-----END RSA PRIVATE KEY-----\n";
 
 	char gTestCrt[] = ""
-	"-----BEGIN CERTIFICATE-----\n"
-	"MIICkjCCAfugAwIBAgIJAOa4Z0DKS6HuMA0GCSqGSIb3DQEBBQUAMGIxCzAJBgNV\n"
-	"BAYTAktSMRAwDgYDVQQIDAdLZW9uZ0tpMQ8wDQYDVQQHDAZZb25nSW4xCzAJBgNV\n"
-	"BAoMAktUMREwDwYDVQQLDAhSZXNlYXJjaDEQMA4GA1UEAwwHbmV0bWluZDAeFw0x\n"
-	"NDEwMTAxMTQzMDJaFw0xNTEwMTAxMTQzMDJaMGIxCzAJBgNVBAYTAktSMRAwDgYD\n"
-	"VQQIDAdLZW9uZ0tpMQ8wDQYDVQQHDAZZb25nSW4xCzAJBgNVBAoMAktUMREwDwYD\n"
-	"VQQLDAhSZXNlYXJjaDEQMA4GA1UEAwwHbmV0bWluZDCBnzANBgkqhkiG9w0BAQEF\n"
-	"AAOBjQAwgYkCgYEAwwlc2e0e15t8jHZer50VCPGT6K/9AOw7XISzglc++eQjZWUT\n"
-	"ndnK6Den/YJQ/DNPDr+wNzftDtLmxElNjBq8y2KuUvzf4KsBCI3prxZ0GoXO5jS4\n"
-	"jXCiZsl6tcnoI18KKFZBFAivxwreGC7Fp91la9qpWR4c7Xnlx1XFa+KEJbUCAwEA\n"
-	"AaNQME4wHQYDVR0OBBYEFFwYCLFukaxA1rHdhZEO1opHr3kkMB8GA1UdIwQYMBaA\n"
-	"FFwYCLFukaxA1rHdhZEO1opHr3kkMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEF\n"
-	"BQADgYEAtNSgLL7bsRZk4rIF0Ns4I3cGzjtyq356r2ziTtu54NOGygQPu/YPeP9O\n"
-	"G01wGyb4oXDz+waHQUgF/nsP9Z/jO001ca6+vID3zdnYImGvrFo86RV9yDEANvxI\n"
-	"DwuB0mO5Hbd2zf5Q8fqe/BdJCLukaDS4H87gUL5h6ejUoBsjXmc=\n"
-	"-----END CERTIFICATE-----\n";
+			"-----BEGIN CERTIFICATE-----\n"
+			"MIICkjCCAfugAwIBAgIJAOa4Z0DKS6HuMA0GCSqGSIb3DQEBBQUAMGIxCzAJBgNV\n"
+			"BAYTAktSMRAwDgYDVQQIDAdLZW9uZ0tpMQ8wDQYDVQQHDAZZb25nSW4xCzAJBgNV\n"
+			"BAoMAktUMREwDwYDVQQLDAhSZXNlYXJjaDEQMA4GA1UEAwwHbmV0bWluZDAeFw0x\n"
+			"NDEwMTAxMTQzMDJaFw0xNTEwMTAxMTQzMDJaMGIxCzAJBgNVBAYTAktSMRAwDgYD\n"
+			"VQQIDAdLZW9uZ0tpMQ8wDQYDVQQHDAZZb25nSW4xCzAJBgNVBAoMAktUMREwDwYD\n"
+			"VQQLDAhSZXNlYXJjaDEQMA4GA1UEAwwHbmV0bWluZDCBnzANBgkqhkiG9w0BAQEF\n"
+			"AAOBjQAwgYkCgYEAwwlc2e0e15t8jHZer50VCPGT6K/9AOw7XISzglc++eQjZWUT\n"
+			"ndnK6Den/YJQ/DNPDr+wNzftDtLmxElNjBq8y2KuUvzf4KsBCI3prxZ0GoXO5jS4\n"
+			"jXCiZsl6tcnoI18KKFZBFAivxwreGC7Fp91la9qpWR4c7Xnlx1XFa+KEJbUCAwEA\n"
+			"AaNQME4wHQYDVR0OBBYEFFwYCLFukaxA1rHdhZEO1opHr3kkMB8GA1UdIwQYMBaA\n"
+			"FFwYCLFukaxA1rHdhZEO1opHr3kkMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEF\n"
+			"BQADgYEAtNSgLL7bsRZk4rIF0Ns4I3cGzjtyq356r2ziTtu54NOGygQPu/YPeP9O\n"
+			"G01wGyb4oXDz+waHQUgF/nsP9Z/jO001ca6+vID3zdnYImGvrFo86RV9yDEANvxI\n"
+			"DwuB0mO5Hbd2zf5Q8fqe/BdJCLukaDS4H87gUL5h6ejUoBsjXmc=\n"
+			"-----END CERTIFICATE-----\n";
 	EdFile file;
 	file.openFile("/tmp/test.key", EdFile::OPEN_RWTC);
 	file.writeStr(gTestKey);
@@ -97,7 +96,6 @@ void init_test()
 	file.closeFile();
 #endif
 }
-
 
 int get_num_fds()
 {
@@ -1161,7 +1159,8 @@ void testHttpSever(int mode)
 		void OnHttpCtrlInit()
 		{
 			logs("upfile request method=%d, url=%s", getReqMethod(), getReqUrl().c_str());
-			if(getReqMethod() != HTTP_PUT) {
+			if (getReqMethod() != HTTP_PUT)
+			{
 				setHttpResult("400");
 				return;
 			}
@@ -1194,7 +1193,7 @@ void testHttpSever(int mode)
 			logs("on multipart request msg, ");
 
 			string info = getData("info");
-			if (info.size()>0)
+			if (info.size() > 0)
 			{
 				logs("info = %s", info.c_str());
 				reader.setString("info received...\r\n");
@@ -1216,7 +1215,8 @@ void testHttpSever(int mode)
 	class HttpTestTask: public TestTask
 	{
 	public:
-		virtual ~HttpTestTask() {
+		virtual ~HttpTestTask()
+		{
 		}
 		virtual int OnEventProc(EdMsg* pmsg)
 		{
@@ -1825,35 +1825,178 @@ void testmultipartapi()
 	parser.onPartEnd = Mp::onPartEnd;
 	parser.onEnd = Mp::onEnd;
 
-	static char testmsg[]="--abcd\r\n"
-	"content-type: text/plain\r\n"
-	"content-disposition: form-data; name=\"field1\"; filename=\"field1\"\r\n"
-	"foo-bar: abc\r\n"
-	"x: y\r\n\r\n"
-	"hello world\r\n\r\n"
-	"x\r\n\r\n"
-	"--abcd--\r\n";
-	int cnt=0;
+	static char testmsg[] = "--abcd\r\n"
+			"content-type: text/plain\r\n"
+			"content-disposition: form-data; name=\"field1\"; filename=\"field1\"\r\n"
+			"foo-bar: abc\r\n"
+			"x: y\r\n\r\n"
+			"hello world\r\n\r\n"
+			"x\r\n\r\n"
+			"--abcd--\r\n";
+	int cnt = 0;
 	int bufsize = strlen(testmsg);
 	int feedlen;
 	parser.setBoundary("abcd");
-	int rdcnt=0;
-	for(;;)
+	int rdcnt = 0;
+	for (;;)
 	{
-		feedlen = min(bufsize-cnt, 5);
-		cnt = parser.feed(testmsg+rdcnt, feedlen);
-		if(cnt == 0)
-		break;
+		feedlen = min(bufsize - cnt, 5);
+		cnt = parser.feed(testmsg + rdcnt, feedlen);
+		if (cnt == 0)
+			break;
 		else
-		rdcnt += cnt;
+			rdcnt += cnt;
 	}
 }
+
+
+#if 0
+void testHttpPipeLine(int mode)
+{
+	enum
+	{
+		TS_NORMAL = EDM_USER + 1,
+
+	};
+	class UserInfoCtrl: public EdHttpController, public EdTimer::ITimerCb
+	{
+		EdTimer mTimer;
+		void OnHttpRequestMsg()
+		{
+			logs("server request: userinfo, ");
+			logs("send response curl#1 after 2 sec ...");
+			mTimer.setOnListener(this);
+			mTimer.set(2000);
+		}
+
+		void IOnTimerEvent(EdTimer* ptimer)
+		{
+			ptimer->kill();
+			setHttpResult("404");
+		}
+	};
+
+	class AddrCtrl: public EdHttpController
+	{
+		void OnHttpRequestMsg()
+		{
+			logs("server request: addr");
+			logs("send response curl#2 immediately ...");
+			setHttpResult("200");
+		}
+
+	};
+
+	class WorkTask: public EdHttpTask
+	{
+		void OnInitHttp()
+		{
+			regController<UserInfoCtrl>("/userinfo", NULL);
+			regController<AddrCtrl>("/addr", NULL);
+		}
+	};
+
+	class TestPileLine: public TestTask, public EdCurl::ICurlResult
+	{
+		EdHttpServer* server;
+		EdMultiCurl* mainCurl;
+		EdCurl *curl1, *curl2;
+
+		int OnEventProc(EdMsg* pmsg)
+		{
+			if (pmsg->msgid == EDM_INIT)
+			{
+				logs("init Pipelining Test Task...");
+				server = new EdHttpServer;
+				EdHttpSettings hs = EdHttpServer::getDefaultSettings();
+				hs.port = 9090;
+				hs.ssl_port = 0;
+				server->startService<WorkTask>(&hs);
+
+				addTest(TS_NORMAL);
+				nextTest();
+			}
+			else if (pmsg->msgid == EDM_CLOSE)
+			{
+				logs("Pipeline test task closing...");
+				mainCurl->close();
+				CHECK_DELETE_OBJ(mainCurl);
+				server->stopService();
+				CHECK_DELETE_OBJ(server);
+
+			}
+			else if (pmsg->msgid == TS_NORMAL)
+			{
+				logs("start normal pipelining...");
+				mainCurl = new EdMultiCurl;
+				mainCurl->open();
+				//mainCurl->setPipelineing(1);
+				curl1 = new EdCurl;
+				curl1->setOnCurlListener(this);
+				curl1->open(mainCurl);
+
+				curl1->request("http://127.0.0.1:9090/userinfo");
+				//curl1->request("http://127.0.0.1:9090/addr");
+
+//				curl2 = new EdCurl;
+//				curl2->setOnCurlListener(this);
+//				curl2->open(mainCurl);
+//				curl2->request("http://127.0.0.1:9090/addr");
+			}
+			return 0;
+		}
+
+		void IOnCurlResult(EdCurl* pcurl, int result)
+		{
+			if (pcurl == curl1)
+			{
+				int code = pcurl->getResponseCode();
+				logs("** curl#1 result=%d, code=%3d", result, code);
+				if (code != 200)
+				{
+					curl1->reset();
+					curl1->request("http://127.0.0.1:9090/addr");
+				}
+				else
+				{
+					curl1->close();
+					CHECK_DELETE_OBJ(curl1);
+					nextTest();
+				}
+			}
+			else if (pcurl == curl2)
+			{
+				int code = pcurl->getResponseCode();
+				logs("** curl#2 result=%d, code=%3d", result, code);
+				if (curl1 != NULL)
+				{
+					logs("### Fail: curl2 was terminated before curl1...");
+					assert(0);
+				}
+				logs("== Normal pipelining Test OK\n");
+				curl2->close();
+				CHECK_DELETE_OBJ(curl2);
+				nextTest();
+			}
+		}
+	};
+
+	logm(">>>> Test: HTTP pipelining, mode=%d", mode);
+	fdcheck_start();
+	auto task = new TestPileLine;
+	task->run(mode);
+	task->wait();
+	delete task;
+	fdcheck_end();
+	logm("<<<< HTTP pipelining OK\n");
+}
+#endif
 
 int main()
 {
 	EdNioInit();
 	init_test();
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < 1; i++)
 	{
 //		testmsg(i);
 //		testMainThreadTask(i);
@@ -1870,6 +2013,4 @@ int main()
 	}
 	return 0;
 }
-
-
 

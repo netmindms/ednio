@@ -40,6 +40,8 @@ public:
 	EdHttpTask();
 	virtual ~EdHttpTask();
 	virtual int OnEventProc(EdMsg* pmsg);
+	virtual void OnInitHttp();
+
 #if USE_SSL
 	int setDefaultCertFile(const char* crtfile, const char* keyfile);
 	void setDefaultCertPassword(const char* pw);

@@ -165,6 +165,11 @@ CURLM* EdMultiCurl::getMultiCurl()
 	return mCurlm;
 }
 
-
+#if 0
+void EdMultiCurl::setPipelineing(int pipeline)
+{
+	curl_multi_setopt(mCurlm, CURLMOPT_PIPELINING , pipeline);
+}
+#endif
 
 } // namespae edft
