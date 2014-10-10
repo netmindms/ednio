@@ -19,21 +19,25 @@ enum {
 	UV_START = EDM_USER+1,
 };
 
+typedef struct {
+	int port;
+	int ssl_port;
+	int task_num;
+} EdHttpSettings;
+
 class EdHttpServer: public EdSocket::ISocketCb
 {
 public:
 	EdHttpServer();
 	virtual ~EdHttpServer();
-	//virtual int OnEventProc(EdMsg* pmsg);
 	virtual void IOnSocketEvent(EdSocket *psock, int event);
-	void initCommon();
 
-	template<typename T>	void startService(int num=1)
+	template<typename T>	void startService(EdHttpSettings *pset)
 	{
-		initCommon();
+		initCommon(pset);
 		int mode = EdTask::getCurrentTask()->getRunMode();
 		mSvcMutex.lock();
-		for(int i=0;i<num;i++)
+		for(int i=0;i<pset->task_num;i++)
 		{
 			EdHttpTask *ptask = new T;
 			ptask->run(mode);
@@ -42,9 +46,8 @@ public:
 		mSvcMutex.unlock();
 	}
 
-	int open(int port, bool ssl=false);
-	void close();
-
+	void stopService();
+	static EdHttpSettings getDefaultSettings();
 
 private:
 	EdMutex mSvcMutex;
@@ -53,6 +56,11 @@ private:
 	EdHttpTask *mSvcList[100];
 	int mSvcCount;
 	int mSvcRound;
+	EdHttpSettings mSettings;
+
+	void initCommon(EdHttpSettings* pset);
+	int open(int port, bool ssl=false);
+	void close();
 };
 
 } // namespace edft

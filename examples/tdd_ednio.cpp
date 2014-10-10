@@ -44,49 +44,49 @@ void levlog(int lev, const char *tagid, int line, const char *fmtstr, ...)
 using namespace std;
 using namespace edft;
 
-char gTestKey[] = ""
-"-----BEGIN RSA PRIVATE KEY-----\n"
-"Proc-Type: 4,ENCRYPTED\n"
-"DEK-Info: DES-EDE3-CBC,530F6BF4FC4863E5\n"
-"\n"
-"ompWbbl2zkVdwPVzPbe6YCLxOWjLld+JXrb2uDLIVKU6yc4YraUm7S10KXeWp2Ff\n"
-"WwDR6IGrloliZTCmsBK/Ol93A+awAdftEW95bmMHnrga0ErJ905U7ijzkrlfPOgl\n"
-"obW8nO24z6XrRPYruxUKizTA9ZGH02Ds4MtbmaL7lGZlPcL/Vm36mJPSslQA08Sv\n"
-"gsfitXnGWZLENkKr4ThYRpQtrd+NM0KEvXoHU/juc4AjMg+P3nMnwHk1HZuD7mH5\n"
-"Ks0ulh6w5BVJGvnRFKfiTrNItWJF4zWszc33f/i5lo1yMGMX2qnZyR+Q2WnyAEpz\n"
-"+8wxqA9Ck4gz5SUIoE6GUGjnV9WsEO+I/0DkD5Dd49qcVSYRG5XPyXUJ+LO+ilAF\n"
-"HT1G1NHIQ3PVLeVlHUaJW97tdH8iXhG57onVlak/8Jj7l0P6LFmijp1PWaNJX7mh\n"
-"gXRwkaReAGvC8YbcX99SLwqZvMzAxWEV9y0Ro0VF/qZX5rhnL/4zgMeuE7Ee7wz2\n"
-"KNcpXzOYQNxKYww66HPBeKgsbMjjA67JD4+5QaaAdK3ENtZMTjhnOk5NkLyEn6cB\n"
-"20426Pq6e7CJd7Crz+c0Ghev7SmEadLxw1AI3zISxnScWMff4SsFD5vK29Xmj/vx\n"
-"XqX9IYIWQtEqnzZO1f31wmcO4qrugJB/xbtsLJ1VDuqKPgz7jzOy1CI3H+Z7CrJG\n"
-"iqj8kTUc8rNDU7GEcFBGSI4FWZsu8Km81x7u62tMin8xuNkw3yGVmnG8ULlpMHe4\n"
-"fwED4zDbfwWGoBLIKXvH0E1yaQ2DiRci2DiDPMqw5ZV/N7bha3RxkQ==\n"
-"-----END RSA PRIVATE KEY-----\n";
-
-char gTestCrt[] = ""
-"-----BEGIN CERTIFICATE-----\n"
-"MIICkjCCAfugAwIBAgIJAOa4Z0DKS6HuMA0GCSqGSIb3DQEBBQUAMGIxCzAJBgNV\n"
-"BAYTAktSMRAwDgYDVQQIDAdLZW9uZ0tpMQ8wDQYDVQQHDAZZb25nSW4xCzAJBgNV\n"
-"BAoMAktUMREwDwYDVQQLDAhSZXNlYXJjaDEQMA4GA1UEAwwHbmV0bWluZDAeFw0x\n"
-"NDEwMTAxMTQzMDJaFw0xNTEwMTAxMTQzMDJaMGIxCzAJBgNVBAYTAktSMRAwDgYD\n"
-"VQQIDAdLZW9uZ0tpMQ8wDQYDVQQHDAZZb25nSW4xCzAJBgNVBAoMAktUMREwDwYD\n"
-"VQQLDAhSZXNlYXJjaDEQMA4GA1UEAwwHbmV0bWluZDCBnzANBgkqhkiG9w0BAQEF\n"
-"AAOBjQAwgYkCgYEAwwlc2e0e15t8jHZer50VCPGT6K/9AOw7XISzglc++eQjZWUT\n"
-"ndnK6Den/YJQ/DNPDr+wNzftDtLmxElNjBq8y2KuUvzf4KsBCI3prxZ0GoXO5jS4\n"
-"jXCiZsl6tcnoI18KKFZBFAivxwreGC7Fp91la9qpWR4c7Xnlx1XFa+KEJbUCAwEA\n"
-"AaNQME4wHQYDVR0OBBYEFFwYCLFukaxA1rHdhZEO1opHr3kkMB8GA1UdIwQYMBaA\n"
-"FFwYCLFukaxA1rHdhZEO1opHr3kkMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEF\n"
-"BQADgYEAtNSgLL7bsRZk4rIF0Ns4I3cGzjtyq356r2ziTtu54NOGygQPu/YPeP9O\n"
-"G01wGyb4oXDz+waHQUgF/nsP9Z/jO001ca6+vID3zdnYImGvrFo86RV9yDEANvxI\n"
-"DwuB0mO5Hbd2zf5Q8fqe/BdJCLukaDS4H87gUL5h6ejUoBsjXmc=\n"
-"-----END CERTIFICATE-----\n";
-
 
 long _gStartFds;
 
 void init_test()
 {
+#if USE_SSL
+	char gTestKey[] = ""
+	"-----BEGIN RSA PRIVATE KEY-----\n"
+	"Proc-Type: 4,ENCRYPTED\n"
+	"DEK-Info: DES-EDE3-CBC,530F6BF4FC4863E5\n"
+	"\n"
+	"ompWbbl2zkVdwPVzPbe6YCLxOWjLld+JXrb2uDLIVKU6yc4YraUm7S10KXeWp2Ff\n"
+	"WwDR6IGrloliZTCmsBK/Ol93A+awAdftEW95bmMHnrga0ErJ905U7ijzkrlfPOgl\n"
+	"obW8nO24z6XrRPYruxUKizTA9ZGH02Ds4MtbmaL7lGZlPcL/Vm36mJPSslQA08Sv\n"
+	"gsfitXnGWZLENkKr4ThYRpQtrd+NM0KEvXoHU/juc4AjMg+P3nMnwHk1HZuD7mH5\n"
+	"Ks0ulh6w5BVJGvnRFKfiTrNItWJF4zWszc33f/i5lo1yMGMX2qnZyR+Q2WnyAEpz\n"
+	"+8wxqA9Ck4gz5SUIoE6GUGjnV9WsEO+I/0DkD5Dd49qcVSYRG5XPyXUJ+LO+ilAF\n"
+	"HT1G1NHIQ3PVLeVlHUaJW97tdH8iXhG57onVlak/8Jj7l0P6LFmijp1PWaNJX7mh\n"
+	"gXRwkaReAGvC8YbcX99SLwqZvMzAxWEV9y0Ro0VF/qZX5rhnL/4zgMeuE7Ee7wz2\n"
+	"KNcpXzOYQNxKYww66HPBeKgsbMjjA67JD4+5QaaAdK3ENtZMTjhnOk5NkLyEn6cB\n"
+	"20426Pq6e7CJd7Crz+c0Ghev7SmEadLxw1AI3zISxnScWMff4SsFD5vK29Xmj/vx\n"
+	"XqX9IYIWQtEqnzZO1f31wmcO4qrugJB/xbtsLJ1VDuqKPgz7jzOy1CI3H+Z7CrJG\n"
+	"iqj8kTUc8rNDU7GEcFBGSI4FWZsu8Km81x7u62tMin8xuNkw3yGVmnG8ULlpMHe4\n"
+	"fwED4zDbfwWGoBLIKXvH0E1yaQ2DiRci2DiDPMqw5ZV/N7bha3RxkQ==\n"
+	"-----END RSA PRIVATE KEY-----\n";
+
+	char gTestCrt[] = ""
+	"-----BEGIN CERTIFICATE-----\n"
+	"MIICkjCCAfugAwIBAgIJAOa4Z0DKS6HuMA0GCSqGSIb3DQEBBQUAMGIxCzAJBgNV\n"
+	"BAYTAktSMRAwDgYDVQQIDAdLZW9uZ0tpMQ8wDQYDVQQHDAZZb25nSW4xCzAJBgNV\n"
+	"BAoMAktUMREwDwYDVQQLDAhSZXNlYXJjaDEQMA4GA1UEAwwHbmV0bWluZDAeFw0x\n"
+	"NDEwMTAxMTQzMDJaFw0xNTEwMTAxMTQzMDJaMGIxCzAJBgNVBAYTAktSMRAwDgYD\n"
+	"VQQIDAdLZW9uZ0tpMQ8wDQYDVQQHDAZZb25nSW4xCzAJBgNVBAoMAktUMREwDwYD\n"
+	"VQQLDAhSZXNlYXJjaDEQMA4GA1UEAwwHbmV0bWluZDCBnzANBgkqhkiG9w0BAQEF\n"
+	"AAOBjQAwgYkCgYEAwwlc2e0e15t8jHZer50VCPGT6K/9AOw7XISzglc++eQjZWUT\n"
+	"ndnK6Den/YJQ/DNPDr+wNzftDtLmxElNjBq8y2KuUvzf4KsBCI3prxZ0GoXO5jS4\n"
+	"jXCiZsl6tcnoI18KKFZBFAivxwreGC7Fp91la9qpWR4c7Xnlx1XFa+KEJbUCAwEA\n"
+	"AaNQME4wHQYDVR0OBBYEFFwYCLFukaxA1rHdhZEO1opHr3kkMB8GA1UdIwQYMBaA\n"
+	"FFwYCLFukaxA1rHdhZEO1opHr3kkMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEF\n"
+	"BQADgYEAtNSgLL7bsRZk4rIF0Ns4I3cGzjtyq356r2ziTtu54NOGygQPu/YPeP9O\n"
+	"G01wGyb4oXDz+waHQUgF/nsP9Z/jO001ca6+vID3zdnYImGvrFo86RV9yDEANvxI\n"
+	"DwuB0mO5Hbd2zf5Q8fqe/BdJCLukaDS4H87gUL5h6ejUoBsjXmc=\n"
+	"-----END CERTIFICATE-----\n";
 	EdFile file;
 	file.openFile("/tmp/test.key", EdFile::OPEN_RWTC);
 	file.writeStr(gTestKey);
@@ -95,6 +95,7 @@ void init_test()
 	file.openFile("/tmp/test.crt", EdFile::OPEN_RWTC);
 	file.writeStr(gTestCrt);
 	file.closeFile();
+#endif
 }
 
 
@@ -1069,10 +1070,10 @@ void testHttpSever(int mode)
 			int ret = EdHttpTask::OnEventProc(pmsg);
 			if (pmsg->msgid == EDM_INIT)
 			{
-
-				//setDefaultCertPassword("123456");
-				//setDefaultCertFile("/tmp/test.crt", "/tmp/test.key");
-
+#if USE_SSL
+				setDefaultCertPassword("123456");
+				setDefaultCertFile("/tmp/test.crt", "/tmp/test.key");
+#endif
 				regController<MyController>("/userinfo", NULL);
 				regController<FileCtrl>("/getfile", NULL);
 				regController<UpFileCtrl>("/upfile", NULL);
@@ -1230,18 +1231,17 @@ void testHttpSever(int mode)
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
-				server->close();
+				server->stopService();
 				delete server;
 				server = NULL;
 			}
 			else if (pmsg->msgid == TS_NORMAL)
 			{
-				int port = 9090;
-				int task_inst = 1;
-				logs("server open, port=%d, task-instance=%d", port, task_inst);
-				server->open(port);
-				//server->open(7070, true);
-				server->startService<MyHttpTask>(task_inst);
+				EdHttpSettings settings = EdHttpServer::getDefaultSettings();
+				settings.port = 9090;
+				settings.ssl_port = 7070;
+				logs("server open, port=%d, task-instance=%d", settings.port, settings.task_num);
+				server->startService<MyHttpTask>(&settings);
 
 				nextTest();
 			}

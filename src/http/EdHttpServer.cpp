@@ -36,7 +36,8 @@ void EdHttpServer::IOnSocketEvent(EdSocket* psock, int event)
 		if (mSvcCount > 0)
 		{
 			int idx = (mSvcRound++ % mSvcCount);
-			mSvcList[idx]->postMsg(EDMX_HTTPCNN, fd, psock == &mSvrSock ? 0 : 1);
+			mSvcList[idx]->postMsg(EDMX_HTTPCNN, fd,
+					psock == &mSvrSock ? 0 : 1);
 		}
 	}
 }
@@ -70,6 +71,34 @@ void EdHttpServer::close()
 	dbgd("http server closing...task cnt=%d", mSvcCount);
 	mSvrSock.close();
 	mSSLSvrSock.close();
+}
+
+void EdHttpServer::initCommon(EdHttpSettings* pset)
+{
+	dbgd("init server....");
+	mSettings = *pset;
+	EdHttpCnn::initHttpParser();
+
+	if (mSettings.port > 0)
+		open(mSettings.port, false);
+#if USE_SSL
+	if (mSettings.ssl_port > 0)
+		open(mSettings.ssl_port, true);
+#endif
+}
+
+EdHttpSettings EdHttpServer::getDefaultSettings()
+{
+	EdHttpSettings settings;
+	settings.port = 80;
+	settings.ssl_port = 443;
+	settings.task_num = 1;
+	return settings;
+}
+
+void EdHttpServer::stopService()
+{
+	close();
 	for (int i = 0; i < mSvcCount; i++)
 	{
 		mSvcList[i]->terminate();
@@ -77,13 +106,6 @@ void EdHttpServer::close()
 		mSvcList[i] = NULL;
 	}
 	mSvcCount = 0;
-
 }
 
-void EdHttpServer::initCommon()
-{
-	dbgd("init server....");
-	EdHttpCnn::initHttpParser();
-}
-
-}
+} // namespace edft
