@@ -27,7 +27,12 @@ enum {
 };
 
 
-class EdHttpTask: public EdTask, public EdSocket::ISocketCb
+typedef struct {
+	int recv_buf_size;
+
+} http_server_cfg_t;
+
+class EdHttpTask: public EdTask
 {
 	friend class EdHttpCnn;
 
@@ -35,12 +40,12 @@ public:
 	EdHttpTask();
 	virtual ~EdHttpTask();
 	virtual int OnEventProc(EdMsg* pmsg);
-	virtual void IOnSocketEvent(EdSocket *psock, int event);
 
 	int setDefaultCertFile(const char* crtfile, const char* keyfile);
+	int setDefaultCertMem(const void *crt, int crtlen, const void* key, int keylen);
 	void setDefaultCertPassword(const char* pw);
 	int openDefaultCertFile(const char* crtfile, const char* keyfile, const char* pw);
-
+	http_server_cfg_t* getConfig();
 
 	typedef EdHttpController* (*__alloc_controller)();
 	struct urlmapinfo_t {
@@ -68,13 +73,14 @@ public:
 
 
 private:
+	http_server_cfg_t mConfig;
 	EdObjList<EdHttpCnn> mCnns;
 	unordered_map<string, EdHttpController*> mUrlMap;
 	unordered_map<string, urlmapinfo_t*> mAllocMap;
 	EdHttpController*allocController(const char *url);
 	void freeController(EdHttpController* pctrl);
 	void release();
-	void freeConnection(EdHttpCnn *pcnn);
+	void removeConnection(EdHttpCnn *pcnn);
 
 
 };

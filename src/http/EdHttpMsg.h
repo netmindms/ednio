@@ -8,12 +8,15 @@
 #ifndef ESHTTPMSG_H_
 #define ESHTTPMSG_H_
 
+#include "../config.h"
+
 #include <string>
 #include <unordered_map>
 
 using namespace std;
 
 namespace edft {
+
 
 class EdHttpMsg
 {
@@ -22,13 +25,13 @@ public:
 	EdHttpMsg();
 	virtual ~EdHttpMsg();
 
-	void setUrl(string *url);
-	const string* getUrl();
+	void setUrl(string url);
+	string getUrl();
 	void setStatusLine(string *statusline);
-	void addHdr(string *hdr, string *val);
+	void addHdr(string hdr, string val);
 	void addHdr(const char* name, const char* val);
 	const char* getHdr(const char* name);
-
+	const string getHdrString(const char* name);
 	void encodeRespMsg(string *outbuf);
 
 	void free();

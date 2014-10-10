@@ -4,8 +4,8 @@
  *  Created on: Sep 11, 2014
  *      Author: netmind
  */
-#define DBGTAG "sread"
-#define DBG_LEVEL DBG_DEBUG
+#define DBGTAG "HTSRD"
+#define DBG_LEVEL DBG_WARN
 
 #include "../config.h"
 
@@ -20,7 +20,6 @@ namespace edft
 
 EdHttpStringReader::EdHttpStringReader()
 {
-	// TODO Auto-generated constructor stub
 	mReadIdx = mSize = 0;
 	mBuf = NULL;
 	mTakenString = NULL;
@@ -28,7 +27,6 @@ EdHttpStringReader::EdHttpStringReader()
 
 EdHttpStringReader::~EdHttpStringReader()
 {
-	// TODO Auto-generated destructor stub
 	if(mTakenString == NULL)
 	{
 		if(mBuf != NULL)

@@ -49,7 +49,9 @@ if TopEnv['USE_SSL'] == 'true':
 	subobj = SConscript('edssl/SConscript')
 
 if TopEnv['USE_CURL'] == 'true':
-	subobj = SConscript('edcurl/SConscript')
+	subobj += SConscript('edcurl/SConscript')
+
+subobj += SConscript('http/SConscript')
 	
 obj = curobj + subobj
 

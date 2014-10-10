@@ -4,15 +4,30 @@
  *  Created on: Jul 8, 2014
  *      Author: netmind
  */
+#include "../config.h"
+
 
 #include <stdio.h>
 #include <time.h>
+#include <unordered_map>
+#include <string>
 #include <string.h>
 
+using namespace std;
+
+static bool _gHttpServerInit=false;
 
 static char _monthString[][4] ={ "Jan", "Feb", "Mar", "Apr", "May", "Jun",
 				"Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 static char _dayString[][4] = {  "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+
+static unordered_map<string, int> mHdrDic;
+
+void EdHttpInit() {
+	if(_gHttpServerInit==false) {
+
+	}
+}
 
 void es_get_httpDate(char* buf)
 {

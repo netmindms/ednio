@@ -4,8 +4,8 @@
  *  Created on: Jul 19, 2014
  *      Author: netmind
  */
-#define DBGTAG "edcmm"
-#define DBG_LEVEL DBG_DEBUG
+#define DBGTAG "EDNIO"
+#define DBG_LEVEL DBG_WARN
 
 #include "config.h"
 

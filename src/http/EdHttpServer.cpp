@@ -5,11 +5,14 @@
  *      Author: netmind
  */
 
-#define DBGTAG "htsvr"
-#define DBG_LEVEL DBG_DEBUG
+#define DBGTAG "HTSVR"
+#define DBG_LEVEL DBG_WARN
+
+#include "../config.h"
 
 #include "../edslog.h"
 #include "EdHttpServer.h"
+#include "EdHttpCnn.h"
 
 namespace edft {
 
@@ -71,5 +74,10 @@ void EdHttpServer::close()
 }
 
 
+void EdHttpServer::initCommon()
+{
+	dbgd("init server....");
+	EdHttpCnn::initHttpParser();
+}
 
 }

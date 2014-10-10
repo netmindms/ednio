@@ -4,7 +4,7 @@
  *  Created on: Sep 22, 2014
  *      Author: netmind
  */
-
+#include "../config.h"
 #include "EdNotFoundHttpController.h"
 
 namespace edft
@@ -19,9 +19,9 @@ EdNotFoundHttpController::~EdNotFoundHttpController()
 {
 }
 
-void EdNotFoundHttpController::OnRequest()
+void EdNotFoundHttpController::OnHttpRequestHeader()
 {
-	mReader.setString("<h1>Page Not Found......<h1>\n");
+	mReader.setString("<h1>  Page Not Found......  <h1>\n");
 	setRespBodyReader(&mReader,"text/html");
 	setHttpResult("404");
 }

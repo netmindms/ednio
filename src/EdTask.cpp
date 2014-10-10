@@ -43,12 +43,13 @@ EdTask::EdTask(int nmsgq)
 	memset(&mCtx, 0, sizeof(mCtx));
 #if USE_LIBEVENT
 	mLibMsgEvent = NULL;
+	mFreeEvent = NULL;
 #endif
 	mEdMsgEvt = NULL;
 	mMsgFd = -1;
 
 	mRunMode = MODE_EDEV;
-
+	lastSockErrorNo = 0;
 }
 
 EdTask::~EdTask()
@@ -65,30 +66,10 @@ void* EdTask::task_thread(void* arg)
 
 int EdTask::run(int mode)
 {
-
 	initMsg();
 	mRunMode = mode;
-#if 1
 	pthread_create(&mTid, NULL, task_thread, this);
 	return sendMsg(EDM_INIT);
-#else
-	if (mode == MODE_EDEV)
-	{
-		pthread_create(&mTid, NULL, esev_thread, this);
-		return sendMsg(EDM_INIT);
-	}
-	else
-	{
-#if USE_LIBEVENT
-		pthread_create(&mTid, NULL, libevent_thread, this);
-		return sendMsg(EDM_INIT);
-#else
-		dbge("### libevent not included in this build.......");
-		assert(0);
-		return -1;
-#endif
-	}
-#endif
 }
 
 int EdTask::runMain(int mode)
@@ -130,48 +111,6 @@ void* EdTask::esev_thread(void* arg)
 
 }
 
-#if USE_LIBEVENT
-void* EdTask::libevent_thread(void* arg)
-{
-	dbgd("libevent thread proc start...");
-	EdTask *ptask = (EdTask*) arg;
-	EdContext* pctx = &ptask->mCtx;
-	ptask->libeventMain(pctx);
-	return NULL;
-}
-
-void EdTask::libeventMain(EdContext* pctx)
-{
-	_tEdTask = this;
-	_tEdContext = &mCtx;
-
-	esOpen(this);
-
-	pctx->eventBase = event_base_new();
-	mLibMsgEvent = event_new(pctx->eventBase, mMsgFd, EV_READ | EV_PERSIST, libevent_cb, (void*) this);
-	event_add(mLibMsgEvent, NULL);
-	//event_base_dispatch(_gEdContext.eventBase);
-
-	mFreeEvent = new FreeEvent;
-	mFreeEvent->open();
-
-	event_base_loop(pctx->eventBase, 0);
-	cleanupAllTimer();
-	event_del(mLibMsgEvent);
-	event_free(mLibMsgEvent);
-	mLibMsgEvent = NULL;
-	callMsgClose();
-	dbgd("free obj list, cnt=%d", mReserveFreeList.size());
-
-	mFreeEvent->close();
-	delete mFreeEvent;
-
-	event_base_free(pctx->eventBase);
-	pctx->eventBase = NULL;
-
-	esClose(pctx);
-}
-#endif
 
 int EdTask::postEdMsg(u16 msgid, u64 data)
 {
@@ -473,46 +412,12 @@ void EdTask::msgevent_cb(edevt_t* pevt, int fd, int events)
 {
 	uint64_t cnt;
 	EdTask* ptask = (EdTask*) pevt->user;
-
-	read(fd, &cnt, sizeof(cnt));
+	int rcnt = read(fd, &cnt, sizeof(cnt));
 	dbgv("eventfd cnt=%d", cnt);
-	ptask->dispatchMsgs(cnt);
-#if 0
-	for (uint32_t i = 0; i < cnt; i++)
+	if(rcnt == 8)
 	{
-		EdMsg *pmsg = task->mMsgQue.get_used();
-		if (pmsg)
-		{
-			int msg_ret;
-			if (pmsg->msgid == EM_EXIT)
-			{
-				pevt->pEdCtx->exit_flag = 1;
-				dbgd("EM_EXIT message .... event loop will be exited....");
-			}
-			else
-			{
-				msg_ret = task->OnEventProc(pmsg);
-			}
-			if (pmsg->sync)
-			{
-				dbgv("== send msg recv....id=%d", pmsg->msgid);
-				*pmsg->perror = msg_ret;
-				pthread_mutex_lock(pmsg->pmsg_sync_mutex);
-				pthread_cond_signal(pmsg->pmsg_sig);
-				pthread_mutex_unlock(pmsg->pmsg_sync_mutex);
-				dbgv("== send msg recv end....id=%d", pmsg->msgid);
-			}
-			task->mMsgQue.put_free(pmsg);
-		}
-		else
-		{
-			dbge("### unexpected msg que error...");
-			break;
-		}
-
+		ptask->dispatchMsgs(cnt);
 	}
-#endif
-
 }
 
 void EdTask::postExit(void)
@@ -529,13 +434,16 @@ void EdTask::callMsgClose()
 }
 
 #if USE_LIBEVENT
-void EdTask::libevent_cb(evutil_socket_t fd, short shortInt, void*user)
+void EdTask::libeventMsg_cb(evutil_socket_t fd, short shortInt, void*user)
 {
 	dbgv("libevent callback, fd=%d", fd);
 	EdTask* ptask = (EdTask*) user;
 	u64 cnt;
-	read(ptask->mMsgFd, &cnt, sizeof(cnt));
-	ptask->dispatchMsgs(cnt);
+	int rcnt = read(ptask->mMsgFd, &cnt, sizeof(cnt));
+	if(rcnt == 8)
+	{
+		ptask->dispatchMsgs(cnt);
+	}
 }
 #endif
 
@@ -684,7 +592,7 @@ int EdTask::esMain(EdContext* psys)
 
 void EdTask::taskProc()
 {
-	dbgd("start thread miain......");
+	dbgd("start thread main, run mode=%d", mRunMode);
 	_tEdTask = this;
 	EdContext* pctx = &mCtx;
 	_tEdContext = pctx;
@@ -731,7 +639,7 @@ void EdTask::edEventLoop(EdContext* pctx)
 void EdTask::libeventLoop(EdContext* pctx)
 {
 	pctx->eventBase = event_base_new();
-	mLibMsgEvent = event_new(pctx->eventBase, mMsgFd, EV_READ | EV_PERSIST, libevent_cb, (void*) this);
+	mLibMsgEvent = event_new(pctx->eventBase, mMsgFd, EV_READ | EV_PERSIST, libeventMsg_cb, (void*) this);
 	event_add(mLibMsgEvent, NULL);
 	//event_base_dispatch(_gEdContext.eventBase);
 
@@ -918,5 +826,10 @@ EdTask* EdTask::getCurrentTask()
 	return _tEdTask;
 }
 
-} // namespace edft
 
+int EdTask::getRunMode()
+{
+	return mRunMode;
+}
+
+} // namespace edft

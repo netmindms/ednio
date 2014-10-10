@@ -16,6 +16,9 @@
 #include "EdHttpWriter.h"
 #include "EdHttpReader.h"
 #include "EdHttpType.h"
+#include "EdHttpHdr.h"
+#include "EdMultipartInfo.h"
+#include "EdHttpContent.h"
 
 namespace edft
 {
@@ -32,61 +35,65 @@ class EdHttpController : public EdObject
 public:
 	EdHttpController();
 	virtual ~EdHttpController();
-	virtual void OnInit();
-	virtual void OnRequest();
-	virtual void OnContentRecvComplete();
-	//virtual void OnContentSendComplete();
-	virtual void OnComplete(int result);
+	virtual void OnHttpCtrlInit();
+	virtual void OnHttpRequestHeader();
+	virtual void OnHttpComplete(int result);
+	virtual void OnHttpDataNew(EdHttpContent *pct);
+	virtual void OnHttpDataContinue(EdHttpContent *pct, const void *buf, int len);
+	virtual void OnHttpDataRecvComplete(EdHttpContent *pct);
+	virtual void OnHttpRequestMsg();
+
 	void close();
 	void setReqBodyWriter(EdHttpWriter* writer);
 	void setRespBodyReader(EdHttpReader* reader, const char *type);
-	const char* getReqHeader(char* name);
+	const int getReqMethod();
+	const char* getReqHeader(const char* name);
+	const string getReqHeaderString(const char* name);
 	long getReqContentLen();
 	void *getUserData();
-	const string* getReqUrl();
+	string getReqUrl();
 
 protected:
 	void setHttpResult(const char *code);
+private:
+	bool checkExpect();
+	void checkHeaders();
 
 private:
 	void* mUserData;
 
-	EdHttpWriter* mWriter;
 
 	//EsHttpTrans* mTrans;
 	EdHttpCnn* mCnn;
 	EdHttpMsg mReqMsg;
 	EdHttpMsg mRespMsg;
+	EdHdrContentType* mReqCtype;
+	bool mIsMultipartBody;
 
+	int mReqMethod;
 	char mStatusCode[4];
 	bool mIsFinalResponsed;
+	bool mIsContinueResponse;
 	bool mTxTrying;
+	bool mIsBodyTxComplete;
 
 	std::list<packet_buf_t> mPacketList;
 
 	// header response stream data
 	string mHeaderEncStr;
-#if 0
-	char *mEncStartStream;
-	int mEncHeaderReadCnt;
-	int mEncHeaderSize;
-#endif
+
 	packet_buf_t mHdrPkt;
 
 	// body data stream
 	EdHttpReader* mBodyReader;
 
 	void setConnection(EdHttpCnn* pcnn);
-	void addReqHeader(string* name, string* val);
-	void setUrl(string *url);
-	void sendResp(char* code, void *textbody, int len, char* cont_type);
+	void addReqHeader(string name, string val);
+	void setUrl(string url);
 	void encodeResp();
-	int getRespEncodeStream(void* buf, int len);
-	int transmitRespStream();
+	const char* getBoundary();
+
 	void getSendPacket(packet_buf_t* pinfo);
-#if 0
-	int getSendPacketData(void* buf, int len);
-#endif
 	void initCtrl(EdHttpCnn* pcnn);
 };
 

@@ -7,14 +7,17 @@
 
 #ifndef EDHTTPWRITER_H_
 #define EDHTTPWRITER_H_
-
+#include "../config.h"
 namespace edft
 {
 
 class EdHttpWriter
 {
 public:
-	virtual long Write(void *buf, long len)=0;
+	virtual long writeData(const void *buf, long len)=0;
+	virtual long getWriteCount()=0;
+	virtual void close()=0;
+	virtual ~EdHttpWriter(){};
 };
 
 } /* namespace edft */

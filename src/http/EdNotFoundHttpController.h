@@ -7,7 +7,7 @@
 
 #ifndef EDNOTFOUNDHTTPCONTROLLER_H_
 #define EDNOTFOUNDHTTPCONTROLLER_H_
-
+#include "../config.h"
 #include "EdHttpController.h"
 #include "EdHttpStringReader.h"
 
@@ -19,7 +19,8 @@ class EdNotFoundHttpController: public EdHttpController
 public:
 	EdNotFoundHttpController();
 	virtual ~EdNotFoundHttpController();
-	void OnRequest();
+	void OnHttpRequestHeader();
+
 private:
 	EdHttpStringReader mReader;
 };

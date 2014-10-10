@@ -38,7 +38,7 @@ int EdFile::readFile(void* buf, int size)
 	return read(mFd, buf, size);
 }
 
-int EdFile::writeFile(void* buf, int size)
+int EdFile::writeFile(const void* buf, int size)
 {
 	return write(mFd, buf, size);
 }

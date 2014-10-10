@@ -22,7 +22,7 @@ public:
 	public:
 		virtual void IOnPipeEvent(EdPipe *espipe, int events)=0;
 	};
-	void open();
+	int open();
 	void close();
 	int send(const void *buf, int size);
 	int recv(void *buf, int size);

@@ -11,12 +11,18 @@
 namespace edft
 {
 
-
 u32 EdTime::msecTime()
 {
 	struct timespec tp;
 	clock_gettime(CLOCK_MONOTONIC, &tp);
-	return (tp.tv_sec * 1000 + tp.tv_nsec/1000000);
+	return (tp.tv_sec * 1000 + tp.tv_nsec / 1000000);
+}
+
+u64 EdTime::usecTime()
+{
+	struct timespec tp;
+	clock_gettime(CLOCK_MONOTONIC, &tp);
+	return (tp.tv_sec * 1000000 + tp.tv_nsec / 1000);
 }
 
 } /* namespace edft */

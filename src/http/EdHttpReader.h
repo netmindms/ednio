@@ -8,6 +8,8 @@
 #ifndef EDHTTPREADER_H_
 #define EDHTTPREADER_H_
 
+#include "../config.h"
+
 namespace edft
 {
 

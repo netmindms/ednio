@@ -8,10 +8,10 @@
 #ifndef ESHTTPSERVER_H_
 #define ESHTTPSERVER_H_
 
+#include "../config.h"
+
 #include <list>
-
 #include "EdHttpTask.h"
-
 
 namespace edft {
 
@@ -26,14 +26,17 @@ public:
 	virtual ~EdHttpServer();
 	//virtual int OnEventProc(EdMsg* pmsg);
 	virtual void IOnSocketEvent(EdSocket *psock, int event);
+	void initCommon();
 
 	template<typename T>	void startService(int num=1)
 	{
+		initCommon();
+		int mode = EdTask::getCurrentTask()->getRunMode();
 		mSvcMutex.lock();
 		for(int i=0;i<num;i++)
 		{
 			EdHttpTask *ptask = new T;
-			ptask->run();
+			ptask->run(mode);
 			mSvcList[mSvcCount++] = ptask;
 		}
 		mSvcMutex.unlock();
@@ -41,6 +44,7 @@ public:
 
 	int open(int port, bool ssl=false);
 	void close();
+
 
 private:
 	EdMutex mSvcMutex;

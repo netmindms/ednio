@@ -5,6 +5,8 @@
  *      Author: netmind
  */
 
+#include "../config.h"
+
 #include "EdHttpFileReader.h"
 
 namespace edft

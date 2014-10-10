@@ -50,6 +50,7 @@ public:
 
 	SSL_CTX* getContext();
 	int setSSLCertFile(const char* certfile, const char* privkeyfile);
+	int setSSLCertMem(void *crt, int crtlen, void* key, int keylen);
 	void setCertPassword(const char* pw);
 private:
 	int dgPasswordCb(char* buf, int size, int rwflag);

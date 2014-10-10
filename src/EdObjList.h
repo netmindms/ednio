@@ -8,7 +8,9 @@
 #ifndef __EDOBJLISTH__
 #define __EDOBJLISTH__
 #include "config.h"
+
 #include <pthread.h>
+#include <string.h>
 #include "edslog.h"
 #include "EdType.h"
 #include "EdMutex.h"

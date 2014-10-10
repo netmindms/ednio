@@ -18,7 +18,7 @@ class EdTime
 {
 public:
 	static u32 msecTime();
-
+	static u64 usecTime();
 };
 
 } /* namespace edft */

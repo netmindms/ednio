@@ -4,8 +4,8 @@
  *  Created on: Jun 10, 2014
  *      Author: khkim
  */
-#define DBGTAG "epipe"
-#define DBG_LEVEL DBG_DEBUG
+#define DBGTAG "EDPIP"
+#define DBG_LEVEL DBG_WARN
 
 #include <unistd.h>
 #include "EdPipe.h"
@@ -30,27 +30,32 @@ void EdPipe::OnEventRead(void)
 {
 	if (mPipeCb)
 		mPipeCb->IOnPipeEvent(this, EVT_READ);
-		//mPipeCb->IOnPipeRead(this);
+	//mPipeCb->IOnPipeRead(this);
 }
 
 void EdPipe::OnEventWrite(void)
 {
 	if (mPipeCb)
 		mPipeCb->IOnPipeEvent(this, EVT_READ);
-		//mPipeCb->IOnPipeWrite(this);
+	//mPipeCb->IOnPipeWrite(this);
 }
 
-void EdPipe::open()
+int EdPipe::open()
 {
 	int fds[2];
-	pipe(fds);
-	mRecvFd = fds[0], mSendFd = fds[1];
-	if (mContext == NULL)
+	int ret = pipe(fds);
+	if (ret == 0)
 	{
-		setDefaultContext();
+		mRecvFd = fds[0], mSendFd = fds[1];
+		if (mContext == NULL)
+		{
+			setDefaultContext();
+		}
+		setFd(mRecvFd);
+		registerEvent(EVT_READ);
 	}
-	setFd(mRecvFd);
-	registerEvent(EVT_READ);
+
+	return ret;
 }
 
 void EdPipe::close()

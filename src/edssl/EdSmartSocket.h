@@ -122,6 +122,7 @@ private:
 	void changeSSLSockEvent(int err, bool bwrite);
 	void procNormalOnWrite();
 	void procSSLOnWrite();
+	void procSSLErrCloseNeedEnd();
 
 private:
 	SSL *mSSL;
@@ -133,6 +134,7 @@ private:
 	INet* mOnLis;
 	int mMode; // 0: Normal mode, 1: ssl mode
 	void* mPendingBuf; int mPendingWriteCnt; int mPendingSize;
+	int mSSLWantEvent;
 };
 
 } /* namespace edft */

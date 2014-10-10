@@ -4,8 +4,8 @@
  *  Created on: Aug 5, 2014
  *      Author: netmind
  */
-#define DBGTAG "edssl"
-#define DBG_LEVEL DBG_DEBUG
+#define DBGTAG "SLCTX"
+#define DBG_LEVEL DBG_WARN
 
 #include "../edslog.h"
 #include "EdSSLContext.h"
@@ -213,6 +213,15 @@ int EdSSLContext::setSSLCertFile(const char* certfile, const char* privkeyfile)
 	return 0;
 }
 
+int EdSSLContext::setSSLCertMem(void* crt, int crtlen, void* key, int keylen)
+{
+	X509* xcert = d2i_X509(NULL, (const unsigned char**)&crt, crtlen);
+	SSL_CTX_use_certificate(mCtx, xcert);
+
+	RSA *pkey = d2i_RSAPrivateKey(NULL, (const unsigned char**)&key, keylen);
+	SSL_CTX_use_RSAPrivateKey(mCtx, pkey);
+	return 0;
+}
 
 void EdSSLContext::open(int ver)
 {
@@ -240,5 +249,8 @@ int EdSSLContext::dgPasswordCb(char* buf, int size, int rwflag)
 	strcpy(buf, mPasswd);
 	return strlen(mPasswd);
 }
+
+
+
 
 } /* namespace edft */

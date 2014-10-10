@@ -7,11 +7,13 @@
 //============================================================================
 
 #define DBGTAG "main0"
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 
 #include <sys/types.h>
 #include <dirent.h>
+#include <vector>
 
+#include "EdType.h"
 #include "EdNio.h"
 #include "EdTask.h"
 #include "EdTimer.h"
@@ -25,6 +27,11 @@
 #include "http/EdHttpServer.h"
 #include "http/EdHttpTask.h"
 #include "http/EdHttpFileReader.h"
+#include "http/EdHttpFileWriter.h"
+#include "http/EdHdrDate.h"
+#include "http/EdHttpDefMultiPartCtrl.h"
+#include "http/EdHttpUploadCtrl.h"
+
 #include "edssl/EdSSLContext.h"
 #include "edssl/EdSSLSocket.h"
 #include "edssl/EdSmartSocket.h"
@@ -72,6 +79,7 @@ int get_num_fds()
 	DIR *dir = opendir(buf);
 	while ((dp = readdir(dir)) != NULL)
 	{
+		//if(!(dp->d_type & DT_DIR))	logs("file = %s", dp->d_name);
 		fd_count++;
 	}
 	closedir(dir);
@@ -117,6 +125,46 @@ public:
 		mTestList.push_back(t);
 	}
 };
+
+// test task
+void testtask(int mode)
+{
+	enum
+	{
+		TS_NORMAL = EDM_USER + 1,
+	};
+	class MainTask: public TestTask
+	{
+		int OnEventProc(EdMsg* pmsg)
+		{
+			if (pmsg->msgid == EDM_INIT)
+			{
+				addTest(TS_NORMAL);
+				nextTest();
+			}
+			else if (pmsg->msgid == EDM_CLOSE)
+			{
+
+			}
+			else if (pmsg->msgid == TS_NORMAL)
+			{
+				logs("== Start normal test...");
+				logs("== Normal test ok...\n");
+				nextTest();
+			}
+			return 0;
+		}
+	};
+
+	logm(">>>> Test: Task, mode=%d", mode);
+	fdcheck_start();
+	auto task = new MainTask;
+	task->run(mode);
+	task->wait();
+	delete task;
+	fdcheck_end();
+	logm("<<<< Task test OK\n");
+}
 
 // message exchanging test
 void testmsg(int mode)
@@ -979,17 +1027,19 @@ void testHttpSever(int mode)
 
 	enum
 	{
-		TS_NORMAL = EDM_USER + 1, TS_SERVER_END,
+		TS_NORMAL = EDM_USER + 1, TS_SERVER_END, TS_MULTIPART,
 	};
 	class MyHttpTask;
 	class MyController;
 	class FileCtrl;
-
+	class UpFileCtrl;
+	class MultipartCtrl;
 
 	class MyHttpTask: public EdHttpTask
 	{
 		EdHttpStringWriter *mWriter;
 		EdHttpStringReader *mReader;
+
 	public:
 
 		virtual int OnEventProc(EdMsg* pmsg)
@@ -997,10 +1047,33 @@ void testHttpSever(int mode)
 			int ret = EdHttpTask::OnEventProc(pmsg);
 			if (pmsg->msgid == EDM_INIT)
 			{
+
 				setDefaultCertPassword("ks2662");
+				/*
+				 EdFile file;
+				 file.openFile("/home/netmind/testkey/netsvr.crt");
+				 int csize = file.getSize("/home/netmind/testkey/netsvr.crt");
+				 crtmem = malloc(csize);
+				 file.readFile(crtmem, csize);
+				 file.closeFile();
+
+				 file.openFile("/home/netmind/testkey/netsvr.key");
+				 int ksize = file.getSize("/home/netmind/testkey/netsvr.key");
+				 keymem = malloc(ksize);
+				 file.readFile(keymem, ksize);
+				 file.closeFile();
+				 setDefaultCertMem(crtmem, csize, keymem, ksize);
+				 */
+
 				setDefaultCertFile("/home/netmind/testkey/netsvr.crt", "/home/netmind/testkey/netsvr.key");
+
 				regController<MyController>("/userinfo", NULL);
 				regController<FileCtrl>("/getfile", NULL);
+				regController<UpFileCtrl>("/upfile", NULL);
+				regController<MultipartCtrl>("/multi", NULL);
+			}
+			else if (pmsg->msgid == EDM_CLOSE)
+			{
 			}
 			return ret;
 		}
@@ -1019,20 +1092,20 @@ void testHttpSever(int mode)
 			mMyTask = (MyHttpTask*) EdTask::getCurrentTask();
 			logs("mycont const.....");
 		}
-		virtual void OnRequest()
+		virtual void OnHttpRequestHeader()
 		{
 			logs("after 100msec, send response...");
 			mTimer.setOnListener(this);
 			mTimer.set(100);
 		}
 
-		virtual void OnContentRecvComplete()
+		virtual void OnHttpDataRecvComplete(EdHttpContent* pctt)
 		{
 			;
 		}
 		;
 
-		virtual void OnComplete(int result)
+		virtual void OnHttpComplete(int result)
 		{
 			logs("http complete...result=%d", result);
 			delete mStrReader;
@@ -1052,28 +1125,92 @@ void testHttpSever(int mode)
 
 	};
 
-	class FileCtrl : public EdHttpController {
+	class FileCtrl: public EdHttpController
+	{
 		EdHttpFileReader reader;
-		void OnInit() {
+		void OnInit()
+		{
 			logs("file ctrl on init...");
-		};
-		virtual void OnRequest() {
+		}
+		;
+		virtual void OnHttpRequestHeader()
+		{
 			reader.open("/home/netmind/bb");
 			setRespBodyReader(&reader, "application/zip");
 			setHttpResult("200");
-		};
+		}
+		;
 
-		virtual void OnComplete(int result)
+		virtual void OnHttpComplete(int result)
 		{
 			logs("file ctrl complete, result=%d", result);
 			reader.close();
 		}
 
+	};
 
+	class UpFileCtrl: public EdHttpUploadCtrl
+	{
+		void OnHttpCtrlInit()
+		{
+			logs("upfile request method=%d, url=%s", getReqMethod(), getReqUrl().c_str());
+			if(getReqMethod() != HTTP_PUT) {
+				setHttpResult("400");
+				return;
+			}
+			setPath("/tmp/ednio/upfile.dat");
+		}
+		void OnHttpRequestHeader()
+		{
+			EdHttpUploadCtrl::OnHttpRequestHeader();
+			logs("  content=%s", getReqHeader("Content-Type"));
+		}
+		void OnHttpRequestMsg()
+		{
+			logs("up file request msg...");
+			setHttpResult("200");
+		}
+
+	};
+
+	class MultipartCtrl: public EdHttpDefMultiPartCtrl
+	{
+		EdHttpStringReader reader;
+		void OnHttpRequestHeader()
+		{
+			auto task = (EdHttpTask*) EdTask::getCurrentTask();
+			logs("  recv buf size=%d", task->getConfig()->recv_buf_size);
+			setFileFolder("/tmp/ednio");
+		}
+		void OnHttpRequestMsg()
+		{
+			logs("on multipart request msg, ");
+
+			string info = getData("info");
+			if (info.size()>0)
+			{
+				logs("info = %s", info.c_str());
+				reader.setString("info received...\r\n");
+				setRespBodyReader(&reader, "text/plain");
+				setHttpResult("200");
+			}
+			else
+			{
+				logs("### Fail: not found info value ... ");
+				setHttpResult("400");
+			}
+		}
+		void OnHttpComplete(int result)
+		{
+			logs("mp complete, result=%d", result);
+		}
 	};
 
 	class HttpTestTask: public TestTask
 	{
+	public:
+		virtual ~HttpTestTask() {
+		}
 		virtual int OnEventProc(EdMsg* pmsg)
 		{
 			if (pmsg->msgid == EDM_INIT)
@@ -1120,13 +1257,14 @@ void testHttpSever(int mode)
 			return 0;
 		}
 	};
+
 	logm(">>>> Test: Http Server, mode=%d", mode);
 	fdcheck_start();
 	HttpTestTask *task = new HttpTestTask;
 	task->runMain(mode);
+	//delete task;
 	fdcheck_end();
 	logm("<<<< HttpServer OK\n\n");
-
 }
 
 void testssl(int mode)
@@ -1150,13 +1288,14 @@ void testssl(int mode)
 				ssl = NULL;
 				smartSock = NULL;
 
-				//addTest(TS_SSL);
-				addTest(TS_SMART_SOCK);
+				addTest(TS_SSL);
+				//addTest(TS_SMART_SOCK);
 				nextTest();
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
 
+				EdSSLContext::freeDefaultEdSSL();
 			}
 			else if (pmsg->msgid == TS_SSL)
 			{
@@ -1199,6 +1338,7 @@ void testssl(int mode)
 					assert(0);
 				}
 				ssl->close();
+
 				logs("== basic ssl client test OK...\r\n");
 				nextTest();
 			}
@@ -1566,58 +1706,153 @@ void testsmartsock(int mode)
 	logm("<<<< smart socket test OK\n");
 }
 
-#include "http/http_parser.h"
-int main()
+void testreadclose(int mode)
 {
-
-#if 0
-	char t[100] = "name=kim&addr=2323";
-	char* p = t;
-	char *tk;
-	tk = strsep(&p, "=&");
-	tk = strsep(&p, "=&");
-
-	char *urlis[] =
-	{	"UF_SCHEMA", "UF_HOST", "UF_PORT", "UF_PATH", "UF_QUERY", "UF_FRAGMENT", "UF_USERINFO"};
-
-	http_parser_url url;
-	//char raw[] = "http://www.yahoo.co.kr:8080/index.html?name=kim&sec=100";
-	char raw[] = "/index.html?name=kim&sec=100";
-	char temp[200];
-	strcpy(temp, raw);
-	char *host, *path, *para;
-	int ur = http_parser_parse_url(temp, strlen(temp), 0, &url);
-	for (int i = 0; i < UF_MAX; i++)
+	enum
 	{
-		if (url.field_set & (1 << i))
+		TS_NORMAL = EDM_USER + 1,
+	};
+	class MainTask: public TestTask, public EdSocket::ISocketCb
+	{
+		EdSocket *sock;
+		int OnEventProc(EdMsg* pmsg)
 		{
-			string f;
-			f.assign(raw + url.field_data[i].off, url.field_data[i].len);
-			dbgd("url parsing: %s = %s", urlis[i], f.c_str());
-			temp[url.field_data[i].off + url.field_data[i].len] = 0;
-			if (i == UF_HOST)
+			if (pmsg->msgid == EDM_INIT)
 			{
-				host = temp + url.field_data[i].off;
+				addTest(TS_NORMAL);
+				nextTest();
 			}
-			else if (i == UF_PATH)
+			else if (pmsg->msgid == EDM_CLOSE)
 			{
-				path = temp + url.field_data[i].off;
+
 			}
-			else if (i == UF_QUERY)
+			else if (pmsg->msgid == TS_NORMAL)
 			{
-				para = temp + url.field_data[i].off;
+				logs("== Start normal test...");
+				sock = new EdSocket;
+				sock->setOnListener(this);
+				sock->connect("127.0.0.1", 4040);
+			}
+			return 0;
+		}
+
+		void IOnSocketEvent(EdSocket *psock, int event)
+		{
+			if (event == SOCK_EVENT_READ)
+			{
+				logs("sevt read...");
+				char buf[200];
+				int rcnt = psock->recv(buf, 100);
+				logs("    rcnt = %d", rcnt);
+			}
+			else if (event == SOCK_EVENT_DISCONNECTED)
+			{
+				logs("sevt disc...");
+				psock->close();
+				delete psock;
+				nextTest();
+			}
+			else if (event == SOCK_EVENT_CONNECTED)
+			{
+				logs("sevt conn...");
+			}
+			else if (event == SOCK_EVENT_WRITE)
+			{
+				logs("sevt write...");
 			}
 		}
-	}
-#endif
+	};
 
+	logm(">>>> Test: Task, mode=%d", mode);
+	fdcheck_start();
+	auto task = new MainTask;
+	task->run(mode);
+	task->wait();
+	delete task;
+	fdcheck_end();
+	logm("<<<< Task test OK\n");
+}
+
+void testmultipartapi()
+{
+	class Mp
+	{
+	public:
+		static void onPartBegin(const char *buffer, size_t start, size_t end, void *userData)
+		{
+			printf("onPartBegin\n");
+		}
+
+		static void onHeaderField(const char *buffer, size_t start, size_t end, void *userData)
+		{
+			printf("onHeaderField: (%s)\n", string(buffer + start, end - start).c_str());
+		}
+
+		static void onHeaderValue(const char *buffer, size_t start, size_t end, void *userData)
+		{
+			printf("onHeaderValue: (%s)\n", string(buffer + start, end - start).c_str());
+		}
+
+		static void onPartData(const char *buffer, size_t start, size_t end, void *userData)
+		{
+			printf("onPartData: (%s)\n", string(buffer + start, end - start).c_str());
+		}
+
+		static void onPartEnd(const char *buffer, size_t start, size_t end, void *userData)
+		{
+			printf("onPartEnd\n");
+		}
+
+		static void onEnd(const char *buffer, size_t start, size_t end, void *userData)
+		{
+			printf("onEnd\n");
+		}
+	};
+	MultipartParser parser;
+
+	parser.onPartBegin = Mp::onPartBegin;
+	parser.onHeaderField = Mp::onHeaderField;
+	parser.onHeaderValue = Mp::onHeaderValue;
+	parser.onPartData = Mp::onPartData;
+	parser.onPartEnd = Mp::onPartEnd;
+	parser.onEnd = Mp::onEnd;
+
+	static char testmsg[]="--abcd\r\n"
+	"content-type: text/plain\r\n"
+	"content-disposition: form-data; name=\"field1\"; filename=\"field1\"\r\n"
+	"foo-bar: abc\r\n"
+	"x: y\r\n\r\n"
+	"hello world\r\n\r\n"
+	"x\r\n\r\n"
+	"--abcd--\r\n";
+	int cnt=0;
+	int bufsize = strlen(testmsg);
+	int feedlen;
+	parser.setBoundary("abcd");
+	int rdcnt=0;
+	for(;;)
+	{
+		feedlen = min(bufsize-cnt, 5);
+		cnt = parser.feed(testmsg+rdcnt, feedlen);
+		if(cnt == 0)
+		break;
+		else
+		rdcnt += cnt;
+	}
+}
+
+
+int main()
+{
 	EdNioInit();
 	for (int i = 0; i < 1; i++)
 	{
+		//testmultipartapi();
+		//testreadclose(i);
 		testHttpSever(i);
 		//testsmartsock(i);
 		//testHttpBase(i);
-//		testssl(i);
+		//testssl(i);
 //		testMultiTaskInstance(1);
 //		testreservefree(i);
 //		testtimer(i);

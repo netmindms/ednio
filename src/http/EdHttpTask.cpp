@@ -5,20 +5,22 @@
  *      Author: netmind
  */
 
+#define DBGTAG "HTTSK"
 #define DBG_LEVEL DBG_WARN
-#define DBGTAG "htask"
 
+#include "../config.h"
+
+#include <stdexcept>
 #include "../edslog.h"
 #include "EdHttpTask.h"
 #include "EdNotFoundHttpController.h"
-#include <stdexcept>
 
 namespace edft
 {
 
 EdHttpTask::EdHttpTask()
 {
-
+	mConfig.recv_buf_size = 4*1024;
 }
 
 EdHttpTask::~EdHttpTask()
@@ -29,43 +31,33 @@ int EdHttpTask::OnEventProc(EdMsg* pmsg)
 {
 	if (pmsg->msgid == EDM_INIT)
 	{
-		dbgd("start http task...");
+		dbgd("http task init, ...");
 	}
 	else if (pmsg->msgid == EDM_CLOSE)
 	{
-		dbgd("close http task...");
+		dbgd("close http task ...");
 		release();
 		EdSSLContext::freeDefaultEdSSL();
 	}
 	else if (pmsg->msgid == EDMX_HTTPCNN)
 	{
-		dbgd("new htt cnn...fd=%d", pmsg->p1);
+		dbgd("New TCP connection, fd=%d", pmsg->p1);
 		EdHttpCnn* pcnn = mCnns.allocObj();
-		dbgd("alloc cnn object...");
+		dbgd("alloc cnn object ...");
 		pcnn->initCnn(pmsg->p1, 0, this, pmsg->p2);
 	}
 
 	return 0;
 }
 
-void EdHttpTask::IOnSocketEvent(EdSocket* psock, int event)
-{
-	EdHttpCnn *pcnn = (EdHttpCnn*) psock;
-	if (event == SOCK_EVENT_READ)
-	{
-		pcnn->procRead();
-	}
-	else if (event == SOCK_EVENT_DISCONNECTED)
-	{
-		dbgd("sock disconneted...fd=%d", psock->getFd());
-		pcnn->procDisconnected();
-		mCnns.freeObj(pcnn);
-	}
-}
-
 int EdHttpTask::setDefaultCertFile(const char* crtfile, const char* keyfile)
 {
 	return EdSSLContext::getDefaultEdSSL()->setSSLCertFile(crtfile, keyfile);
+}
+
+int EdHttpTask::setDefaultCertMem(const void *crt, int crtlen, const void* key, int keylen)
+{
+	return EdSSLContext::getDefaultEdSSL()->setSSLCertMem((void*)crt, crtlen, (void*)key, keylen);
 }
 
 void EdHttpTask::setDefaultCertPassword(const char* pw)
@@ -113,8 +105,10 @@ void EdHttpTask::release()
 	}
 }
 
-void EdHttpTask::freeConnection(EdHttpCnn* pcnn)
+void EdHttpTask::removeConnection(EdHttpCnn* pcnn)
 {
+	dbgd("remove connection, cnn=%x", pcnn);
+	mCnns.remove(pcnn);
 	mCnns.freeObj(pcnn);
 }
 
@@ -123,6 +117,11 @@ int EdHttpTask::openDefaultCertFile(const char* crtfile, const char* keyfile, co
 {
 	setDefaultCertPassword(pw);
 	return setDefaultCertFile(crtfile, keyfile);
+}
+
+http_server_cfg_t* EdHttpTask::getConfig()
+{
+	return &mConfig;
 }
 
 } // namespace edft

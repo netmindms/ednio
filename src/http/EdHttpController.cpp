@@ -1,20 +1,17 @@
-#include <algorithm>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <string>
-
-#include "../EdType.h"
-
 /*
  * EdHttpController.cpp
  *
  *  Created on: Sep 11, 2014
  *      Author: netmind
  */
-#define DBGTAG "htctr"
+
+#include "../config.h"
+
+#define DBGTAG "HTCTR"
 #define DBG_LEVEL DBG_WARN
 
+#include <string.h>
+#include "../EdType.h"
 #include "../edslog.h"
 #include "EdHttpController.h"
 #include "EdHttpCnn.h"
@@ -23,69 +20,52 @@
 namespace edft
 {
 
+#define CLEAR_ALL_MEMBERS() {  \
+	mBodyReader = NULL, \
+	mIsFinalResponsed = false, \
+	mIsContinueResponse = false, \
+	mCnn = NULL, \
+	mUserData = NULL, \
+	mTxTrying = false, \
+	mIsBodyTxComplete = false, \
+	mIsMultipartBody = false, \
+	mReqCtype = NULL, \
+	memset(mStatusCode, 0, sizeof(mStatusCode)); \
+}
+
 EdHttpController::EdHttpController()
 {
-	mWriter = NULL;
-	mBodyReader = NULL;
-	mIsFinalResponsed = false;
-	mCnn = NULL;
-	mUserData = NULL;
-	mTxTrying = false;
-#if 0
-	mEncStartStream = NULL;
-	mEncHeaderSize = 0;
-	mEncHeaderReadCnt = 0;
-#endif
-	memset(mStatusCode, 0, sizeof(mStatusCode));
-
+	CLEAR_ALL_MEMBERS();
 }
 
 EdHttpController::~EdHttpController()
 {
-	// TODO Auto-generated destructor stub
+	dbgd("dest http ctrl,...ctype=%x", mReqCtype);
+
 }
 
-void EdHttpController::OnRequest()
+void EdHttpController::OnHttpRequestHeader()
 {
 }
 
-void EdHttpController::OnContentRecvComplete()
+void EdHttpController::OnHttpComplete(int result)
 {
-}
-
-#if 0
-void EdHttpController::OnContentSendComplete()
-{
-}
-#endif
-
-void EdHttpController::OnComplete(int result)
-{
-}
-
-void EdHttpController::setReqBodyWriter(EdHttpWriter* writer)
-{
-	if (mWriter == NULL)
-	{
-		mWriter = writer;
-	}
-	else
-	{
-		dbge("### Body writer already set...");
-	}
 }
 
 void EdHttpController::setHttpResult(const char* code)
 {
 	if (mIsFinalResponsed == false)
 	{
+		if(mBodyReader != NULL) mIsBodyTxComplete = false;
+		else mIsBodyTxComplete = true;
+
 		memcpy(mStatusCode, code, 4);
 		encodeResp();
 		mCnn->reqTx(this);
 	}
 	else
 	{
-		dbge("### Fail: result set error,...code=%s", code);
+		dbge("### Fail: result already set.");
 	}
 }
 
@@ -111,17 +91,22 @@ void EdHttpController::setConnection(EdHttpCnn* pcnn)
 	mCnn = pcnn;
 }
 
-void EdHttpController::addReqHeader(string* name, string* val)
+void EdHttpController::addReqHeader(string name, string val)
 {
 	mReqMsg.addHdr(name, val);
 }
 
-const char* EdHttpController::getReqHeader(char* name)
+const char* EdHttpController::getReqHeader(const char* name)
 {
 	return mReqMsg.getHdr(name);
 }
 
-void EdHttpController::setUrl(string *url)
+const string EdHttpController::getReqHeaderString(const char* name)
+{
+	return mReqMsg.getHdrString(name);
+}
+
+void EdHttpController::setUrl(string url)
 {
 	mReqMsg.setUrl(url);
 }
@@ -152,64 +137,22 @@ void EdHttpController::encodeResp()
 	resp->addHdr(HTTPHDR_DATE, tmp);
 	resp->addHdr(HTTPHDR_SERVER, "ESEV/0.2.0");
 
+	if(mBodyReader == NULL)
+	{
+		resp->addHdr(HTTPHDR_CONTENT_LEN, "0");
+	}
+
 	mHeaderEncStr.clear();
 	resp->encodeRespMsg(&mHeaderEncStr);
-#if 1
-#else
-	mEncHeaderReadCnt = 0;
-	mEncHeaderSize = mHeaderEncStr.size();
-	mEncStartStream = (char*) malloc(mHeaderEncStr.size());
-	memcpy(mEncStartStream, mHeaderEncStr.c_str(), mEncHeaderSize);
-#endif
+
 	mIsFinalResponsed = true;
 }
-
-#if 0
-void EdHttpController::sendResp(char* code, void *textbody, int len, char* cont_type)
-{
-#if 1
-	EsHttpTextBody *body = new EsHttpTextBody((char*) textbody, len);
-	setRespBody(body);
-	memcpy(mStatusCode, code, 4);
-	mIsFinalResponsed = true;
-//mCnn->sendResponse(this);
-#else
-	char tmp[100];
-
-// status line
-	string firstline = string("HTTP/1.1 ") + code + " " + es_get_http_desp(code) + "\r\n";
-	mRespMsg.setStatusLine(&firstline);
-
-// Date header
-	es_get_httpDate(tmp);
-	mRespMsg.addHdr(HTTPHDR_DATE, tmp);
-
-	mRespMsg.addHdr(HTTPHDR_SERVER, "ESEV/0.2.0");
-	if(len > 0)
-	{
-		char tmp[100];
-		sprintf(tmp, "%d", len);
-		mRespMsg.addHdr(HTTPHDR_CONTENT_LEN, tmp);
-		mRespMsg.addHdr(HTTPHDR_CONTENT_TYPE, cont_type);
-	}
-
-	string outbuf;
-	mRespMsg.encodeRespMsg(&outbuf);
-	if(len>0)
-	{
-		outbuf.append((char*)textbody, len);
-	}
-	mCnn->send(outbuf.c_str(), outbuf.size());
-#endif
-}
-#endif
 
 void EdHttpController::close()
 {
 	mReqMsg.free();
 	mRespMsg.free();
 
-#if 1
 // clear response packet bufs
 	packet_buf_t pkt;
 	for (; mPacketList.size() > 0;)
@@ -218,14 +161,10 @@ void EdHttpController::close()
 		free(pkt.buf);
 		mPacketList.pop_front();
 	}
+	CHECK_DELETE_OBJ(mReqCtype);
 
-#else
-	if(mEncStartStream != NULL)
-	{
-		free(mEncStartStream);
-		mEncStartStream = NULL;
-	}
-#endif
+	CLEAR_ALL_MEMBERS();
+
 }
 
 void EdHttpController::getSendPacket(packet_buf_t* pinfo)
@@ -234,6 +173,16 @@ void EdHttpController::getSendPacket(packet_buf_t* pinfo)
 
 	pinfo->len = 0;
 	pinfo->buf = NULL;
+
+	if(mIsContinueResponse == true) {
+#define CONTINUE_MSG "HTTP/1.1 100 Continue\r\n\r\n"
+		pinfo->buf = strdup(CONTINUE_MSG);
+		pinfo->len = strlen(CONTINUE_MSG);
+		mIsContinueResponse = false;
+		dbgd("  get packet for 100 continue...");
+		return;
+	}
+
 
 	if (mHeaderEncStr.size() > 0)
 	{
@@ -260,6 +209,10 @@ void EdHttpController::getSendPacket(packet_buf_t* pinfo)
 			if (rcnt > 0)
 			{
 				pinfo->len += rcnt;
+			}
+			else
+			{
+				mIsBodyTxComplete = true;
 			}
 		}
 	}
@@ -290,10 +243,11 @@ int EdHttpController::getSendPacketData(void* buf, int len)
 
 void EdHttpController::initCtrl(EdHttpCnn* pcnn)
 {
+
 	mCnn = pcnn;
 }
 
-void EdHttpController::OnInit()
+void EdHttpController::OnHttpCtrlInit()
 {
 }
 
@@ -302,9 +256,72 @@ void* EdHttpController::getUserData()
 	return mUserData;
 }
 
-const string* EdHttpController::getReqUrl()
+string EdHttpController::getReqUrl()
 {
 	return mReqMsg.getUrl();
+}
+
+
+bool EdHttpController::checkExpect()
+{
+	const string ps = mReqMsg.getHdrString("Expect");
+	if(!ps.compare("100-continue"))
+	{
+		dbgd("Expect header exists", ps.c_str());
+		mIsContinueResponse = true;
+	}
+
+	return mIsContinueResponse;
+}
+
+
+void EdHttpController::checkHeaders()
+{
+	const char *type = mReqMsg.getHdr("Content-Type");
+	if(type!=NULL)
+	{
+		mReqCtype = new EdHdrContentType;
+		mReqCtype->parse(type, strlen(type));
+		if( !memcmp(mReqCtype->getType(), "multipart", sizeof("multipart")-1) ) {
+			mIsMultipartBody = true;
+			dbgd("body data is multipart");
+		}
+	}
+
+
+}
+
+
+const char* EdHttpController::getBoundary()
+{
+	if(mIsMultipartBody==true) {
+		return mReqCtype->getParam("boundary");
+	} else {
+		return NULL;
+	}
+}
+
+
+void EdHttpController::OnHttpDataNew(EdHttpContent* pct)
+{
+}
+
+void EdHttpController::OnHttpDataContinue(EdHttpContent* pct, const void* buf, int len)
+{
+}
+
+void EdHttpController::OnHttpDataRecvComplete(EdHttpContent* pct)
+{
+}
+
+void EdHttpController::OnHttpRequestMsg()
+{
+}
+
+
+const int EdHttpController::getReqMethod()
+{
+	return mReqMethod;
 }
 
 } /* namespace edft */

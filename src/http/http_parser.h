@@ -29,6 +29,7 @@ extern "C" {
 #define HTTP_PARSER_VERSION_MINOR 3
 #define HTTP_PARSER_VERSION_PATCH 0
 
+
 #include <sys/types.h>
 #if defined(_WIN32) && !defined(__MINGW32__) && (!defined(_MSC_VER) || _MSC_VER<1600)
 #include <BaseTsd.h>
@@ -311,6 +312,8 @@ void http_parser_pause(http_parser *parser, int paused);
 
 /* Checks if this is the final chunk of the body. */
 int http_body_is_final(const http_parser *parser);
+
+
 
 #ifdef __cplusplus
 }

@@ -186,9 +186,11 @@ public:
 	void killTimer(u32 id);
 	void cleanupAllTimer();
 
+	int getRunMode();
+
 	void reserveFree(EdObject* obj);
 	static EdTask* getCurrentTask();
-
+	int lastSockErrorNo;
 
 public:
 	virtual int OnEventProc(EdMsg* pmsg);
@@ -205,6 +207,7 @@ private:
 	EdObjList<edevt_t> mEvtList;
 	EdObjList<edevt_t> mDummyEvtList;
 	std::list<EdObject*> mReserveFreeList;
+
 
 private:
 	edevt_t* regEdEvent(int fd, uint32_t events, EVENTCB cb, void* user);
@@ -256,9 +259,9 @@ private:
 
 	event *mLibMsgEvent;
 
-	static void* libevent_thread(void* arg);
-	static void libevent_cb(evutil_socket_t, short, void *);
-	void libeventMain(EdContext* pctx);
+	//static void* libevent_thread(void* arg);
+	static void libeventMsg_cb(evutil_socket_t, short, void *);
+	//void libeventMain(EdContext* pctx);
 #endif
 };
 

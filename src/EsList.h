@@ -21,7 +21,7 @@ class EsList
 
 
 public:
-	class Node
+	struct Node
 	{
 		friend class EsList;
 	private:

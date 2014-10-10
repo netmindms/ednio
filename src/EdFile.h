@@ -36,7 +36,7 @@ public:
 	int openFile(const char* path, int flags=OPEN_READ, u32 mode=0);
 
 	int readFile(void* buf, int size);
-	int writeFile(void* buf, int size);
+	int writeFile(const void* buf, int size);
 	int writeStr(const char* str);
 	int writeStrFormat(const char* fmt, ...);
 
