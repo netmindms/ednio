@@ -59,6 +59,8 @@ EdHttpCnn::~EdHttpCnn()
 
 void EdHttpCnn::close()
 {
+	closeMultipart();
+
 	mSock.socketClose();
 	closeAllCtrls();
 
@@ -67,6 +69,7 @@ void EdHttpCnn::close()
 		free(mReadBuf);
 		mReadBuf = NULL;
 	}
+
 
 }
 
@@ -622,6 +625,8 @@ void EdHttpCnn::closeMultipart()
 		mCurMpHdrName.clear();
 		mCurMpHdrVal.clear();
 	}
+
+	CHECK_DELETE_OBJ(mCurContent);
 }
 
 void EdHttpCnn::initHttpParser()
