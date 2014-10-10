@@ -13,6 +13,8 @@
 #include <string>
 #include <string.h>
 
+#include "EdHttp.h"
+
 using namespace std;
 
 static bool _gHttpServerInit=false;

@@ -9,12 +9,9 @@
 
 #include "config.h"
 
-#if USE_SSL
-#include <openssl/evp.h>
-#include <openssl/ossl_typ.h>
-#include <openssl/ssl.h>
-#endif
+#include "EdNio.h"
 #include "EdTask.h"
+#include <string.h>
 #include <signal.h>
 
 namespace edft {
@@ -28,6 +25,10 @@ const char* EdNioGetVer()
 int EdNioInit()
 {
 	signal(SIGPIPE, SIG_IGN);
+	if(strcmp(EdNioGetVer(), EDNIO_VER))
+	{
+		return -1;
+	}
 	return 0;
 }
 

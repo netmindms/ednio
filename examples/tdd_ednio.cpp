@@ -13,28 +13,7 @@
 #include <dirent.h>
 #include <vector>
 
-#include "EdType.h"
 #include "EdNio.h"
-#include "EdTask.h"
-#include "EdTimer.h"
-#include "EdTime.h"
-#include "edcurl/EdCurl.h"
-#include "edcurl/EdMultiCurl.h"
-#include "http/EdHttpWriter.h"
-#include "http/EdHttpTask.h"
-#include "http/EdHttpStringReader.h"
-#include "http/EdHttpStringWriter.h"
-#include "http/EdHttpServer.h"
-#include "http/EdHttpTask.h"
-#include "http/EdHttpFileReader.h"
-#include "http/EdHttpFileWriter.h"
-#include "http/EdHdrDate.h"
-#include "http/EdHttpDefMultiPartCtrl.h"
-#include "http/EdHttpUploadCtrl.h"
-
-#include "edssl/EdSSLContext.h"
-#include "edssl/EdSSLSocket.h"
-#include "edssl/EdSmartSocket.h"
 
 void levlog(int lev, const char *tagid, int line, const char *fmtstr, ...)
 {
@@ -65,7 +44,59 @@ void levlog(int lev, const char *tagid, int line, const char *fmtstr, ...)
 using namespace std;
 using namespace edft;
 
+char gTestKey[] = ""
+"-----BEGIN RSA PRIVATE KEY-----\n"
+"Proc-Type: 4,ENCRYPTED\n"
+"DEK-Info: DES-EDE3-CBC,530F6BF4FC4863E5\n"
+"\n"
+"ompWbbl2zkVdwPVzPbe6YCLxOWjLld+JXrb2uDLIVKU6yc4YraUm7S10KXeWp2Ff\n"
+"WwDR6IGrloliZTCmsBK/Ol93A+awAdftEW95bmMHnrga0ErJ905U7ijzkrlfPOgl\n"
+"obW8nO24z6XrRPYruxUKizTA9ZGH02Ds4MtbmaL7lGZlPcL/Vm36mJPSslQA08Sv\n"
+"gsfitXnGWZLENkKr4ThYRpQtrd+NM0KEvXoHU/juc4AjMg+P3nMnwHk1HZuD7mH5\n"
+"Ks0ulh6w5BVJGvnRFKfiTrNItWJF4zWszc33f/i5lo1yMGMX2qnZyR+Q2WnyAEpz\n"
+"+8wxqA9Ck4gz5SUIoE6GUGjnV9WsEO+I/0DkD5Dd49qcVSYRG5XPyXUJ+LO+ilAF\n"
+"HT1G1NHIQ3PVLeVlHUaJW97tdH8iXhG57onVlak/8Jj7l0P6LFmijp1PWaNJX7mh\n"
+"gXRwkaReAGvC8YbcX99SLwqZvMzAxWEV9y0Ro0VF/qZX5rhnL/4zgMeuE7Ee7wz2\n"
+"KNcpXzOYQNxKYww66HPBeKgsbMjjA67JD4+5QaaAdK3ENtZMTjhnOk5NkLyEn6cB\n"
+"20426Pq6e7CJd7Crz+c0Ghev7SmEadLxw1AI3zISxnScWMff4SsFD5vK29Xmj/vx\n"
+"XqX9IYIWQtEqnzZO1f31wmcO4qrugJB/xbtsLJ1VDuqKPgz7jzOy1CI3H+Z7CrJG\n"
+"iqj8kTUc8rNDU7GEcFBGSI4FWZsu8Km81x7u62tMin8xuNkw3yGVmnG8ULlpMHe4\n"
+"fwED4zDbfwWGoBLIKXvH0E1yaQ2DiRci2DiDPMqw5ZV/N7bha3RxkQ==\n"
+"-----END RSA PRIVATE KEY-----\n";
+
+char gTestCrt[] = ""
+"-----BEGIN CERTIFICATE-----\n"
+"MIICkjCCAfugAwIBAgIJAOa4Z0DKS6HuMA0GCSqGSIb3DQEBBQUAMGIxCzAJBgNV\n"
+"BAYTAktSMRAwDgYDVQQIDAdLZW9uZ0tpMQ8wDQYDVQQHDAZZb25nSW4xCzAJBgNV\n"
+"BAoMAktUMREwDwYDVQQLDAhSZXNlYXJjaDEQMA4GA1UEAwwHbmV0bWluZDAeFw0x\n"
+"NDEwMTAxMTQzMDJaFw0xNTEwMTAxMTQzMDJaMGIxCzAJBgNVBAYTAktSMRAwDgYD\n"
+"VQQIDAdLZW9uZ0tpMQ8wDQYDVQQHDAZZb25nSW4xCzAJBgNVBAoMAktUMREwDwYD\n"
+"VQQLDAhSZXNlYXJjaDEQMA4GA1UEAwwHbmV0bWluZDCBnzANBgkqhkiG9w0BAQEF\n"
+"AAOBjQAwgYkCgYEAwwlc2e0e15t8jHZer50VCPGT6K/9AOw7XISzglc++eQjZWUT\n"
+"ndnK6Den/YJQ/DNPDr+wNzftDtLmxElNjBq8y2KuUvzf4KsBCI3prxZ0GoXO5jS4\n"
+"jXCiZsl6tcnoI18KKFZBFAivxwreGC7Fp91la9qpWR4c7Xnlx1XFa+KEJbUCAwEA\n"
+"AaNQME4wHQYDVR0OBBYEFFwYCLFukaxA1rHdhZEO1opHr3kkMB8GA1UdIwQYMBaA\n"
+"FFwYCLFukaxA1rHdhZEO1opHr3kkMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEF\n"
+"BQADgYEAtNSgLL7bsRZk4rIF0Ns4I3cGzjtyq356r2ziTtu54NOGygQPu/YPeP9O\n"
+"G01wGyb4oXDz+waHQUgF/nsP9Z/jO001ca6+vID3zdnYImGvrFo86RV9yDEANvxI\n"
+"DwuB0mO5Hbd2zf5Q8fqe/BdJCLukaDS4H87gUL5h6ejUoBsjXmc=\n"
+"-----END CERTIFICATE-----\n";
+
+
 long _gStartFds;
+
+void init_test()
+{
+	EdFile file;
+	file.openFile("/tmp/test.key", EdFile::OPEN_RWTC);
+	file.writeStr(gTestKey);
+	file.closeFile();
+
+	file.openFile("/tmp/test.crt", EdFile::OPEN_RWTC);
+	file.writeStr(gTestCrt);
+	file.closeFile();
+}
+
 
 int get_num_fds()
 {
@@ -469,7 +500,7 @@ void testcurl(int mode)
 
 	};
 
-	class CurlTest: public EdTask, public EdCurl::ICurlResult, public EdCurl::ICurlBody
+	class CurlTest: public TestTask, public EdCurl::ICurlResult, public EdCurl::ICurlBody
 	{
 
 		EdMultiCurl *mMainCurl;
@@ -483,21 +514,6 @@ void testcurl(int mode)
 		int mReuseCnt;
 		long mRecvDataSize;
 
-		std::list<int> mTestList;
-		void nextTest()
-		{
-			if (mTestList.size() > 0)
-			{
-				int s = mTestList.front();
-				mTestList.pop_front();
-				postMsg(s);
-			}
-			else
-			{
-				postExit();
-			}
-		}
-
 		virtual int OnEventProc(EdMsg* pmsg)
 		{
 			if (pmsg->msgid == EDM_INIT)
@@ -508,11 +524,17 @@ void testcurl(int mode)
 				mMainCurl = new EdMultiCurl;
 				mMainCurl->open();
 
-				mTestList.push_back(TS_NORMAL);
-				mTestList.push_back(TS_NOTFOUND);
-				mTestList.push_back(TS_REUSE);
-				mTestList.push_back(TS_TIMEOUT);
-				mTestList.push_back(TS_LOAD);
+				addTest(TS_NORMAL);
+				addTest(TS_NOTFOUND);
+				addTest(TS_REUSE);
+				addTest(TS_TIMEOUT);
+				addTest(TS_LOAD);
+
+//				mTestList.push_back(TS_NORMAL);
+//				mTestList.push_back(TS_NOTFOUND);
+//				mTestList.push_back(TS_REUSE);
+//				mTestList.push_back(TS_TIMEOUT);
+//				mTestList.push_back(TS_LOAD);
 
 				nextTest();
 			}
@@ -1048,24 +1070,8 @@ void testHttpSever(int mode)
 			if (pmsg->msgid == EDM_INIT)
 			{
 
-				setDefaultCertPassword("ks2662");
-				/*
-				 EdFile file;
-				 file.openFile("/home/netmind/testkey/netsvr.crt");
-				 int csize = file.getSize("/home/netmind/testkey/netsvr.crt");
-				 crtmem = malloc(csize);
-				 file.readFile(crtmem, csize);
-				 file.closeFile();
-
-				 file.openFile("/home/netmind/testkey/netsvr.key");
-				 int ksize = file.getSize("/home/netmind/testkey/netsvr.key");
-				 keymem = malloc(ksize);
-				 file.readFile(keymem, ksize);
-				 file.closeFile();
-				 setDefaultCertMem(crtmem, csize, keymem, ksize);
-				 */
-
-				setDefaultCertFile("/home/netmind/testkey/netsvr.crt", "/home/netmind/testkey/netsvr.key");
+				//setDefaultCertPassword("123456");
+				//setDefaultCertFile("/tmp/test.crt", "/tmp/test.key");
 
 				regController<MyController>("/userinfo", NULL);
 				regController<FileCtrl>("/getfile", NULL);
@@ -1234,7 +1240,7 @@ void testHttpSever(int mode)
 				int task_inst = 1;
 				logs("server open, port=%d, task-instance=%d", port, task_inst);
 				server->open(port);
-				server->open(7070, true);
+				//server->open(7070, true);
 				server->startService<MyHttpTask>(task_inst);
 
 				nextTest();
@@ -1262,11 +1268,12 @@ void testHttpSever(int mode)
 	fdcheck_start();
 	HttpTestTask *task = new HttpTestTask;
 	task->runMain(mode);
-	//delete task;
+	delete task;
 	fdcheck_end();
 	logm("<<<< HttpServer OK\n\n");
 }
 
+#if USE_SSL
 void testssl(int mode)
 {
 	enum
@@ -1404,6 +1411,7 @@ void testssl(int mode)
 	fdcheck_end();
 	logm("<<<< SSL test OK\n");
 }
+#endif
 
 void testsmartsock(int mode)
 {
@@ -1841,24 +1849,27 @@ void testmultipartapi()
 	}
 }
 
-
 int main()
 {
 	EdNioInit();
-	for (int i = 0; i < 1; i++)
+	init_test();
+	for (int i = 0; i < 2; i++)
 	{
-		//testmultipartapi();
-		//testreadclose(i);
-		testHttpSever(i);
+//		testmsg(i);
+//		testMainThreadTask(i);
+//		testMultiTaskInstance(1);
+//		testtimer(i);
+//		testcurl(i);
+//		testreservefree(i);
+//		testreadclose(i);
+		//testssl(i);
 		//testsmartsock(i);
 		//testHttpBase(i);
-		//testssl(i);
-//		testMultiTaskInstance(1);
-//		testreservefree(i);
-//		testtimer(i);
-//		testMainThreadTask(i);
-//		testmsg(i);
-//		testcurl(i);
+		testHttpSever(i);
+		//testmultipartapi();
 	}
 	return 0;
 }
+
+
+

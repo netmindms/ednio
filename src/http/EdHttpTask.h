@@ -40,11 +40,11 @@ public:
 	EdHttpTask();
 	virtual ~EdHttpTask();
 	virtual int OnEventProc(EdMsg* pmsg);
-
+#if USE_SSL
 	int setDefaultCertFile(const char* crtfile, const char* keyfile);
-	int setDefaultCertMem(const void *crt, int crtlen, const void* key, int keylen);
 	void setDefaultCertPassword(const char* pw);
 	int openDefaultCertFile(const char* crtfile, const char* keyfile, const char* pw);
+#endif
 	http_server_cfg_t* getConfig();
 
 	typedef EdHttpController* (*__alloc_controller)();

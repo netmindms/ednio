@@ -15,14 +15,27 @@
 #include "EdSocketChannel.h"
 #include "EdPipe.h"
 #include "EdTimer.h"
+#include "EdTime.h"
+#include "EdSmartSocket.h"
+
+#if USE_SSL
+#include "edssl/EdSSLContext.h"
+#include "edssl/EdSSLSocket.h"
+#endif
+
+#if USE_CURL
+#include "edcurl/EdCurl.h"
+#include "edcurl/EdMultiCurl.h"
+#endif
+
+#include "http/EdHttp.h"
 
 namespace edft {
 
+#define EDNIO_VER "0.5.0"
+
 const char* EdNioGetVer();
 int EdNioInit();
-
-
-
 
 }
 #endif /* EDNIO_H_ */

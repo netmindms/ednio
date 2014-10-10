@@ -14,8 +14,8 @@
 #include "EdHttpServer.h"
 #include "EdHttpCnn.h"
 
-namespace edft {
-
+namespace edft
+{
 
 EdHttpServer::EdHttpServer()
 {
@@ -25,18 +25,18 @@ EdHttpServer::EdHttpServer()
 
 EdHttpServer::~EdHttpServer()
 {
-	// TODO Auto-generated destructor stub
 }
-
 
 void EdHttpServer::IOnSocketEvent(EdSocket* psock, int event)
 {
-	if(event == SOCK_EVENT_INCOMING_ACCEPT) {
+	if (event == SOCK_EVENT_INCOMING_ACCEPT)
+	{
 		int fd = psock->accept();
 		dbgd("new incoming cnn, fd=%d", fd);
-		if(mSvcCount>0) {
+		if (mSvcCount > 0)
+		{
 			int idx = (mSvcRound++ % mSvcCount);
-			mSvcList[idx]->postMsg(EDMX_HTTPCNN, fd, psock==&mSvrSock ? 0:1);
+			mSvcList[idx]->postMsg(EDMX_HTTPCNN, fd, psock == &mSvrSock ? 0 : 1);
 		}
 	}
 }
@@ -44,14 +44,21 @@ void EdHttpServer::IOnSocketEvent(EdSocket* psock, int event)
 int EdHttpServer::open(int port, bool ssl)
 {
 	EdSocket *psock;
-	if(ssl == false) {
+	if (ssl == false)
+	{
 		psock = &mSvrSock;
-	} else {
+	}
+	else
+	{
+#if USE_SSL
 		psock = &mSSLSvrSock;
+#else
+		assert(0);
+#endif
 	}
 	psock->setOnListener(this);
 	int ret = psock->listenSock(port);
-	if(ret != 0)
+	if (ret != 0)
 	{
 		dbge("### server listen port open fail, ret=%d");
 	}
@@ -63,7 +70,7 @@ void EdHttpServer::close()
 	dbgd("http server closing...task cnt=%d", mSvcCount);
 	mSvrSock.close();
 	mSSLSvrSock.close();
-	for(int i=0;i<mSvcCount;i++)
+	for (int i = 0; i < mSvcCount; i++)
 	{
 		mSvcList[i]->terminate();
 		delete mSvcList[i];
@@ -72,7 +79,6 @@ void EdHttpServer::close()
 	mSvcCount = 0;
 
 }
-
 
 void EdHttpServer::initCommon()
 {

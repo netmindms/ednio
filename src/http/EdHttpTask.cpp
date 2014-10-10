@@ -37,7 +37,9 @@ int EdHttpTask::OnEventProc(EdMsg* pmsg)
 	{
 		dbgd("close http task ...");
 		release();
+#if USE_SSL
 		EdSSLContext::freeDefaultEdSSL();
+#endif
 	}
 	else if (pmsg->msgid == EDMX_HTTPCNN)
 	{
@@ -50,20 +52,7 @@ int EdHttpTask::OnEventProc(EdMsg* pmsg)
 	return 0;
 }
 
-int EdHttpTask::setDefaultCertFile(const char* crtfile, const char* keyfile)
-{
-	return EdSSLContext::getDefaultEdSSL()->setSSLCertFile(crtfile, keyfile);
-}
 
-int EdHttpTask::setDefaultCertMem(const void *crt, int crtlen, const void* key, int keylen)
-{
-	return EdSSLContext::getDefaultEdSSL()->setSSLCertMem((void*)crt, crtlen, (void*)key, keylen);
-}
-
-void EdHttpTask::setDefaultCertPassword(const char* pw)
-{
-	EdSSLContext::getDefaultEdSSL()->setCertPassword(pw);
-}
 
 EdHttpController* EdHttpTask::allocController(const char* url)
 {
@@ -113,15 +102,29 @@ void EdHttpTask::removeConnection(EdHttpCnn* pcnn)
 }
 
 
-int EdHttpTask::openDefaultCertFile(const char* crtfile, const char* keyfile, const char* pw)
-{
-	setDefaultCertPassword(pw);
-	return setDefaultCertFile(crtfile, keyfile);
-}
+
 
 http_server_cfg_t* EdHttpTask::getConfig()
 {
 	return &mConfig;
 }
 
+#if USE_SSL
+int EdHttpTask::setDefaultCertFile(const char* crtfile, const char* keyfile)
+{
+	return EdSSLContext::getDefaultEdSSL()->setSSLCertFile(crtfile, keyfile);
+}
+
+
+void EdHttpTask::setDefaultCertPassword(const char* pw)
+{
+	EdSSLContext::getDefaultEdSSL()->setCertPassword(pw);
+}
+
+int EdHttpTask::openDefaultCertFile(const char* crtfile, const char* keyfile, const char* pw)
+{
+	setDefaultCertPassword(pw);
+	return setDefaultCertFile(crtfile, keyfile);
+}
+#endif
 } // namespace edft

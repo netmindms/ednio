@@ -8,43 +8,41 @@
 #ifndef EDSMARTSOCKET_H_
 #define EDSMARTSOCKET_H_
 
-#include "../config.h"
+#include "config.h"
 
-
+#if USE_SSL
 #include <openssl/evp.h>
 #include <openssl/ossl_typ.h>
 #include <openssl/ssl.h>
+#include "edssl/EdSSLContext.h"
+#endif
 
-#include "EdSSLContext.h"
-#include "../EdSocket.h"
+#include "EdSocket.h"
 
 namespace edft
 {
 
-enum {
-	NETEV_DISCONNECTED,
-	NETEV_CONNECTED,
-	NETEV_READ,
-	NETEV_SENDCOMPLETE,
+enum
+{
+	NETEV_DISCONNECTED, NETEV_CONNECTED, NETEV_READ, NETEV_SENDCOMPLETE,
 };
 
-enum {
-	SEND_FAIL=-1,
-	SEND_OK=0,
-	SEND_PENDING,
+enum
+{
+	SEND_FAIL = -1, SEND_OK = 0, SEND_PENDING,
 };
 
-enum {
-	SOCKET_NORMAL=0,
-	SOCKET_SSL=1,
+enum
+{
+	SOCKET_NORMAL = 0, SOCKET_SSL = 1,
 };
 
-
-class EdSmartSocket : public EdSocket
+class EdSmartSocket: public EdSocket
 {
 public:
 
-	class INet {
+	class INet
+	{
 	public:
 		virtual void IOnNet(EdSmartSocket *psock, int event)=0;
 	};
@@ -60,14 +58,14 @@ public:
 	void OnSSLConnected();
 	void OnSSLDisconnected();
 	void OnSSLRead();
-/*
-	virtual void OnNetConnected();
-	virtual void OnNetDisconnected();
-	virtual void OnNetRead();
-	virtual void OnNetSendComplete();
-*/
-	int socketOpen(int mode=0);
-	int socketOpenChild(int fd, int mode=0);
+	/*
+	 virtual void OnNetConnected();
+	 virtual void OnNetDisconnected();
+	 virtual void OnNetRead();
+	 virtual void OnNetSendComplete();
+	 */
+	int socketOpen(int mode = 0);
+	int socketOpenChild(int fd, int mode = 0);
 
 	/**
 	 * @brief Read data from ssl connection
@@ -86,27 +84,12 @@ public:
 	 * @remark You should call this method after ssl session connected.
 	 * @return Data count to be sent.
 	 */
-	int sendPacket(const void* buf, int size, bool takebuffer=false);
+	int sendPacket(const void* buf, int size, bool takebuffer = false);
 
 	/**
 	 * @brief Close ssl connection.
 	 */
 	void socketClose();
-
-	/**
-	 * @brief Get a openssl session.
-	 * @return openssl session session pointer
-	 */
-	SSL *getSSL();
-	SSL_CTX* getSSLContext();
-
-	int openSSLClientSock(EdSSLContext *pctx=NULL);
-
-	/**
-	 * @brief Open a socket for incoming ssl connection.
-	 */
-	void openSSLChildSock(int fd, EdSSLContext* psslctx=NULL);
-
 	/**
 	 * @brief Set ssl event callback.
 	 */
@@ -116,25 +99,44 @@ public:
 	void reserveWrite();
 
 private:
+	void procNormalOnWrite();
+
+	INet* mOnLis;
+	int mMode; // 0: Normal mode, 1: ssl mode
+	void* mPendingBuf;
+	int mPendingWriteCnt;
+	int mPendingSize;
+
+#if USE_SSL
+public:
+	/**
+	 * @brief Get a openssl session.
+	 * @return openssl session session pointer
+	 */
+	SSL *getSSL();
+	SSL_CTX* getSSLContext();
+
+	/**
+	 * @brief Open a socket for incoming ssl connection.
+	 */
+
+private:
 	void startHandshake();
 	void procSSLRead(void);
 	void procSSLConnect(void);
 	void changeSSLSockEvent(int err, bool bwrite);
-	void procNormalOnWrite();
 	void procSSLOnWrite();
 	void procSSLErrCloseNeedEnd();
-
-private:
+	int openSSLClientSock(EdSSLContext *pctx = NULL);
+	void openSSLChildSock(int fd, EdSSLContext* psslctx = NULL);
 	SSL *mSSL;
 	SSL_CTX *mSSLCtx;
 	EdSSLContext *mEdSSLCtx;
 	bool mSessionConencted;
-	//ISSLSocketCb *mSSLCallback;
 	bool mIsSSLServer;
-	INet* mOnLis;
-	int mMode; // 0: Normal mode, 1: ssl mode
-	void* mPendingBuf; int mPendingWriteCnt; int mPendingSize;
 	int mSSLWantEvent;
+#endif
+
 };
 
 } /* namespace edft */

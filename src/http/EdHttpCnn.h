@@ -14,7 +14,7 @@
 #include <string>
 #include <list>
 #include "../EdSocket.h"
-#include "../edssl/EdSmartSocket.h"
+#include "../EdSmartSocket.h"
 #include "http_parser.h"
 #include "EdHttpController.h"
 #include "MultipartParser.h"
