@@ -7,8 +7,8 @@
 
 #include "../config.h"
 
-#define DBGTAG "htctr"
-#define DBG_LEVEL DBG_DEBUG
+#define DBGTAG "HTCTR"
+#define DBG_LEVEL DBG_WARN
 
 #include <string.h>
 #include "../EdType.h"
@@ -44,21 +44,11 @@ EdHttpController::~EdHttpController()
 
 }
 
-void EdHttpController::OnRequestHeader()
+void EdHttpController::OnHttpRequestHeader()
 {
 }
 
-void EdHttpController::OnContentRecvComplete()
-{
-}
-
-#if 0
-void EdHttpController::OnContentSendComplete()
-{
-}
-#endif
-
-void EdHttpController::OnComplete(int result)
+void EdHttpController::OnHttpComplete(int result)
 {
 }
 
@@ -75,7 +65,7 @@ void EdHttpController::setHttpResult(const char* code)
 	}
 	else
 	{
-		dbge("### Fail: result set error,...code=%s", code);
+		dbge("### Fail: result already set.");
 	}
 }
 
@@ -101,22 +91,22 @@ void EdHttpController::setConnection(EdHttpCnn* pcnn)
 	mCnn = pcnn;
 }
 
-void EdHttpController::addReqHeader(string* name, string* val)
+void EdHttpController::addReqHeader(string name, string val)
 {
 	mReqMsg.addHdr(name, val);
 }
 
-const char* EdHttpController::getReqHeader(char* name)
+const char* EdHttpController::getReqHeader(const char* name)
 {
 	return mReqMsg.getHdr(name);
 }
 
-const string* EdHttpController::getReqHeaderString(const char* name)
+const string EdHttpController::getReqHeaderString(const char* name)
 {
 	return mReqMsg.getHdrString(name);
 }
 
-void EdHttpController::setUrl(string *url)
+void EdHttpController::setUrl(string url)
 {
 	mReqMsg.setUrl(url);
 }
@@ -257,7 +247,7 @@ void EdHttpController::initCtrl(EdHttpCnn* pcnn)
 	mCnn = pcnn;
 }
 
-void EdHttpController::OnInit()
+void EdHttpController::OnHttpCtrlInit()
 {
 }
 
@@ -266,7 +256,7 @@ void* EdHttpController::getUserData()
 	return mUserData;
 }
 
-const string* EdHttpController::getReqUrl()
+string EdHttpController::getReqUrl()
 {
 	return mReqMsg.getUrl();
 }
@@ -274,10 +264,10 @@ const string* EdHttpController::getReqUrl()
 
 bool EdHttpController::checkExpect()
 {
-	const string *ps = mReqMsg.getHdrString("Expect");
-	if(ps != NULL && !ps->compare("100-continue"))
+	const string ps = mReqMsg.getHdrString("Expect");
+	if(!ps.compare("100-continue"))
 	{
-		dbgd("Expect header exists", ps->c_str());
+		dbgd("Expect header exists", ps.c_str());
 		mIsContinueResponse = true;
 	}
 
@@ -291,10 +281,10 @@ void EdHttpController::checkHeaders()
 	if(type!=NULL)
 	{
 		mReqCtype = new EdHdrContentType;
-		dbgd("new ctype=%x", mReqCtype);
 		mReqCtype->parse(type, strlen(type));
 		if( !memcmp(mReqCtype->getType(), "multipart", sizeof("multipart")-1) ) {
 			mIsMultipartBody = true;
+			dbgd("body data is multipart");
 		}
 	}
 
@@ -312,30 +302,26 @@ const char* EdHttpController::getBoundary()
 }
 
 
-void EdHttpController::OnNewMultipart(EdMultipartInfo* pinfo)
+void EdHttpController::OnHttpDataNew(EdHttpContent* pct)
 {
 }
 
-void EdHttpController::OnMultipartData(EdMultipartInfo* pinfo)
+void EdHttpController::OnHttpDataContinue(EdHttpContent* pct, const void* buf, int len)
+{
+}
+
+void EdHttpController::OnHttpDataRecvComplete(EdHttpContent* pct)
+{
+}
+
+void EdHttpController::OnHttpRequestMsg()
 {
 }
 
 
-void EdHttpController::OnDataNew(EdHttpContent* pct)
+const int EdHttpController::getReqMethod()
 {
-}
-
-void EdHttpController::OnDataContinue(EdHttpContent* pct, const void* buf, int len)
-{
-}
-
-void EdHttpController::OnDataRecvComplete(EdHttpContent* pct)
-{
-}
-
-void EdHttpController::OnRequestMsg()
-{
+	return mReqMethod;
 }
 
 } /* namespace edft */
-

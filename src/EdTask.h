@@ -259,9 +259,9 @@ private:
 
 	event *mLibMsgEvent;
 
-	static void* libevent_thread(void* arg);
-	static void libevent_cb(evutil_socket_t, short, void *);
-	void libeventMain(EdContext* pctx);
+	//static void* libevent_thread(void* arg);
+	static void libeventMsg_cb(evutil_socket_t, short, void *);
+	//void libeventMain(EdContext* pctx);
 #endif
 };
 

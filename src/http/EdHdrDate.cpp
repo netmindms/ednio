@@ -7,8 +7,8 @@
 
 #include "../config.h"
 
-#define DBGTAG "hpdat"
-#define DBG_LEVEL DBG_DEBUG
+#define DBGTAG "HDRDA"
+#define DBG_LEVEL DBG_WARN
 
 #include "../edslog.h"
 #include "EdHdrDate.h"

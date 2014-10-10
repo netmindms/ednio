@@ -8,7 +8,7 @@
 #include "../config.h"
 
 #define DBGTAG "FILWR"
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 
 #include "../edslog.h"
 #include "EdHttpFileWriter.h"

@@ -4,8 +4,8 @@
  *  Created on: Jun 11, 2014
  *      Author: khkim
  */
-#define DBG_LEVEL DBG_DEBUG
-#define DBGTAG "edsck"
+#define DBGTAG "EDSCK"
+#define DBG_LEVEL DBG_WARN
 #include "EdTask.h"
 #include "EdSocket.h"
 #include "edslog.h"
@@ -214,7 +214,7 @@ int EdSocket::recv(void* buf, int size)
 		int sockerr;
 		socklen_t socklen = sizeof(sockerr);
 		getsockopt(mFd, SOL_SOCKET, SO_ERROR, &sockerr, &socklen);
-		dbgd("### read error: ret=%d, sock err=%d, bufsize=%d, errno=%d", ret, sockerr, size, errno);
+		dbgd("*** read error: ret=%d, sock err=%d, bufsize=%d, errno=%d", ret, sockerr, size, errno);
 	}
 
 	return ret;

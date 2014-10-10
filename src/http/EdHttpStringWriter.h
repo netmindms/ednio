@@ -25,7 +25,7 @@ public:
 	virtual void close();
 	long getWriteCount(); // interface implement
 
-	string *getString();
+	string getString();
 
 private:
 	std::string mString;

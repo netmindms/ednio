@@ -5,8 +5,8 @@
  *      Author: netmind
  */
 
-#define DBGTAG "htsvr"
-#define DBG_LEVEL DBG_DEBUG
+#define DBGTAG "HTSVR"
+#define DBG_LEVEL DBG_WARN
 
 #include "../config.h"
 

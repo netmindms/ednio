@@ -7,7 +7,7 @@
 #include "../config.h"
 
 #define DBGTAG "DMCTR"
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 
 #include <stdexcept>
 #include "EdHttpDefMultiPartCtrl.h"
@@ -36,7 +36,7 @@ EdHttpDefMultiPartCtrl::~EdHttpDefMultiPartCtrl()
 	}
 }
 
-void EdHttpDefMultiPartCtrl::OnDataNew(EdHttpContent* pctt)
+void EdHttpDefMultiPartCtrl::OnHttpDataNew(EdHttpContent* pctt)
 {
 	_cinfo_t *pc = new _cinfo_t;
 	pc->fileName = *(pctt->getFileName());
@@ -57,12 +57,12 @@ void EdHttpDefMultiPartCtrl::OnDataNew(EdHttpContent* pctt)
 	mCttList[*pctt->getName()] = pc; // TODO: duplicate check
 }
 
-void EdHttpDefMultiPartCtrl::OnDataContinue(EdHttpContent* pctt, const void* buf, int len)
+void EdHttpDefMultiPartCtrl::OnHttpDataContinue(EdHttpContent* pctt, const void* buf, int len)
 {
 	pctt->writer->writeData(buf, len);
 }
 
-void EdHttpDefMultiPartCtrl::OnDataRecvComplete(EdHttpContent* pct)
+void EdHttpDefMultiPartCtrl::OnHttpDataRecvComplete(EdHttpContent* pct)
 {
 	pct->writer->close();
 }
@@ -72,7 +72,7 @@ void EdHttpDefMultiPartCtrl::setFileFolder(const char* path)
 	mFolder = path;
 }
 
-string* EdHttpDefMultiPartCtrl::getData(const char* name)
+string EdHttpDefMultiPartCtrl::getData(const char* name)
 {
 	try
 	{
@@ -81,22 +81,22 @@ string* EdHttpDefMultiPartCtrl::getData(const char* name)
 		return wr->getString();
 	} catch (out_of_range &err)
 	{
-		return NULL;
+		return "";
 	}
 }
 
-string* EdHttpDefMultiPartCtrl::getFile(const char* name, long* plen)
+string EdHttpDefMultiPartCtrl::getFile(const char* name, long* plen)
 {
 	try
 	{
 		auto pc = mCttList.at("filename");
 		EdHttpFileWriter *wr = (EdHttpFileWriter*)pc->writer;
 		*plen = wr->getWriteCount();
-		return &(pc->fileName);
+		return (pc->fileName);
 	} catch (out_of_range &err)
 	{
 		*plen = 0;
-		return NULL;
+		return "";
 	}
 }
 

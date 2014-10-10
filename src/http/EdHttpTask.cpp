@@ -5,8 +5,8 @@
  *      Author: netmind
  */
 
-#define DBG_LEVEL DBG_DEBUG
-#define DBGTAG "htask"
+#define DBGTAG "HTTSK"
+#define DBG_LEVEL DBG_WARN
 
 #include "../config.h"
 
@@ -20,7 +20,7 @@ namespace edft
 
 EdHttpTask::EdHttpTask()
 {
-
+	mConfig.recv_buf_size = 4*1024;
 }
 
 EdHttpTask::~EdHttpTask()
@@ -117,6 +117,11 @@ int EdHttpTask::openDefaultCertFile(const char* crtfile, const char* keyfile, co
 {
 	setDefaultCertPassword(pw);
 	return setDefaultCertFile(crtfile, keyfile);
+}
+
+http_server_cfg_t* EdHttpTask::getConfig()
+{
+	return &mConfig;
 }
 
 } // namespace edft

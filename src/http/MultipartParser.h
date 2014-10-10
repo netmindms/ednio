@@ -130,14 +130,17 @@ private:
 		
 		if (index == 0) {
 			// boyer-moore derived algorithm to safely skip non-boundary data
-			while (i + boundarySize <= len) {
+			//while (i + boundarySize <= len) {
+			while (i + boundarySize < len) { // TODO: netmind change, Fix: buffer boundary exceed.
 				if (isBoundaryChar(buffer[i + boundaryEnd])) {
 					break;
 				}
 				
 				i += boundarySize;
 			}
+
 			c = buffer[i];
+
 		}
 		
 		if (index < boundarySize) {

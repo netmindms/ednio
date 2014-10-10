@@ -7,8 +7,8 @@
 
 #include "../config.h"
 
-#define DBGTAG "STRWR"
-#define DBG_LEVEL DBG_DEBUG
+#define DBGTAG "HTSWR"
+#define DBG_LEVEL DBG_WARN
 
 #include "../edslog.h"
 #include "EdHttpStringWriter.h"
@@ -31,9 +31,9 @@ long EdHttpStringWriter::writeData(const void* buf, long len)
 	return len;
 }
 
-string* EdHttpStringWriter::getString()
+string EdHttpStringWriter::getString()
 {
-	return &mString;
+	return mString;
 }
 
 

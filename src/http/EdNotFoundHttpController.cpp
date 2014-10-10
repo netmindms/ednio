@@ -19,7 +19,7 @@ EdNotFoundHttpController::~EdNotFoundHttpController()
 {
 }
 
-void EdNotFoundHttpController::OnRequestHeader()
+void EdNotFoundHttpController::OnHttpRequestHeader()
 {
 	mReader.setString("<h1>  Page Not Found......  <h1>\n");
 	setRespBodyReader(&mReader,"text/html");

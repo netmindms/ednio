@@ -35,26 +35,23 @@ class EdHttpController : public EdObject
 public:
 	EdHttpController();
 	virtual ~EdHttpController();
-	virtual void OnInit();
-	virtual void OnRequestHeader();
-	virtual void OnContentRecvComplete();
-	//virtual void OnContentSendComplete();
-	virtual void OnComplete(int result);
-	virtual void OnNewMultipart(EdMultipartInfo* pinfo);
-	virtual void OnMultipartData(EdMultipartInfo* pinfo);
-	virtual void OnDataNew(EdHttpContent *pct);
-	virtual void OnDataContinue(EdHttpContent *pct, const void *buf, int len);
-	virtual void OnDataRecvComplete(EdHttpContent *pct);
-	virtual void OnRequestMsg();
+	virtual void OnHttpCtrlInit();
+	virtual void OnHttpRequestHeader();
+	virtual void OnHttpComplete(int result);
+	virtual void OnHttpDataNew(EdHttpContent *pct);
+	virtual void OnHttpDataContinue(EdHttpContent *pct, const void *buf, int len);
+	virtual void OnHttpDataRecvComplete(EdHttpContent *pct);
+	virtual void OnHttpRequestMsg();
 
 	void close();
 	void setReqBodyWriter(EdHttpWriter* writer);
 	void setRespBodyReader(EdHttpReader* reader, const char *type);
-	const char* getReqHeader(char* name);
-	const string* getReqHeaderString(const char* name);
+	const int getReqMethod();
+	const char* getReqHeader(const char* name);
+	const string getReqHeaderString(const char* name);
 	long getReqContentLen();
 	void *getUserData();
-	const string* getReqUrl();
+	string getReqUrl();
 
 protected:
 	void setHttpResult(const char *code);
@@ -73,6 +70,7 @@ private:
 	EdHdrContentType* mReqCtype;
 	bool mIsMultipartBody;
 
+	int mReqMethod;
 	char mStatusCode[4];
 	bool mIsFinalResponsed;
 	bool mIsContinueResponse;
@@ -90,8 +88,8 @@ private:
 	EdHttpReader* mBodyReader;
 
 	void setConnection(EdHttpCnn* pcnn);
-	void addReqHeader(string* name, string* val);
-	void setUrl(string *url);
+	void addReqHeader(string name, string val);
+	void setUrl(string url);
 	void encodeResp();
 	const char* getBoundary();
 

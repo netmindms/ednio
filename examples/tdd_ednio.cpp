@@ -1092,20 +1092,20 @@ void testHttpSever(int mode)
 			mMyTask = (MyHttpTask*) EdTask::getCurrentTask();
 			logs("mycont const.....");
 		}
-		virtual void OnRequestHeader()
+		virtual void OnHttpRequestHeader()
 		{
 			logs("after 100msec, send response...");
 			mTimer.setOnListener(this);
 			mTimer.set(100);
 		}
 
-		virtual void OnContentRecvComplete()
+		virtual void OnHttpDataRecvComplete(EdHttpContent* pctt)
 		{
 			;
 		}
 		;
 
-		virtual void OnComplete(int result)
+		virtual void OnHttpComplete(int result)
 		{
 			logs("http complete...result=%d", result);
 			delete mStrReader;
@@ -1133,7 +1133,7 @@ void testHttpSever(int mode)
 			logs("file ctrl on init...");
 		}
 		;
-		virtual void OnRequestHeader()
+		virtual void OnHttpRequestHeader()
 		{
 			reader.open("/home/netmind/bb");
 			setRespBodyReader(&reader, "application/zip");
@@ -1141,7 +1141,7 @@ void testHttpSever(int mode)
 		}
 		;
 
-		virtual void OnComplete(int result)
+		virtual void OnHttpComplete(int result)
 		{
 			logs("file ctrl complete, result=%d", result);
 			reader.close();
@@ -1151,32 +1151,45 @@ void testHttpSever(int mode)
 
 	class UpFileCtrl: public EdHttpUploadCtrl
 	{
-		void OnInit()
+		void OnHttpCtrlInit()
 		{
+			logs("upfile request method=%d, url=%s", getReqMethod(), getReqUrl().c_str());
+			if(getReqMethod() != HTTP_PUT) {
+				setHttpResult("400");
+				return;
+			}
 			setPath("/tmp/ednio/upfile.dat");
 		}
-		void OnRequestMsg()
+		void OnHttpRequestHeader()
+		{
+			EdHttpUploadCtrl::OnHttpRequestHeader();
+			logs("  content=%s", getReqHeader("Content-Type"));
+		}
+		void OnHttpRequestMsg()
 		{
 			logs("up file request msg...");
 			setHttpResult("200");
 		}
+
 	};
 
 	class MultipartCtrl: public EdHttpDefMultiPartCtrl
 	{
 		EdHttpStringReader reader;
-		void OnRequestHeader()
+		void OnHttpRequestHeader()
 		{
-			setFileFolder("/tmp");
+			auto task = (EdHttpTask*) EdTask::getCurrentTask();
+			logs("  recv buf size=%d", task->getConfig()->recv_buf_size);
+			setFileFolder("/tmp/ednio");
 		}
-		void OnRequestMsg()
+		void OnHttpRequestMsg()
 		{
 			logs("on multipart request msg, ");
 
-			string *info = getData("info");
-			if (info != NULL)
+			string info = getData("info");
+			if (info.size()>0)
 			{
-				logs("info = %s", info->c_str());
+				logs("info = %s", info.c_str());
 				reader.setString("info received...\r\n");
 				setRespBodyReader(&reader, "text/plain");
 				setHttpResult("200");
@@ -1187,7 +1200,7 @@ void testHttpSever(int mode)
 				setHttpResult("400");
 			}
 		}
-		void OnComplete(int result)
+		void OnHttpComplete(int result)
 		{
 			logs("mp complete, result=%d", result);
 		}
@@ -1195,6 +1208,9 @@ void testHttpSever(int mode)
 
 	class HttpTestTask: public TestTask
 	{
+	public:
+		virtual ~HttpTestTask() {
+		}
 		virtual int OnEventProc(EdMsg* pmsg)
 		{
 			if (pmsg->msgid == EDM_INIT)
@@ -1241,13 +1257,14 @@ void testHttpSever(int mode)
 			return 0;
 		}
 	};
+
 	logm(">>>> Test: Http Server, mode=%d", mode);
 	fdcheck_start();
 	HttpTestTask *task = new HttpTestTask;
 	task->runMain(mode);
+	//delete task;
 	fdcheck_end();
 	logm("<<<< HttpServer OK\n\n");
-
 }
 
 void testssl(int mode)
@@ -1756,12 +1773,6 @@ void testreadclose(int mode)
 	logm("<<<< Task test OK\n");
 }
 
-#include <string.h>
-#include "http/http_parser.h"
-//#include "http/multipart_parser.h"
-//#include "MultipartParser.h"
-
-#if 0
 void testmultipartapi()
 {
 	class Mp
@@ -1829,55 +1840,14 @@ void testmultipartapi()
 		rdcnt += cnt;
 	}
 }
-#endif
-#include <unordered_map>
+
+
 int main()
 {
-
-#if 0
-	char t[100] = "name=kim&addr=2323";
-	char* p = t;
-	char *tk;
-	tk = strsep(&p, "=&");
-	tk = strsep(&p, "=&");
-
-	char *urlis[] =
-	{	"UF_SCHEMA", "UF_HOST", "UF_PORT", "UF_PATH", "UF_QUERY", "UF_FRAGMENT", "UF_USERINFO"};
-
-	http_parser_url url;
-	//char raw[] = "http://www.yahoo.co.kr:8080/index.html?name=kim&sec=100";
-	char raw[] = "/index.html?name=kim&sec=100";
-	char temp[200];
-	strcpy(temp, raw);
-	char *host, *path, *para;
-	int ur = http_parser_parse_url(temp, strlen(temp), 0, &url);
-	for (int i = 0; i < UF_MAX; i++)
-	{
-		if (url.field_set & (1 << i))
-		{
-			string f;
-			f.assign(raw + url.field_data[i].off, url.field_data[i].len);
-			dbgd("url parsing: %s = %s", urlis[i], f.c_str());
-			temp[url.field_data[i].off + url.field_data[i].len] = 0;
-			if (i == UF_HOST)
-			{
-				host = temp + url.field_data[i].off;
-			}
-			else if (i == UF_PATH)
-			{
-				path = temp + url.field_data[i].off;
-			}
-			else if (i == UF_QUERY)
-			{
-				para = temp + url.field_data[i].off;
-			}
-		}
-	}
-#endif
-
 	EdNioInit();
 	for (int i = 0; i < 1; i++)
 	{
+		//testmultipartapi();
 		//testreadclose(i);
 		testHttpSever(i);
 		//testsmartsock(i);

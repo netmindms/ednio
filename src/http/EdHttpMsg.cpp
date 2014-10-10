@@ -6,7 +6,11 @@
  */
 #include "../config.h"
 
+#define DBGTAG "HTMSG"
+#define DBG_LEVEL DBG_WARN
+
 #include <stdexcept>
+#include "../edslog.h"
 #include "EdHttpMsg.h"
 
 namespace edft
@@ -20,9 +24,9 @@ EdHttpMsg::~EdHttpMsg()
 {
 }
 
-void EdHttpMsg::setUrl(string* url)
+void EdHttpMsg::setUrl(string url)
 {
-	mUrl = *url;
+	mUrl = url;
 }
 
 void EdHttpMsg::setStatusLine(string* statusline)
@@ -30,9 +34,9 @@ void EdHttpMsg::setStatusLine(string* statusline)
 	mStatusLine = *statusline;
 }
 
-void EdHttpMsg::addHdr(string* hdr, string* val)
+void EdHttpMsg::addHdr(string hdr, string val)
 {
-	mHeaders[*hdr] = *val;
+	mHeaders[hdr] = val;
 }
 
 void EdHttpMsg::addHdr(const char* name, const char* val)
@@ -43,12 +47,13 @@ void EdHttpMsg::addHdr(const char* name, const char* val)
 const char* EdHttpMsg::getHdr(const char* name)
 {
 #if 1
-	const string *ps = getHdrString(name);
-	if(ps !=NULL) {
-		return ps->c_str();
-	} else {
-		return NULL;
-	}
+	return getHdrString(name).c_str();
+//	const string ps = getHdrString(name);
+//	if(ps !=NULL) {
+//		return ps->c_str();
+//	} else {
+//		return NULL;
+//	}
 
 #else
 	try
@@ -62,15 +67,16 @@ const char* EdHttpMsg::getHdr(const char* name)
 #endif
 }
 
-const string* EdHttpMsg::getHdrString(const char* name)
+const string EdHttpMsg::getHdrString(const char* name)
 {
 	try
 	{
 		string &val = mHeaders.at(name);
-		return &val;
+		dbgd("  req hdr val=%s", val.c_str());
+		return val;
 	} catch (out_of_range &exp)
 	{
-		return NULL;
+		return "";
 	}
 }
 
@@ -94,9 +100,9 @@ void EdHttpMsg::free()
 	mUrl = "";
 }
 
-const string* EdHttpMsg::getUrl()
+string EdHttpMsg::getUrl()
 {
-	return &mUrl;
+	return mUrl;
 }
 
 } // namespace edft

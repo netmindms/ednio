@@ -22,13 +22,13 @@ class EdHttpDefMultiPartCtrl : public EdHttpController
 public:
 	EdHttpDefMultiPartCtrl();
 	virtual ~EdHttpDefMultiPartCtrl();
-	void OnDataNew(EdHttpContent* pctt);
-	void OnDataContinue(EdHttpContent* pctt, const void* buf, int len);
-	void OnDataRecvComplete(EdHttpContent *pct);
+	void OnHttpDataNew(EdHttpContent* pctt);
+	void OnHttpDataContinue(EdHttpContent* pctt, const void* buf, int len);
+	void OnHttpDataRecvComplete(EdHttpContent *pct);
 
 	void setFileFolder(const char* path);
-	string* getData(const char* name);
-	string* getFile(const char* name, long *plen);
+	string getData(const char* name);
+	string getFile(const char* name, long *plen);
 
 private:
 	typedef struct {

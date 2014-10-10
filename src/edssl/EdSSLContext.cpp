@@ -4,8 +4,8 @@
  *  Created on: Aug 5, 2014
  *      Author: netmind
  */
-#define DBGTAG "edssl"
-#define DBG_LEVEL DBG_DEBUG
+#define DBGTAG "SLCTX"
+#define DBG_LEVEL DBG_WARN
 
 #include "../edslog.h"
 #include "EdSSLContext.h"

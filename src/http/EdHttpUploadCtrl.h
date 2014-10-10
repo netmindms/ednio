@@ -23,11 +23,10 @@ public:
 	EdHttpUploadCtrl();
 	virtual ~EdHttpUploadCtrl();
 	// >>>>>>>>>>>>>>> virtual functions
-	void OnRequestHeader();
-	void OnDataNew(EdHttpContent *pctt);
-	void OnDataContinue(EdHttpContent *pctt, const void *buf, int len);
-	void OnDataRecvComplete(EdHttpContent *pctt);
-	void OnComplete(int result);
+	void OnHttpRequestHeader();
+	void OnHttpDataNew(EdHttpContent *pctt);
+	void OnHttpDataContinue(EdHttpContent *pctt, const void *buf, int len);
+	void OnHttpDataRecvComplete(EdHttpContent *pctt);
 	// <<<<<<<<<<<<<<<
 
 	void setPath(const char* path);

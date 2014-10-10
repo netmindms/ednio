@@ -27,6 +27,11 @@ enum {
 };
 
 
+typedef struct {
+	int recv_buf_size;
+
+} http_server_cfg_t;
+
 class EdHttpTask: public EdTask
 {
 	friend class EdHttpCnn;
@@ -40,7 +45,7 @@ public:
 	int setDefaultCertMem(const void *crt, int crtlen, const void* key, int keylen);
 	void setDefaultCertPassword(const char* pw);
 	int openDefaultCertFile(const char* crtfile, const char* keyfile, const char* pw);
-
+	http_server_cfg_t* getConfig();
 
 	typedef EdHttpController* (*__alloc_controller)();
 	struct urlmapinfo_t {
@@ -68,6 +73,7 @@ public:
 
 
 private:
+	http_server_cfg_t mConfig;
 	EdObjList<EdHttpCnn> mCnns;
 	unordered_map<string, EdHttpController*> mUrlMap;
 	unordered_map<string, urlmapinfo_t*> mAllocMap;

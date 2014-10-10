@@ -4,8 +4,8 @@
  *  Created on: Oct 2, 2014
  *      Author: netmind
  */
-#define DBGTAG "hdrvp"
-#define DBG_LEVEL DBG_DEBUG
+#define DBGTAG "HHDRV"
+#define DBG_LEVEL DBG_WARN
 
 #include <string>
 #include "EdHttpHdrValue.h"

@@ -24,6 +24,7 @@ using namespace std;
 namespace edft
 {
 
+
 enum PARSER_STATUS_E
 {
 	PS_INIT, PS_FIRST_LINE, PS_HEADER, PS_BODY, PS_MP_HEADER, PS_MP_DATA,
@@ -113,7 +114,8 @@ private:
 		u32 mTrhseed;
 	};
 
-	string *mCurHdrName, *mCurHdrVal, *mCurUrl;
+	//string *mCurHdrName, *mCurHdrVal, *mCurUrl;
+	string mCurHdrName, mCurHdrVal, mCurUrl;
 	bool mIsHdrVal;
 	PARSER_STATUS_E mPs;
 

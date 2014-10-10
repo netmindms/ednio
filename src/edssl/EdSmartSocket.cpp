@@ -5,7 +5,7 @@
  *      Author: netmind
  */
 
-#define DBG_LEVEL DBG_VERBOSE
+#define DBG_LEVEL DBG_WARN
 #define DBGTAG "SMSCK"
 
 #include "../edslog.h"
@@ -99,7 +99,7 @@ void EdSmartSocket::OnConnected()
 
 void EdSmartSocket::OnDisconnected()
 {
-	dbgd("socket disconnected...");
+	dbgd("socket disconnected..., fd=%d", getFd());
 	bool sscnn = mSessionConencted;
 	// TODO: socketClose();
 
@@ -605,7 +605,8 @@ void EdSmartSocket::procSSLOnWrite()
 	else
 	{
 		dbgd("no pending buffer on write...");
-		changeEvent(EVT_READ | EVT_HANGUP);
+		if(mSSLWantEvent != EVT_WRITE)
+			changeEvent(EVT_READ | EVT_HANGUP);
 		if (mOnLis != NULL)
 		{
 			mOnLis->IOnNet(this, NETEV_SENDCOMPLETE);

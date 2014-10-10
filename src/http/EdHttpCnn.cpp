@@ -7,7 +7,7 @@
 #include "../config.h"
 
 #define DBGTAG "HTCNN"
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 
 #include <stack>
 #include <unordered_map>
@@ -24,6 +24,8 @@ namespace edft
 
 static http_parser_settings _parserSettings;
 
+//#define RECV_BUF_SIZE (2*1024)
+
 EdHttpCnn::EdHttpCnn()
 {
 	dbgv("Http connection construct......");
@@ -39,14 +41,10 @@ EdHttpCnn::EdHttpCnn()
 
 	// init parser
 	mPs = PS_INIT;
-	mCurUrl = NULL;
 	mIsHdrVal = false;
-	mCurHdrName = mCurHdrVal = NULL;
 	mCurContent = NULL;
 	memset(&mParser, 0, sizeof(mParser));
 
-	//mBufSize = 8 * 1024;
-	//mReadBuf = (char*) malloc(mBufSize);
 	mBufSize = 0;
 	mReadBuf = NULL;
 
@@ -74,16 +72,19 @@ void EdHttpCnn::close()
 
 int EdHttpCnn::initCnn(int fd, u32 handle, EdHttpTask *ptask, int socket_mode)
 {
+	mTask = ptask;
+	auto serverCfg = mTask->getConfig();
+
 	mSock.setOnNetListener(this);
 	mSock.socketOpenChild(fd, socket_mode);
 
-	mTask = ptask;
 	mHandle = handle;
 
 	http_parser_init(&mParser, HTTP_REQUEST);
 	mParser.data = this;
 
-	mBufSize = 16 * 1024;
+
+	mBufSize = serverCfg->recv_buf_size;
 	mReadBuf = malloc(mBufSize);
 	if (mReadBuf == NULL)
 	{
@@ -167,17 +168,13 @@ int EdHttpCnn::dgHeaderNameCb(http_parser*, const char* at, size_t length)
 
 	if (mIsHdrVal)
 	{
-		dbgd("header set, name=%s, val=%s", mCurHdrName->c_str(), mCurHdrVal->c_str());
+		dbgd("header set, name=%s, val=%s", mCurHdrName.c_str(), mCurHdrVal.c_str());
 		procHeader();
 		mIsHdrVal = false;
 	}
 
-	if (mCurHdrName == NULL)
-	{
-		mCurHdrName = new string();
-	}
 
-	mCurHdrName->append(at, length);
+	mCurHdrName.append(at, length);
 	return 0;
 }
 
@@ -185,10 +182,7 @@ int EdHttpCnn::dgHeaderValCb(http_parser*, const char* at, size_t length)
 {
 	dbgv("parser hdr val cb, str=%s", string(at, length).c_str());
 
-	if (mCurHdrVal == NULL)
-		mCurHdrVal = new string();
-
-	mCurHdrVal->append(at, length);
+	mCurHdrVal.append(at, length);
 	mIsHdrVal = true;
 	return 0;
 
@@ -199,16 +193,16 @@ int EdHttpCnn::dgHeaderComp(http_parser* parser)
 
 	if (mIsHdrVal)
 	{
-		dbgv("header comp, name=%s, val=%s", mCurHdrName->c_str(), mCurHdrVal->c_str());
+		dbgv("header comp, name=%s, val=%s", mCurHdrName.c_str(), mCurHdrVal.c_str());
 		procHeader();
 		mIsHdrVal = false;
 	}
-	dbgd("parser header complete,...");
+	dbgd("parser: header complete,...");
 	if (mCurCtrl != NULL)
 	{
 		checkHeaders();
 		mTxTrying = true;
-		mCurCtrl->OnRequestHeader();
+		mCurCtrl->OnHttpRequestHeader();
 		mTxTrying = false;
 		mCurCtrl->checkExpect(); // check Expect header...
 		if (mCurCtrl->mIsFinalResponsed == true || mCurCtrl->mIsContinueResponse == true)
@@ -230,13 +224,13 @@ int EdHttpCnn::dgbodyDataCb(http_parser* parser, const char* at, size_t length)
 		if (mPs == PS_HEADER)
 		{
 			mPs = PS_BODY;
-			mCurCtrl->OnDataNew(NULL);
+			mCurCtrl->OnHttpDataNew(NULL);
 		}
-		mCurCtrl->OnDataContinue(NULL, at, length);
+		mCurCtrl->OnHttpDataContinue(NULL, at, length);
 	}
 	else
 	{
-		dbgd("\n%s", string(at, length).c_str());
+		dbgv("\n%s", string(at, length).c_str());
 		mMpParser->feed(at, length);
 	}
 	return 0;
@@ -246,8 +240,8 @@ int EdHttpCnn::dgMsgBeginCb(http_parser* parser)
 {
 	mPs = PS_FIRST_LINE;
 	mIsHdrVal = false;
-	mCurHdrName = NULL;
-	mCurHdrVal = NULL;
+	//mCurHdrName = NULL;
+	//mCurHdrVal = NULL;
 	return 0;
 }
 
@@ -260,10 +254,10 @@ int EdHttpCnn::dgMsgEndCb(http_parser* parser)
 		if (mPs == PS_BODY)
 		{
 			dbgd("body data end...");
-			mCurCtrl->OnDataRecvComplete(NULL);
+			mCurCtrl->OnHttpDataRecvComplete(NULL);
 		}
 		mTxTrying = true;
-		mCurCtrl->OnRequestMsg();
+		mCurCtrl->OnHttpRequestMsg();
 		mTxTrying = false;
 		if (mCurCtrl->mIsFinalResponsed == true || mCurCtrl->mIsContinueResponse == true)
 		{
@@ -272,13 +266,14 @@ int EdHttpCnn::dgMsgEndCb(http_parser* parser)
 
 	}
 
-	if (mCurUrl != NULL)
-	{
-		delete mCurUrl;
-		mCurUrl = NULL;
-	}
-	CHECK_DELETE_OBJ(mCurHdrName);
-	CHECK_DELETE_OBJ(mCurHdrVal);
+	mCurUrl.clear();
+//	if (mCurUrl != NULL)
+//	{
+//		delete mCurUrl;
+//		mCurUrl = NULL;
+//	}
+	//CHECK_DELETE_OBJ(mCurHdrName);
+	//CHECK_DELETE_OBJ(mCurHdrVal);
 	closeMultipart();
 	mPs = PS_INIT;
 	return 0;
@@ -286,10 +281,11 @@ int EdHttpCnn::dgMsgEndCb(http_parser* parser)
 
 int EdHttpCnn::dgUrlCb(http_parser* parser, const char* at, size_t length)
 {
-	if (mCurUrl == NULL)
-		mCurUrl = new string(at, length);
-	else
-		mCurUrl->append(at, length);
+//	if (mCurUrl == NULL)
+//		mCurUrl = new string(at, length);
+//	else
+//		mCurUrl->append(at, length);
+	mCurUrl.append(at, length);
 
 	return 0;
 }
@@ -309,22 +305,25 @@ void EdHttpCnn::procHeader()
 	if (mCurCtrl != NULL)
 		mCurCtrl->addReqHeader(mCurHdrName, mCurHdrVal);
 
-	delete mCurHdrName;
-	delete mCurHdrVal;
+	mCurHdrName.clear();
+	mCurHdrVal.clear();
 
-	mCurHdrName = mCurHdrVal = NULL;
+	//delete mCurHdrName;
+	//delete mCurHdrVal;
+	//mCurHdrName = mCurHdrVal = NULL;
 }
 
 void EdHttpCnn::procReqLine()
 {
-	dbgd("parser reuest line url = %s", mCurUrl->c_str());
+	dbgd("parser: reuest line url = %s", mCurUrl.c_str());
 	mPs = PS_HEADER;
-	mCurCtrl = mTask->allocController(mCurUrl->c_str());
+	mCurCtrl = mTask->allocController(mCurUrl.c_str());
 	if (mCurCtrl != NULL)
 	{
 		mCurCtrl->initCtrl(this);
+		mCurCtrl->mReqMethod = mParser.method;
 		mCurCtrl->setUrl(mCurUrl);
-		mCurCtrl->OnInit();
+		mCurCtrl->OnHttpCtrlInit();
 		mCtrlList.push_back(mCurCtrl);
 	}
 }
@@ -351,7 +350,7 @@ int EdHttpCnn::scheduleTransmitNeedEnd()
 		if (sr == SEND_OK)
 		{
 			dellist.push(itr);
-			sctrl->OnComplete(0);
+			sctrl->OnHttpComplete(0);
 			sctrl->close();
 			mTask->freeController(sctrl);
 			if (sctrl == mCurCtrl)
@@ -366,7 +365,7 @@ int EdHttpCnn::scheduleTransmitNeedEnd()
 		}
 	}
 
-	dbgd("to remove cnt=%d", dellist.size());
+	dbgd("Terminated controller count=%d", dellist.size());
 	for (; !dellist.empty();)
 	{
 		auto itr = dellist.top();
@@ -374,7 +373,6 @@ int EdHttpCnn::scheduleTransmitNeedEnd()
 		dellist.pop();
 	}
 
-	dbgd("ctrl list cnt=%d", mCtrlList.size());
 	return mCtrlList.size();
 }
 
@@ -390,7 +388,7 @@ void EdHttpCnn::IOnNet(EdSmartSocket* psock, int event)
 	}
 	else if (event == NETEV_DISCONNECTED)
 	{
-		dbgd("smsocket disconnected...");
+		dbgd("smsocket disconnected...,fd=%d", mSock.getFd());
 		procDisconnectedNeedEnd();
 	}
 }
@@ -454,7 +452,7 @@ void EdHttpCnn::closeAllCtrls()
 	{
 		pctrl = mCtrlList.front();
 		mCtrlList.pop_front();
-		pctrl->OnComplete(-1);
+		pctrl->OnHttpComplete(-1);
 		pctrl->close();
 		mTask->freeController(pctrl);
 	}
@@ -473,7 +471,7 @@ void EdHttpCnn::checkHeaders()
 	mCurCtrl->checkHeaders();
 	if (mCurCtrl->mIsMultipartBody == true)
 	{
-		dbgd("mutlipart parser init, boundary=%s", mCurCtrl->getBoundary());
+		dbgd("mutlipart parser: init, boundary=%s", mCurCtrl->getBoundary());
 		initMultipart(mCurCtrl->getBoundary());
 
 	}
@@ -567,7 +565,7 @@ void EdHttpCnn::dgMpPartDataCb(const char* buffer, size_t start, size_t end)
 		mPs = PS_MP_DATA;
 		if (mCurContent->isValidMp() == true)
 		{
-			mCurCtrl->OnDataNew(mCurContent);
+			mCurCtrl->OnHttpDataNew(mCurContent);
 		}
 		else
 		{
@@ -578,14 +576,14 @@ void EdHttpCnn::dgMpPartDataCb(const char* buffer, size_t start, size_t end)
 	}
 
 	if (mCurContent != NULL)
-		mCurCtrl->OnDataContinue(mCurContent, buffer + start, end - start);
+		mCurCtrl->OnHttpDataContinue(mCurContent, buffer + start, end - start);
 }
 
 void EdHttpCnn::dgMpPartEndCb(const char* buffer, size_t start, size_t end)
 {
 	dbgd("part end cb...");
 	if (mCurContent != NULL)
-		mCurCtrl->OnDataRecvComplete(mCurContent);
+		mCurCtrl->OnHttpDataRecvComplete(mCurContent);
 	CHECK_DELETE_OBJ(mCurContent);
 }
 
