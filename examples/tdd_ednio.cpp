@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "EdNio.h"
+#include "mariadb/EdMariaCnn.h"
 
 void levlog(int lev, const char *tagid, int line, const char *fmtstr, ...)
 {
@@ -1849,7 +1850,6 @@ void testmultipartapi()
 	}
 }
 
-
 #if 0
 void testHttpPipeLine(int mode)
 {
@@ -1992,6 +1992,60 @@ void testHttpPipeLine(int mode)
 }
 #endif
 
+void testMariadb(int mode)
+{
+	class DbConnection: public EdMariaCnn
+	{
+		void OnDbConnected()
+		{
+			logs("test db connected...");
+			//querySql("select * from userinfo");
+		}
+		void OnQueryEnd(MYSQL_RES *res)
+		{
+			logs(" query end...");
+			MYSQL_ROW row;
+			for (;;)
+			{
+				row = mysql_fetch_row(res);
+				if (row == NULL)
+					break;
+				dbgd("name=%s, addr=%s", row[1], row[2]);
+			}
+			mysql_free_result(res);
+		}
+	};
+
+	class DbTask: public EdTask
+	{
+
+		DbConnection *Cnn;
+
+		int OnEventProc(EdMsg* pmsg)
+		{
+			if (pmsg->msgid == EDM_INIT)
+			{
+				Cnn = new DbConnection;
+				Cnn->connect("127.0.0.1", 0, "netmind", "1234", "myclient");
+			}
+			else if (pmsg->msgid == EDM_CLOSE)
+			{
+				delete Cnn;
+				Cnn = NULL;
+			}
+			return 0;
+		}
+	};
+	logm(">>>> Test: Db Task, mode=%d", mode);
+	fdcheck_start();
+	auto task = new DbTask;
+	task->run(mode);
+	task->wait();
+	delete task;
+	fdcheck_end();
+	logm("<<<< Task Db test OK\n");
+}
+
 int main()
 {
 	EdNioInit();
@@ -2008,8 +2062,9 @@ int main()
 		//testssl(i);
 		//testsmartsock(i);
 		//testHttpBase(i);
-		testHttpSever(i);
+		//testHttpSever(i);
 		//testmultipartapi();
+		testMariadb(i);
 	}
 	return 0;
 }
