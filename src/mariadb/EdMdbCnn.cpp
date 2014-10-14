@@ -1,10 +1,10 @@
 /*
- * EdMariaCnn.cpp
+ * EdMdbCnn.cpp
  *
  *  Created on: Oct 11, 2014
  *      Author: netmind
  */
-#if 0
+
 #include "../config.h"
 
 #define DBGTAG "MYCNN"
@@ -15,35 +15,31 @@
 
 #include "../EdType.h"
 #include "../edslog.h"
-#include "EdMariaCnn.h"
-#include "EdMariaQuery.h"
+#include "EdMdbCnn.h"
+#include "EdMdbQueryBase.h"
 
 namespace edft
 {
 
-EdMariaCnn::EdMariaCnn()
+EdMdbCnn::EdMdbCnn()
 {
 	mDbCnn = NULL;
 	mCnnStatus = 0;
 	mQuery = NULL;
+	mTimer = new CnnTimer(this);
 }
 
-EdMariaCnn::~EdMariaCnn()
+EdMdbCnn::~EdMdbCnn()
 {
 	CHECK_FREE_MEM(mDbCnn);
+	CHECK_DELETE_OBJ(mTimer);
 }
 
-void EdMariaCnn::OnDbConnected()
+void EdMdbCnn::OnDbConnected()
 {
 }
 
-void EdMariaCnn::IOnTimerEvent(EdTimer* ptimer)
-{
-	dbgd("timeout...");
-	ptimer->kill();
-}
-
-int EdMariaCnn::connect(const char* hostaddr, int port, const char* id, const char* pw, const char* dbname)
+int EdMdbCnn::connect(const char* hostaddr, int port, const char* id, const char* pw, const char* dbname)
 {
 	if (mDbCnn == NULL)
 	{
@@ -64,13 +60,10 @@ int EdMariaCnn::connect(const char* hostaddr, int port, const char* id, const ch
 				evt |= EVT_WRITE;
 			if (status & MYSQL_WAIT_TIMEOUT)
 			{
-				mTimer.setOnListener(this);
-				mTimer.set(1000);
+				mTimer->set(1000);
 			}
 			registerEvent(evt);
-			mContProc = _procCnnCont;
 			mOpStatus = DB_OP_CONNECTING;
-			//mCurWaitProc = procCnnEvent;
 		}
 
 	}
@@ -78,10 +71,13 @@ int EdMariaCnn::connect(const char* hostaddr, int port, const char* id, const ch
 	return 0;
 }
 
-void EdMariaCnn::OnEventRead()
+void EdMdbCnn::OnEventRead()
 {
 	dbgd("cnn event read, status=%d", mOpStatus);
-	mQuery->queryContinue(this, MYSQL_WAIT_READ);
+	if (mOpStatus == DB_OP_CONNECTING)
+		procCnnCont(MYSQL_WAIT_READ);
+	else
+		mQuery->queryContinue(MYSQL_WAIT_READ);
 
 #if 0
 	mContProc(this, MYSQL_WAIT_READ);
@@ -100,10 +96,13 @@ void EdMariaCnn::OnEventRead()
 #endif
 }
 
-void EdMariaCnn::OnEventWrite()
+void EdMdbCnn::OnEventWrite()
 {
 	dbgd("cnn event write, status=%d", mOpStatus);
-	mQuery->queryContinue(this, MYSQL_WAIT_WRITE);
+	if (mOpStatus == DB_OP_CONNECTING)
+		procCnnCont(MYSQL_WAIT_WRITE);
+	else
+		mQuery->queryContinue(MYSQL_WAIT_WRITE);
 
 //	if (mOpStatus == DB_OP_CONNECTING)
 //	{
@@ -119,10 +118,13 @@ void EdMariaCnn::OnEventWrite()
 //	}
 }
 
-void EdMariaCnn::OnEventHangup()
+void EdMdbCnn::OnEventHangup()
 {
 	dbgd("cnn event hangup, status=%d", mOpStatus);
-	mQuery->queryContinue(this, MYSQL_WAIT_EXCEPT);
+	if (mOpStatus == DB_OP_CONNECTING)
+		procCnnCont(MYSQL_WAIT_EXCEPT);
+	else
+		mQuery->queryContinue(MYSQL_WAIT_EXCEPT);
 
 //	if (mOpStatus == DB_OP_CONNECTING)
 //	{
@@ -138,7 +140,7 @@ void EdMariaCnn::OnEventHangup()
 //	}
 }
 
-void EdMariaCnn::procCnnCont(int waitevt)
+void EdMdbCnn::procCnnCont(int waitevt)
 {
 	MYSQL *ret;
 	int status = mysql_real_connect_cont(&ret, mDbCnn, waitevt);
@@ -156,52 +158,7 @@ void EdMariaCnn::procCnnCont(int waitevt)
 	}
 }
 
-void EdMariaCnn::procQueryCont(int waitevt)
-{
-	int ret;
-	int status = mysql_real_query_cont(&ret, mDbCnn, waitevt);
-	dbgd("db querying continue, status=%0x", status);
-	if (status == 0)
-	{
-		dbgd("db query end, ");
-		mOpStatus = 0;
-		MYSQL_RES *res;
-		status = mysql_store_result_start(&res, mDbCnn);
-		if (status == 0)
-		{
-			OnQueryEnd(res);
-		}
-		else
-		{
-			mOpStatus = DB_OP_STORE;
-			changeWaitEvent(status);
-		}
-	}
-	else
-	{
-		changeWaitEvent(status);
-	}
-}
-
-void EdMariaCnn::procStoreCont(int waitevt)
-{
-	int status;
-	MYSQL_RES *res;
-	status = mysql_store_result_cont(&res, mDbCnn, waitevt);
-	dbgd("db storing continue, status=%0x", status);
-	if (status == 0)
-	{
-		dbgd("db store end, ");
-		mOpStatus = 0;
-		OnQueryEnd(res);
-	}
-	else
-	{
-		changeWaitEvent(status);
-	}
-}
-
-void EdMariaCnn::changeWaitEvent(int waitevt)
+void EdMdbCnn::changeWaitEvent(int waitevt)
 {
 	u32 evt = 0; //evt = EVT_HANGUP;
 	if (waitevt & MYSQL_WAIT_READ)
@@ -212,63 +169,25 @@ void EdMariaCnn::changeWaitEvent(int waitevt)
 		evt |= EVT_HANGUP;
 	if (waitevt & MYSQL_WAIT_TIMEOUT)
 	{
-		mTimer.setOnListener(this);
-		mTimer.set(1000);
+		mTimer->set(1000);
 	}
 	changeEvent(evt);
 }
 
-int EdMariaCnn::sqlQueryAndStore(const char* query)
-{
-	if (mCnnStatus == 0)
-		return -1;
-
-	int ret;
-	int status = mysql_real_query_start(&ret, mDbCnn, query, strlen(query));
-	if (status != 0)
-	{
-		changeWaitEvent(status);
-		mOpStatus = DB_OP_QUERYING;
-	}
-	else
-	{
-		mOpStatus = DB_OP_IDLE;
-	}
-	return 0;
-}
-
-void EdMariaCnn::OnQueryEnd(MYSQL_RES* res)
-{
-	mysql_free_result(res);
-}
-
-int EdMariaCnn::sqlQueryAndFetch(const char* query)
-{
-
-}
-
-void EdMariaCnn::_procCnnCont(EdMariaCnn* pcnn, int waitevt)
-{
-	pcnn->procCnnCont(waitevt);
-}
-
-void EdMariaCnn::_procQueryCont(EdMariaCnn* pcnn, int waitevt)
-{
-	pcnn->procQueryCont(waitevt);
-}
-
-MYSQL* EdMariaCnn::getMySql()
+MYSQL* EdMdbCnn::getMysql()
 {
 	return mDbCnn;
 }
 
-int EdMariaCnn::runQuery(EdMariaQuery* qr)
+int EdMdbCnn::runQuery(EdMdbQueryBase* qr, const char *qs)
 {
-	if (mCnnStatus == 0)
+	if (mCnnStatus == 0 || mOpStatus != DB_OP_IDLE)
+	{
+		dbgd("### Fail: db connection error, cnn status=%d, op status=%d", mCnnStatus, mOpStatus);
 		return -1;
+	}
 
-	int ret;
-	int status = mysql_real_query_start(&ret, mDbCnn, qr->getQueryString(), strlen(qr->getQueryString()));
+	int status = qr->query(qs);
 	if (status != 0)
 	{
 		changeWaitEvent(status);
@@ -277,10 +196,19 @@ int EdMariaCnn::runQuery(EdMariaQuery* qr)
 	else
 	{
 		mOpStatus = DB_OP_IDLE;
-
 	}
 	return 0;
 }
-} /* namespace edft */
 
-#endif
+EdMdbCnn::CnnTimer::CnnTimer(EdMdbCnn* pcnn)
+{
+	mCnn = pcnn;
+}
+
+void EdMdbCnn::CnnTimer::OnTimer()
+{
+	kill();
+	mCnn->procCnnCont(MYSQL_WAIT_TIMEOUT);
+}
+
+} /* namespace edft */

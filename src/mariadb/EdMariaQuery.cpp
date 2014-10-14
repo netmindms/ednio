@@ -4,13 +4,14 @@
  *  Created on: Oct 12, 2014
  *      Author: netmind
  */
-
+#if 0
 #include "../config.h"
 
 #define DBGTAG "MDBQR"
 
 #include "../edslog.h"
 #include "EdMariaQuery.h"
+#include "EdMariaCnn.h"
 
 namespace edft
 {
@@ -34,7 +35,7 @@ void EdMariaQuery::queryContinue(EdMariaCnn* pcnn, int waitevt)
 	if (status == 0)
 	{
 		dbgd("db store end, ");
-		OnQueryEnd(res);
+		//OnQueryEnd(res);
 	}
 	else
 	{
@@ -48,3 +49,4 @@ const char* EdMariaQuery::getQueryString()
 }
 
 } /* namespace edft */
+#endif

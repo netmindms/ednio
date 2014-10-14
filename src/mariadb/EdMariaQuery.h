@@ -9,7 +9,7 @@
 #define EDMARIAQUERY_H_
 
 #include <string>
-#include <mysql/mysql.h>
+#include <mysql.h>
 
 using namespace std;
 

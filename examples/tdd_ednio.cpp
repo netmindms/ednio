@@ -14,7 +14,8 @@
 #include <vector>
 
 #include "EdNio.h"
-#include "mariadb/EdMariaCnn.h"
+#include "mariadb/EdMdbCnn.h"
+#include "mariadb/EdMdbQueryStore.h"
 
 void levlog(int lev, const char *tagid, int line, const char *fmtstr, ...)
 {
@@ -1994,13 +1995,17 @@ void testHttpPipeLine(int mode)
 
 void testMariadb(int mode)
 {
-	class DbConnection: public EdMariaCnn
+	class DbConnection: public EdMdbCnn
 	{
 		void OnDbConnected()
 		{
 			logs("test db connected...");
 			//querySql("select * from userinfo");
 		}
+	};
+
+	class UserQuery: public EdMdbQueryStore
+	{
 		void OnQueryEnd(MYSQL_RES *res)
 		{
 			logs(" query end...");
@@ -2012,7 +2017,6 @@ void testMariadb(int mode)
 					break;
 				dbgd("name=%s, addr=%s", row[1], row[2]);
 			}
-			mysql_free_result(res);
 		}
 	};
 
@@ -2020,18 +2024,25 @@ void testMariadb(int mode)
 	{
 
 		DbConnection *Cnn;
-
+		UserQuery *qry;
 		int OnEventProc(EdMsg* pmsg)
 		{
 			if (pmsg->msgid == EDM_INIT)
 			{
 				Cnn = new DbConnection;
 				Cnn->connect("127.0.0.1", 0, "netmind", "1234", "myclient");
+				setTimer(1, 200);
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
 				delete Cnn;
 				Cnn = NULL;
+			}
+			else if(pmsg->msgid == EDM_TIMER)
+			{
+				qry = new UserQuery;
+				qry->setCnn(Cnn);
+
 			}
 			return 0;
 		}

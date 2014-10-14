@@ -8,7 +8,7 @@
 #ifndef EDMARIACNN_H_
 #define EDMARIACNN_H_
 
-#include <mysql/mysql.h>
+#include <mysql.h>
 #include "../EdEvent.h"
 #include "../EdTimer.h"
 
