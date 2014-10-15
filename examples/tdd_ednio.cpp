@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "EdNio.h"
+#include "mariadb/EdMdb.h"
 #include "mariadb/EdMdbCnn.h"
 #include "mariadb/EdMdbQueryStore.h"
 
@@ -1995,20 +1996,21 @@ void testHttpPipeLine(int mode)
 
 void testMariadb(int mode)
 {
-	class DbConnection: public EdMdbCnn
+	enum
 	{
-		void OnDbConnected()
-		{
-			logs("test db connected...");
-			//querySql("select * from userinfo");
-		}
+		TS_CNN_FAIL = EDM_USER + 1, TS_CNN_OK, TS_NORMAL_QUERY,
 	};
 
 	class UserQuery: public EdMdbQueryStore
 	{
 		void OnQueryEnd(MYSQL_RES *res)
 		{
-			logs(" query end...");
+			logs(" query end...res=%0x", res);
+			if(res == NULL)
+			{
+				logs("### Fail: normal query result fail...");
+				assert(0);
+			}
 			MYSQL_ROW row;
 			for (;;)
 			{
@@ -2017,35 +2019,101 @@ void testMariadb(int mode)
 					break;
 				dbgd("name=%s, addr=%s", row[1], row[2]);
 			}
+			logs("normal query test ok...\n")
+			TestTask *task = ((TestTask*) EdTask::getCurrentTask());
+			task->nextTest();
+			delete this;
 		}
 	};
 
-	class DbTask: public EdTask
+	class DbTask: public TestTask, public EdMdbCnn::IMdbCnn
 	{
 
-		DbConnection *Cnn;
+		EdMdbCnn *Cnn;
 		UserQuery *qry;
+
 		int OnEventProc(EdMsg* pmsg)
 		{
 			if (pmsg->msgid == EDM_INIT)
 			{
-				Cnn = new DbConnection;
-				Cnn->connect("127.0.0.1", 0, "netmind", "1234", "myclient");
-				setTimer(1, 200);
+				Cnn = new EdMdbCnn;
+				addTest(TS_CNN_FAIL);
+				addTest(TS_CNN_OK);
+				addTest(TS_NORMAL_QUERY);
+				nextTest();
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
 				delete Cnn;
 				Cnn = NULL;
+				EdMySqlEnd();
 			}
-			else if(pmsg->msgid == EDM_TIMER)
+			else if (pmsg->msgid == TS_CNN_FAIL)
 			{
-				qry = new UserQuery;
-				qry->setCnn(Cnn);
+				int cnnret;
+				class _mdbstatus: public EdMdbCnn::IMdbCnn
+				{
+					void IOnMdbCnnStatus(EdMdbCnn* pcnn, int result)
+					{
+						if (result == 1)
+						{
+							logs("### Fail: unexpected connection ok...");
+							assert(0);
+						}
 
+						logs("expected db disconnected...,  ok.\n");
+						DbTask *task = ((DbTask*) getCurrentTask());
+						task->Cnn->closeDb();
+						task->nextTest();
+						delete this;
+
+					}
+				};
+				_mdbstatus *mdbimpl = new _mdbstatus;
+				Cnn->setOnListener(mdbimpl);
+				cnnret = Cnn->connectDb("127.0.0.2", 0, "netmind", "1234", "myclient");
+				//int cnnret = Cnn->connectDb("211.23.23.23", 0, "netmind", "1234", "myclient");
+				if (cnnret < 0)
+				{
+					logs("### Fail: connection error,ret=%d", cnnret);
+					assert(0);
+				}
 			}
+			else if (pmsg->msgid == TS_CNN_OK)
+			{
+				int cnnret;
+				Cnn->setOnListener(this);
+				cnnret = Cnn->connectDb("127.0.0.1", 0, "netmind", "1234", "myclient");
+				if (cnnret < 0)
+				{
+					logs("### Fail: connection error,ret=%d", cnnret);
+					assert(0);
+				}
+			}
+			else if (pmsg->msgid == TS_NORMAL_QUERY)
+			{
+				logs("== start normal query...");
+				static UserQuery *qr = new UserQuery;
+
+				qr->setCnn(Cnn);
+				Cnn->runQuery(qr, "select * from userinfo");
+			}
+
 			return 0;
 		}
+
+		void IOnMdbCnnStatus(EdMdbCnn* pcnn, int result)
+		{
+			logs("on mdb cnn, result=%d", result);
+			if (pcnn != Cnn || result != 1)
+			{
+				logs("### Fail: unexpected connection fail...result=%d", result);
+				assert(0);
+			}
+			logs("normal connection test ok...\n");
+			nextTest();
+		}
+
 	};
 	logm(">>>> Test: Db Task, mode=%d", mode);
 	fdcheck_start();

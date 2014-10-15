@@ -23,6 +23,8 @@ public:
 	int query(const char *qs);
 	int queryContinue(int waitevt);
 	void setCnn(EdMdbCnn* pcnn);
+private:
+	int startStore();
 
 private:
 	EdMdbCnn* mCnn;
