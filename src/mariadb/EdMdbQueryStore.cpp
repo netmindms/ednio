@@ -28,7 +28,7 @@ EdMdbQueryStore::~EdMdbQueryStore()
 {
 }
 
-int EdMdbQueryStore::query(const char* qs)
+int EdMdbQueryStore::queryStart(const char* qs)
 {
 	dbgd("query, str=%s, status=%d", qs, mStatus);
 	mStatus = 1;
@@ -86,11 +86,6 @@ void EdMdbQueryStore::OnQueryEnd(MYSQL_RES* res)
 {
 }
 
-void EdMdbQueryStore::setCnn(EdMdbCnn* pcnn)
-{
-	mCnn = pcnn;
-}
-
 
 int EdMdbQueryStore::startStore()
 {
@@ -104,6 +99,12 @@ int EdMdbQueryStore::startStore()
 		mysql_free_result(res);
 	}
 	return stt;
+}
+
+
+void EdMdbQueryStore::setConnection(EdMdbCnn* pcnn)
+{
+	mCnn = pcnn;
 }
 
 } /* namespace edft */

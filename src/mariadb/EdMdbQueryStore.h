@@ -20,10 +20,10 @@ public:
 	EdMdbQueryStore();
 	virtual ~EdMdbQueryStore();
 	virtual void OnQueryEnd(MYSQL_RES *res);
-	int query(const char *qs);
-	int queryContinue(int waitevt);
-	void setCnn(EdMdbCnn* pcnn);
 private:
+	int queryStart(const char *qs);
+	int queryContinue(int waitevt);
+	void setConnection(EdMdbCnn* pcnn);
 	int startStore();
 
 private:

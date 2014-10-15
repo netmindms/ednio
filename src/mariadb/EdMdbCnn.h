@@ -56,7 +56,7 @@ public:
 	virtual void OnDbDisconnected();
 
 	void setOnListener(IMdbCnn* onlis);
-	int connectDb(const char* ip, int port, const char* id, const char* pw, const char* dbname);
+	int connectDb(const char* ip, const char* dbname=NULL, const char* id=NULL, const char* pw=NULL, int port=0);
 	void disconnectDb();
 	void closeDb();
 

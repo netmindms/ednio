@@ -11,12 +11,15 @@
 namespace edft
 {
 
+class EdMdbCnn;
+
 class EdMdbQueryBase
 {
 public:
 	//EdMdbQueryBase();
 	//virtual ~EdMdbQueryBase();
-	virtual int query(const char* qs)=0;
+	virtual void setConnection(EdMdbCnn* pcnn)=0;
+	virtual int queryStart(const char* qs)=0;
 	virtual int queryContinue(int waitevt)=0;
 };
 

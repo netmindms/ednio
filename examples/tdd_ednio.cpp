@@ -17,6 +17,7 @@
 #include "mariadb/EdMdb.h"
 #include "mariadb/EdMdbCnn.h"
 #include "mariadb/EdMdbQueryStore.h"
+#include "mariadb/EdMdbQuery.h"
 
 void levlog(int lev, const char *tagid, int line, const char *fmtstr, ...)
 {
@@ -1998,7 +1999,7 @@ void testMariadb(int mode)
 {
 	enum
 	{
-		TS_CNN_FAIL = EDM_USER + 1, TS_CNN_OK, TS_NORMAL_QUERY,
+		TS_CNN_FAIL = EDM_USER + 1, TS_CNN_OK, TS_NORMAL_QUERY_STORE, TS_GEN_QUERY,
 	};
 
 	class UserQuery: public EdMdbQueryStore
@@ -2006,7 +2007,7 @@ void testMariadb(int mode)
 		void OnQueryEnd(MYSQL_RES *res)
 		{
 			logs(" query end...res=%0x", res);
-			if(res == NULL)
+			if (res == NULL)
 			{
 				logs("### Fail: normal query result fail...");
 				assert(0);
@@ -2031,6 +2032,27 @@ void testMariadb(int mode)
 
 		EdMdbCnn *Cnn;
 		UserQuery *qry;
+		void subtest_genqry()
+		{
+			class genqry: public EdMdbQuery
+			{
+				virtual void OnQueryResult(int err)
+				{
+					logs("gen query result=%d", err);
+					if (err != 0)
+					{
+						logs("### Fail: gen query error...");
+						assert(0);
+					}
+					logs("== Test gen query ok,...\n");
+					((DbTask*) EdTask::getCurrentTask())->nextTest();
+					delete this;
+				}
+			};
+
+			static auto query = new genqry;
+			Cnn->runQuery(query, "create database mybusiness");
+		}
 
 		int OnEventProc(EdMsg* pmsg)
 		{
@@ -2039,7 +2061,8 @@ void testMariadb(int mode)
 				Cnn = new EdMdbCnn;
 				addTest(TS_CNN_FAIL);
 				addTest(TS_CNN_OK);
-				addTest(TS_NORMAL_QUERY);
+				addTest(TS_NORMAL_QUERY_STORE);
+				addTest(TS_GEN_QUERY);
 				nextTest();
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
@@ -2061,17 +2084,17 @@ void testMariadb(int mode)
 							assert(0);
 						}
 
-						logs("expected db disconnected...,  ok.\n");
 						DbTask *task = ((DbTask*) getCurrentTask());
 						task->Cnn->closeDb();
 						task->nextTest();
 						delete this;
-
+						logs("== expected db disconnected...,  ok.\n");
 					}
 				};
+				logs("== Early disconnected test...");
 				_mdbstatus *mdbimpl = new _mdbstatus;
 				Cnn->setOnListener(mdbimpl);
-				cnnret = Cnn->connectDb("127.0.0.2", 0, "netmind", "1234", "myclient");
+				cnnret = Cnn->connectDb("127.0.0.1", "myclient", "netmind", "1234", 5656);
 				//int cnnret = Cnn->connectDb("211.23.23.23", 0, "netmind", "1234", "myclient");
 				if (cnnret < 0)
 				{
@@ -2083,22 +2106,24 @@ void testMariadb(int mode)
 			{
 				int cnnret;
 				Cnn->setOnListener(this);
-				cnnret = Cnn->connectDb("127.0.0.1", 0, "netmind", "1234", "myclient");
+				cnnret = Cnn->connectDb("127.0.0.1", "myclient", "netmind", "1234");
 				if (cnnret < 0)
 				{
 					logs("### Fail: connection error,ret=%d", cnnret);
 					assert(0);
 				}
 			}
-			else if (pmsg->msgid == TS_NORMAL_QUERY)
+			else if (pmsg->msgid == TS_NORMAL_QUERY_STORE)
 			{
 				logs("== start normal query...");
 				static UserQuery *qr = new UserQuery;
-
-				qr->setCnn(Cnn);
 				Cnn->runQuery(qr, "select * from userinfo");
 			}
-
+			else if (pmsg->msgid == TS_GEN_QUERY)
+			{
+				logs("== Test general query...");
+				subtest_genqry();
+			}
 			return 0;
 		}
 

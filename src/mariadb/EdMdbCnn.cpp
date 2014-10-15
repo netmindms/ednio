@@ -48,15 +48,18 @@ void EdMdbCnn::OnDbDisconnected()
 		mOnLis->IOnMdbCnnStatus(this, 0);
 }
 
-int EdMdbCnn::connectDb(const char* hostaddr, int port, const char* id, const char* pw, const char* dbname)
+int EdMdbCnn::connectDb(const char* ip, const char* dbname, const char* id, const char* pw, int port)
 {
 	if (mCnnStatus == DB_CNN_DISCONNECTED)
 	{
+		const char* ipaddr;
+		ipaddr = (ip == NULL) ? "127.0.0.1" : ip;
+
 		mMysql = (MYSQL*) malloc(sizeof(MYSQL));
 		mysql_init(mMysql);
 		mysql_options(mMysql, MYSQL_OPT_NONBLOCK, 0);
 		MYSQL* retmysql = NULL;
-		int status = mysql_real_connect_start(&retmysql, mMysql, hostaddr, id, pw, dbname, 0, NULL, 0);
+		int status = mysql_real_connect_start(&retmysql, mMysql, ipaddr, id, pw, dbname, port, NULL, 0);
 		int fd = mysql_get_socket(mMysql);
 		dbgd("connecting db, fd=%d, waitevt=%0x, retmyql=%0x", fd, status, retmysql);
 		if (status != 0)
@@ -118,6 +121,10 @@ void EdMdbCnn::OnEventRead()
 		{
 			changeWaitEvent(stt);
 		}
+		else
+		{
+			mOpStatus = DB_OP_IDLE;
+		}
 	}
 	else
 	{
@@ -143,6 +150,10 @@ void EdMdbCnn::OnEventWrite()
 		{
 			changeWaitEvent(stt);
 		}
+		else
+		{
+			mOpStatus = DB_OP_IDLE;
+		}
 	}
 	else
 	{
@@ -166,6 +177,10 @@ void EdMdbCnn::OnEventHangup()
 		if (stt != 0)
 		{
 			changeWaitEvent(stt);
+		}
+		else
+		{
+			mOpStatus = DB_OP_IDLE;
 		}
 	}
 	else
@@ -203,7 +218,6 @@ void EdMdbCnn::procCnnCont(int waitevt)
 	}
 }
 
-
 void EdMdbCnn::changeWaitEvent(int waitevt)
 {
 	dbgd("change wait event=%x", waitevt);
@@ -236,7 +250,8 @@ int EdMdbCnn::runQuery(EdMdbQueryBase* qr, const char *qs)
 	}
 	dbgd(" run query = %0x", mQuery);
 	mQuery = qr;
-	int status = qr->query(qs);
+	qr->setConnection(this);
+	int status = qr->queryStart(qs);
 	if (status != 0)
 	{
 		dbgd("query ret=%0x", status);
