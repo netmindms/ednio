@@ -27,6 +27,7 @@ private:
 private:
 	EdMdbCnn* mCnn;
 	MYSQL* mMysql;
+	MYSQL_RES* mRes;
 };
 
 } /* namespace edft */

@@ -14,13 +14,16 @@
 namespace edft
 {
 
+
 class EdMdbQuery: public EdMdbQueryBase
 {
-
+enum { QUERY_MODE, FETCH_MODE };
 public:
 	EdMdbQuery();
 	virtual ~EdMdbQuery();
 	virtual void OnQueryResult(int result);
+	virtual void OnFetchEnd(MYSQL_ROW row, int num);
+	int fetch(int num);
 
 private:
 	void setConnection(EdMdbCnn* pcnn);
@@ -29,6 +32,7 @@ private:
 private:
 	EdMdbCnn* mCnn;
 	MYSQL* mMysql;
+	int mStatus;
 };
 
 } /* namespace edft */

@@ -62,11 +62,11 @@ public:
 
 	MYSQL* getMysql();
 	int runQuery(EdMdbQueryBase* qr, const char* qs);
+	void changeWaitEvent(int waitevt);
 
 private:
 	void procCnnCont(int  waitevt);
 	void procQueryEnd();
-	void changeWaitEvent(int waitevt);
 	void setDbTimer();
 
 private:

@@ -18,6 +18,7 @@
 #include "mariadb/EdMdbCnn.h"
 #include "mariadb/EdMdbQueryStore.h"
 #include "mariadb/EdMdbQuery.h"
+#include "mariadb/EdMdbQueryFetch.h"
 
 void levlog(int lev, const char *tagid, int line, const char *fmtstr, ...)
 {
@@ -2034,8 +2035,24 @@ void testMariadb(int mode)
 		UserQuery *qry;
 		void subtest_genqry()
 		{
+			class genfetch: public EdMdbQueryFetch {
+				void OnFetchResult(MYSQL_ROW row, int num)
+				{
+					logs("fetch result, row=%x", row);
+					if(row != NULL)
+					{
+						logs("r1=%s, r2=%s", row[0], row[1]);
+					}
+					else
+					{
+						logs("fetch end...");
+					}
+				}
+			};
+
 			class genqry: public EdMdbQuery
 			{
+				genfetch* fetch;
 				virtual void OnQueryResult(int err)
 				{
 					logs("gen query result=%d", err);
@@ -2045,14 +2062,19 @@ void testMariadb(int mode)
 						assert(0);
 					}
 					logs("== Test gen query ok,...\n");
-					((DbTask*) EdTask::getCurrentTask())->nextTest();
-					delete this;
+					DbTask *task = ((DbTask*) EdTask::getCurrentTask());
+					//task->nextTest();
+					//delete this;
+					fetch = new genfetch;
+					task->Cnn->runQuery(fetch, "");
 				}
 			};
 
 			static auto query = new genqry;
-			Cnn->runQuery(query, "create database mybusiness");
+			Cnn->runQuery(query, "select * from userinfo");
 		}
+
+
 
 		int OnEventProc(EdMsg* pmsg)
 		{

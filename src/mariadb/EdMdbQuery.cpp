@@ -19,6 +19,7 @@ EdMdbQuery::EdMdbQuery()
 {
 	mCnn = NULL;
 	mMysql = NULL;
+	mStatus = 0;
 }
 
 EdMdbQuery::~EdMdbQuery()
@@ -63,6 +64,24 @@ int EdMdbQuery::queryContinue(int waitevt)
 
 
 void EdMdbQuery::OnQueryResult(int result)
+{
+}
+
+
+int EdMdbQuery::fetch(int num)
+{
+	MYSQL_ROW row;
+	MYSQL_RES* res = mysql_use_result(mMysql);
+	int stt = mysql_fetch_row_start(&row, res);
+	if(stt == 0)
+	{
+		OnFetchEnd(row, 1);
+	}
+	return stt;
+}
+
+
+void EdMdbQuery::OnFetchEnd(MYSQL_ROW row, int num)
 {
 }
 
