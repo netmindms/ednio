@@ -11,70 +11,112 @@
 #define DBG_LEVEL DBG_DEBUG
 
 #include "../edslog.h"
+#include "EdMdbType.h"
 #include "EdMdbCnn.h"
 #include "EdMdbQueryStore.h"
 
 namespace edft
 {
 
-EdMdbQueryStore::EdMdbQueryStore()
+EdMdbQueryStore::EdMdbQueryStore(EdMdbCnn* pcnn)
 {
-	mStatus = 0;
+	mOpStatus = 0;
 	mMysql = NULL;
-	mCnn = 0;
+	mCnn = pcnn;
+	mRes = NULL;
 }
 
 EdMdbQueryStore::~EdMdbQueryStore()
 {
+	close();
 }
 
 int EdMdbQueryStore::queryStart(const char* qs)
 {
-	dbgd("query, str=%s, status=%d", qs, mStatus);
-	mStatus = 1;
+	dbgd("query, str=%s, status=%d", qs, mOpStatus);
+	mOpStatus = OP_QUERYING;
 	mMysql = mCnn->getMysql();
-	int ret=0;
+	int ret = 0;
 	int stt = mysql_real_query_start(&ret, mMysql, qs, strlen(qs));
 	dbgd("query start, waitevt=%0x", stt);
-	if(stt == 0)
+	if (stt == 0)
 	{
 		stt = startStore();
 	}
 	return stt;
 }
 
+int EdMdbQueryStore::query(const char* qs, int *perr)
+{
+	dbgd("query, str=%s, status=%d", qs, mOpStatus);
+	int ret;
+	mMysql = mCnn->getMysql();
+	mCnn->setQuery(this);
+
+	int stt = mysql_real_query_start(perr, mMysql, qs, strlen(qs));
+	dbgd("query start, waitevt=%0x", stt);
+	if (stt == 0)
+	{
+		dbgd("  early result end, err=%d", *perr);
+		if (*perr == 0)
+		{
+			ret = startStore();
+		}
+		else
+		{
+			mOpStatus = OP_INIT;
+			ret = MDB_COMPLETE;
+		}
+	}
+	else if (stt != 0)
+	{
+		dbgd("  query pending...");
+		mOpStatus = OP_QUERYING;
+		mCnn->changeWaitEvent(stt);
+		ret = MDB_CONTINUE;
+	}
+	return ret;
+}
+
 int EdMdbQueryStore::queryContinue(int waitevt)
 {
 	int stt;
-	MYSQL_RES* res;
-	dbgd("query continue, status=%d", mStatus);
-	if (mStatus == 1)
+	int ret;
+	dbgd("query continue, status=%d", mOpStatus);
+	if (mOpStatus == OP_QUERYING)
 	{
-		int ret;
-		stt = mysql_real_query_cont(&ret, mMysql, waitevt);
+		int err;
+		stt = mysql_real_query_cont(&err, mMysql, waitevt);
 		if (stt == 0)
 		{
 			dbgd("  query cont end, start store...");
+#if 1
+			ret = startStore();
+			if(ret == MDB_COMPLETE) {
+				OnQueryEnd(mRes);
+			}
+#else
 			mStatus = 2;
-			stt = mysql_store_result_start(&res, mMysql);
+			stt = mysql_store_result_start(&mRes, mMysql);
 			if (stt == 0)
 			{
 				dbgd("early store result end...");
 				mStatus = 0;
-				OnQueryEnd(res);
-				mysql_free_result(res);
+				close();
+				OnQueryEnd (mRes);
 			}
+#endif
 		}
 	}
-	else if (mStatus == 2)
+	else if (mOpStatus == OP_STORING)
 	{
-		stt = mysql_store_result_cont(&res, mMysql, waitevt);
+		stt = mysql_store_result_cont(&mRes, mMysql, waitevt);
 		if (stt == 0)
 		{
-			mStatus = 0;
 			dbgd("store result end...");
-			OnQueryEnd(res);
-			mysql_free_result(res);
+			mOpStatus = OP_INIT;
+			OnQueryEnd (mRes);
+			//mysql_free_result(mRes);
 		}
 	}
 
@@ -86,25 +128,52 @@ void EdMdbQueryStore::OnQueryEnd(MYSQL_RES* res)
 {
 }
 
-
 int EdMdbQueryStore::startStore()
 {
-	MYSQL_RES* res;
+	dbgd("start storing...");
 	int stt;
-	stt = mysql_store_result_start(&res, mMysql);
-	if(stt == 0)
+	stt = mysql_store_result_start(&mRes, mMysql);
+	if (stt == 0)
 	{
-		dbgd("early store result...res=%0x", res);
-		OnQueryEnd(res);
-		mysql_free_result(res);
+		dbgd("  early store result...res=%0x", mRes);
+		//OnQueryEnd(res);
+		//mysql_free_result(res);
+		mOpStatus = OP_INIT;
+		return MDB_COMPLETE;
 	}
-	return stt;
+	else
+	{
+		dbgd("  storing pending, ...");
+		mOpStatus = OP_STORING;
+		mCnn->changeWaitEvent(stt);
+		return MDB_CONTINUE;
+	}
 }
-
 
 void EdMdbQueryStore::setConnection(EdMdbCnn* pcnn)
 {
 	mCnn = pcnn;
+}
+
+void EdMdbQueryStore::close()
+{
+	if(mRes != NULL)
+	{
+		dbgd("close query...");
+		mysql_free_result(mRes);mRes=NULL;
+	}
+}
+
+
+MYSQL_RES* EdMdbQueryStore::getResult()
+{
+	return mRes;
+}
+
+
+MYSQL_ROW EdMdbQueryStore::getRow()
+{
+	return mysql_fetch_row(mRes);
 }
 
 } /* namespace edft */

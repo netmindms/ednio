@@ -61,6 +61,7 @@ public:
 	void closeDb();
 
 	MYSQL* getMysql();
+	void setQuery(EdMdbQueryBase *qr);
 	int runQuery(EdMdbQueryBase* qr, const char* qs);
 	void changeWaitEvent(int waitevt);
 

@@ -7,21 +7,62 @@
 
 #ifndef EDMDBCMD_H_
 #define EDMDBCMD_H_
+
+
 #include <string>
+#include <mysql.h>
+
+#include "EdMdbType.h"
+#include "EdMdbQueryBase.h"
+
 using namespace std;
 
 namespace edft
 {
 class EdMdbCnn;
 
-class EdMdbCmd
+
+
+class EdMdbCmd: public EdMdbQueryBase
 {
+private:
+enum {
+	STATUS_INIT=0,
+	STATUS_QUERY,
+};
+
+enum {
+	OP_IDLE=0,
+	OP_QUERY,
+	OP_FETCH,
+	//OP_GETMULTIROWS,
+};
+
+
 public:
-	EdMdbCmd(EdMdbCnn* pcnn, const char* str);
+	EdMdbCmd(EdMdbCnn* pcnn);
 	virtual ~EdMdbCmd();
+	virtual void setConnection(EdMdbCnn* pcnn);
+	virtual int queryStart(const char* qs);
+	virtual int queryContinue(int waitevt);
+	virtual void OnQueryResult(int err);
+	virtual void OnFetchRow(MYSQL_ROW row);
+
+	int query(const char* qs, int *err);
+	void close();
+	int fetchRow(MYSQL_ROW* row);
+#if __MULTIROW // TODO
+	int getMultiRows(MDB_ROWS *rows, int maxnum);
+#endif
+
 private:
 	string mCmd;
 	EdMdbCnn *mCnn;
+	MYSQL* mMysql;
+	MYSQL_RES* mRes;
+	int mStatus;
+	int mOpStatus;
+	int mMaxFetch;
 };
 
 } /* namespace edft */

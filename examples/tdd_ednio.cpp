@@ -19,6 +19,7 @@
 #include "mariadb/EdMdbQueryStore.h"
 #include "mariadb/EdMdbQuery.h"
 #include "mariadb/EdMdbQueryFetch.h"
+#include "mariadb/EdMdbCmd.h"
 
 void levlog(int lev, const char *tagid, int line, const char *fmtstr, ...)
 {
@@ -2000,11 +2001,31 @@ void testMariadb(int mode)
 {
 	enum
 	{
-		TS_CNN_FAIL = EDM_USER + 1, TS_CNN_OK, TS_NORMAL_QUERY_STORE, TS_GEN_QUERY,
+		TS_CNN_FAIL = EDM_USER + 1, TS_CNN_OK, TS_NORMAL_QUERY_STORE, TS_GEN_QUERY, TS_CMD,
 	};
 
 	class UserQuery: public EdMdbQueryStore
 	{
+	public:
+		UserQuery(EdMdbCnn* pcnn) :
+				EdMdbQueryStore(pcnn)
+		{
+
+		}
+		void printResult()
+		{
+			logs("print result...");
+			for (;;)
+			{
+				MYSQL_ROW row = getRow();
+				if (row == NULL)
+				{
+					logs("no more result...");
+					break;
+				}
+				logs("name=%s,  address=%s", row[0], row[1]);
+			}
+		}
 		void OnQueryEnd(MYSQL_RES *res)
 		{
 			logs(" query end...res=%0x", res);
@@ -2013,18 +2034,20 @@ void testMariadb(int mode)
 				logs("### Fail: normal query result fail...");
 				assert(0);
 			}
-			MYSQL_ROW row;
-			for (;;)
-			{
-				row = mysql_fetch_row(res);
-				if (row == NULL)
-					break;
-				dbgd("name=%s, addr=%s", row[1], row[2]);
-			}
+			printResult();
+			close();
+//			MYSQL_ROW row;
+//			for (;;)
+//			{
+//				row = mysql_fetch_row(res);
+//				if (row == NULL)
+//					break;
+//				dbgd("name=%s, addr=%s", row[1], row[2]);
+//			}
 			logs("normal query test ok...\n")
+			delete this;
 			TestTask *task = ((TestTask*) EdTask::getCurrentTask());
 			task->nextTest();
-			delete this;
 		}
 	};
 
@@ -2035,11 +2058,12 @@ void testMariadb(int mode)
 		UserQuery *qry;
 		void subtest_genqry()
 		{
-			class genfetch: public EdMdbQueryFetch {
+			class genfetch: public EdMdbQueryFetch
+			{
 				void OnFetchResult(MYSQL_ROW row, int num)
 				{
 					logs("fetch result, row=%x", row);
-					if(row != NULL)
+					if (row != NULL)
 					{
 						logs("r1=%s, r2=%s", row[0], row[1]);
 					}
@@ -2074,21 +2098,21 @@ void testMariadb(int mode)
 			Cnn->runQuery(query, "select * from userinfo");
 		}
 
-
-
 		int OnEventProc(EdMsg* pmsg)
 		{
 			if (pmsg->msgid == EDM_INIT)
 			{
 				Cnn = new EdMdbCnn;
-				addTest(TS_CNN_FAIL);
+				//addTest(TS_CNN_FAIL);
 				addTest(TS_CNN_OK);
+				//addTest(TS_CMD);
 				addTest(TS_NORMAL_QUERY_STORE);
-				addTest(TS_GEN_QUERY);
+				//addTest(TS_GEN_QUERY);
 				nextTest();
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
+				Cnn->closeDb();
 				delete Cnn;
 				Cnn = NULL;
 				EdMySqlEnd();
@@ -2124,6 +2148,102 @@ void testMariadb(int mode)
 					assert(0);
 				}
 			}
+			else if (pmsg->msgid == TS_CMD)
+			{
+				class ACmdQry: public EdMdbCmd
+				{
+					DbTask *mTask;
+				public:
+					ACmdQry(EdMdbCnn* pcnn) :
+							EdMdbCmd(pcnn)
+					{
+						mTask = (DbTask*) getCurrentTask();
+					}
+
+					int getRows()
+					{
+						for (;;)
+						{
+							int ret;
+							MYSQL_ROW row;
+							ret = fetchRow(&row);
+							if (ret == MDB_COMPLETE)
+							{
+								if (row == NULL)
+								{
+									close();
+									return MDB_COMPLETE;
+								}
+								else
+								{
+									logs("r1=%s,  r2=%s", row[0], row[1]);
+								}
+							}
+							else
+								break;
+						}
+						return MDB_CONTINUE;
+					}
+
+					virtual void OnQueryResult(int err)
+					{
+						logs("query result, err=%d", err);
+						if (err == 0)
+						{
+							int ret = getRows();
+							if (ret == MDB_COMPLETE)
+							{
+								mTask->nextTest();
+								delete this;
+							}
+						}
+					}
+
+					virtual void OnFetchRow(MYSQL_ROW row)
+					{
+						if (row != NULL)
+						{
+							logs("r1=%s,  r2=%s", row[0], row[1]);
+							int ret = getRows();
+							if (ret == MDB_COMPLETE)
+							{
+								mTask->nextTest();
+								close();
+								delete this;
+							}
+						}
+						else
+						{
+							logs("fetch row end...");
+							mTask->nextTest();
+							close();
+							delete this;
+						}
+					}
+				};
+
+				auto cmdq = new ACmdQry(Cnn);
+				int err;
+				int ret = cmdq->query("select name,address from userinfo", &err);
+				if (ret == MDB_COMPLETE)
+				{
+					if (err != 0)
+					{
+						logs("### Fail: query fail, err=%d", err);
+						assert(0);
+					}
+					else
+					{
+						int ret = cmdq->getRows();
+						if (ret == MDB_COMPLETE)
+						{
+							cmdq->close();
+							delete cmdq;
+							nextTest();
+						}
+					}
+				}
+			}
 			else if (pmsg->msgid == TS_CNN_OK)
 			{
 				int cnnret;
@@ -2137,9 +2257,17 @@ void testMariadb(int mode)
 			}
 			else if (pmsg->msgid == TS_NORMAL_QUERY_STORE)
 			{
-				logs("== start normal query...");
-				static UserQuery *qr = new UserQuery;
-				Cnn->runQuery(qr, "select * from userinfo");
+				logs("== start normal query and store...");
+				static UserQuery *qr = new UserQuery(Cnn);
+				int ret, err;
+				ret = qr->query("select name,address from userinfo", &err);
+				if (ret == MDB_COMPLETE)
+				{
+					logs("  early query,store...");
+					qr->printResult();
+					delete qr;
+					nextTest();
+				}
 			}
 			else if (pmsg->msgid == TS_GEN_QUERY)
 			{
@@ -2174,6 +2302,7 @@ void testMariadb(int mode)
 
 int main()
 {
+
 	EdNioInit();
 	init_test();
 	for (int i = 0; i < 1; i++)

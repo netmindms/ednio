@@ -8,7 +8,9 @@
 #ifndef EDMDB_H_
 #define EDMDB_H_
 
+#include <vector>
 #include <mysql.h>
+using namespace std;
 
 namespace edft {
 

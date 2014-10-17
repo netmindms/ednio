@@ -113,10 +113,10 @@ void EdMdbCnn::OnEventRead()
 	{
 		procCnnCont(MYSQL_WAIT_READ);
 	}
-	else if (mOpStatus == DB_OP_QUERYING)
+	else// if (mOpStatus == DB_OP_QUERYING)
 	{
-		dbgd("changing event on read event, query=%0x", mQuery);
 		stt = mQuery->queryContinue(MYSQL_WAIT_READ);
+#if 0
 		if (stt != 0)
 		{
 			changeWaitEvent(stt);
@@ -125,11 +125,7 @@ void EdMdbCnn::OnEventRead()
 		{
 			mOpStatus = DB_OP_IDLE;
 		}
-	}
-	else
-	{
-		dbge("### unexpected socket read event occured...");
-		assert(0);
+#endif
 	}
 
 }
@@ -146,6 +142,7 @@ void EdMdbCnn::OnEventWrite()
 	{
 		dbgd("changing event on write event, query=%0x", mQuery);
 		stt = mQuery->queryContinue(MYSQL_WAIT_WRITE);
+#if 0
 		if (stt != 0)
 		{
 			changeWaitEvent(stt);
@@ -154,6 +151,7 @@ void EdMdbCnn::OnEventWrite()
 		{
 			mOpStatus = DB_OP_IDLE;
 		}
+#endif
 	}
 	else
 	{
@@ -174,6 +172,7 @@ void EdMdbCnn::OnEventHangup()
 	{
 		dbgd("changing event on hangup event, query=%0x", mQuery);
 		stt = mQuery->queryContinue(MYSQL_WAIT_EXCEPT);
+#if 0
 		if (stt != 0)
 		{
 			changeWaitEvent(stt);
@@ -182,6 +181,7 @@ void EdMdbCnn::OnEventHangup()
 		{
 			mOpStatus = DB_OP_IDLE;
 		}
+#endif
 	}
 	else
 	{
@@ -314,6 +314,12 @@ void EdMdbCnn::setOnListener(IMdbCnn* onlis)
 void EdMdbCnn::disconnectDb()
 {
 	//if(mOpStatus)
+}
+
+
+void EdMdbCnn::setQuery(EdMdbQueryBase* qr)
+{
+	mQuery = qr;
 }
 
 } /* namespace edft */

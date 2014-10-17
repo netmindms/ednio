@@ -14,12 +14,24 @@
 namespace edft
 {
 
+class EdMdbCnn;
+
 class EdMdbQueryStore : public EdMdbQueryBase
 {
+private:
+	enum {
+		OP_INIT,
+		OP_QUERYING,
+		OP_STORING,
+	};
 public:
-	EdMdbQueryStore();
+	EdMdbQueryStore(EdMdbCnn* pcnn);
 	virtual ~EdMdbQueryStore();
 	virtual void OnQueryEnd(MYSQL_RES *res);
+	int query(const char* qs, int *perr);
+	MYSQL_RES* getResult();
+	MYSQL_ROW getRow();
+	void close();
 private:
 	int queryStart(const char *qs);
 	int queryContinue(int waitevt);
@@ -29,7 +41,8 @@ private:
 private:
 	EdMdbCnn* mCnn;
 	MYSQL* mMysql;
-	int mStatus; // 1: querying, 2: storing
+	MYSQL_RES *mRes;
+	int mOpStatus;
 };
 
 } /* namespace edft */
