@@ -2132,7 +2132,7 @@ void testMariadb(int mode)
 			else if (pmsg->msgid == TS_NORMAL_QUERY_STORE)
 			{
 				logs("== start normal query and store...");
-				static UserQuery *qr = new UserQuery(Cnn);
+				UserQuery *qr = new UserQuery(Cnn);
 				int ret, err;
 				ret = qr->query("select name,address from userinfo", &err);
 				if (ret == MDB_COMPLETE)
