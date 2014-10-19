@@ -32,10 +32,10 @@ public:
 	MYSQL_RES* getResult();
 	MYSQL_ROW getRow();
 	void close();
-private:
-	int queryStart(const char *qs);
-	int queryContinue(int waitevt);
 	void setConnection(EdMdbCnn* pcnn);
+
+private:
+	int IOnQueryContinue(int waitevt);
 	int startStore();
 
 private:

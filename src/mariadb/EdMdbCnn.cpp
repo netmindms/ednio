@@ -23,7 +23,8 @@ namespace edft
 
 EdMdbCnn::EdMdbCnn()
 {
-	mOpStatus = 0;
+	mOpStatus = DB_OP_IDLE;
+	mRes = NULL;
 	mMysql = NULL;
 	mCnnStatus = 0;
 	mQuery = NULL;
@@ -108,24 +109,17 @@ int EdMdbCnn::connectDb(const char* ip, const char* dbname, const char* id, cons
 void EdMdbCnn::OnEventRead()
 {
 	dbgv("cnn event read, status=%d", mOpStatus);
-	int stt;
 	if (mOpStatus == DB_OP_CONNECTING)
 	{
 		procCnnCont(MYSQL_WAIT_READ);
 	}
-	else// if (mOpStatus == DB_OP_QUERYING)
+	else if (mOpStatus == DB_OP_FREERES)
 	{
-		stt = mQuery->queryContinue(MYSQL_WAIT_READ);
-#if 0
-		if (stt != 0)
-		{
-			changeWaitEvent(stt);
-		}
-		else
-		{
-			mOpStatus = DB_OP_IDLE;
-		}
-#endif
+		procFreeResultSet(MYSQL_WAIT_READ);
+	}
+	else
+	{
+		mQuery->IOnQueryContinue(MYSQL_WAIT_READ);
 	}
 
 }
@@ -133,7 +127,6 @@ void EdMdbCnn::OnEventRead()
 void EdMdbCnn::OnEventWrite()
 {
 	dbgv("cnn event write, status=%d", mOpStatus);
-	int stt;
 	if (mOpStatus == DB_OP_CONNECTING)
 	{
 		procCnnCont(MYSQL_WAIT_WRITE);
@@ -141,17 +134,11 @@ void EdMdbCnn::OnEventWrite()
 	else if (mOpStatus == DB_OP_QUERYING)
 	{
 		dbgd("changing event on write event, query=%0x", mQuery);
-		stt = mQuery->queryContinue(MYSQL_WAIT_WRITE);
-#if 0
-		if (stt != 0)
-		{
-			changeWaitEvent(stt);
-		}
-		else
-		{
-			mOpStatus = DB_OP_IDLE;
-		}
-#endif
+		mQuery->IOnQueryContinue(MYSQL_WAIT_WRITE);
+	}
+	else if (mOpStatus == DB_OP_FREERES)
+	{
+		procFreeResultSet(MYSQL_WAIT_WRITE);
 	}
 	else
 	{
@@ -163,30 +150,18 @@ void EdMdbCnn::OnEventWrite()
 void EdMdbCnn::OnEventHangup()
 {
 	dbgd("cnn event hangup, status=%d", mOpStatus);
-	int stt;
 	if (mOpStatus == DB_OP_CONNECTING)
 	{
 		procCnnCont(MYSQL_WAIT_EXCEPT);
 	}
-	else if (mOpStatus == DB_OP_QUERYING)
+	else if (mOpStatus == DB_OP_FREERES)
 	{
-		dbgd("changing event on hangup event, query=%0x", mQuery);
-		stt = mQuery->queryContinue(MYSQL_WAIT_EXCEPT);
-#if 0
-		if (stt != 0)
-		{
-			changeWaitEvent(stt);
-		}
-		else
-		{
-			mOpStatus = DB_OP_IDLE;
-		}
-#endif
+		procFreeResultSet(MYSQL_WAIT_EXCEPT);
 	}
 	else
 	{
-		dbge("### unexpected socket hangup event occured...");
-		assert(0);
+		dbgd("changing event on hangup event, query=%0x", mQuery);
+		mQuery->IOnQueryContinue(MYSQL_WAIT_EXCEPT);
 	}
 }
 
@@ -218,6 +193,17 @@ void EdMdbCnn::procCnnCont(int waitevt)
 	}
 }
 
+void EdMdbCnn::procFreeResultSet(int waitevt)
+{
+	int stt = mysql_free_result_cont(mRes, waitevt);
+	if (stt == 0)
+	{
+		dbgd("free pending result set...");
+		mRes = NULL;
+		mOpStatus = DB_OP_IDLE;
+	}
+}
+
 void EdMdbCnn::changeWaitEvent(int waitevt)
 {
 	dbgd("change wait event=%x", waitevt);
@@ -239,31 +225,6 @@ void EdMdbCnn::changeWaitEvent(int waitevt)
 MYSQL* EdMdbCnn::getMysql()
 {
 	return mMysql;
-}
-
-int EdMdbCnn::runQuery(EdMdbQueryBase* qr, const char *qs)
-{
-	if (mCnnStatus == 0 || mOpStatus != DB_OP_IDLE)
-	{
-		dbgd("### Fail: db connection error, cnn status=%d, op status=%d", mCnnStatus, mOpStatus);
-		return -1;
-	}
-	dbgd(" run query = %0x", mQuery);
-	mQuery = qr;
-	qr->setConnection(this);
-	int status = qr->queryStart(qs);
-	if (status != 0)
-	{
-		dbgd("query ret=%0x", status);
-		changeWaitEvent(status);
-		mOpStatus = DB_OP_QUERYING;
-	}
-	else
-	{
-		changeWaitEvent(MYSQL_WAIT_READ | MYSQL_WAIT_EXCEPT);
-		mOpStatus = DB_OP_IDLE;
-	}
-	return 0;
 }
 
 EdMdbCnn::CnnTimer::CnnTimer(EdMdbCnn* pcnn)
@@ -316,10 +277,37 @@ void EdMdbCnn::disconnectDb()
 	//if(mOpStatus)
 }
 
-
 void EdMdbCnn::setQuery(EdMdbQueryBase* qr)
 {
-	mQuery = qr;
+	if(mQuery == NULL)
+		mQuery = qr;
+	else {
+		dbge("### connection already query set...");
+		return;
+	}
+}
+
+void EdMdbCnn::freeResultSet(MYSQL_RES* res)
+{
+	dbgd("free result set, res=%x", res);
+	int ret = mysql_free_result_start(res);
+	if (ret == 0)
+	{
+		dbgd("  early free result end...");
+		mOpStatus = DB_OP_IDLE;
+	}
+	else
+	{
+		mRes = res;
+		mOpStatus = DB_OP_FREERES;
+		changeWaitEvent(ret);
+	}
+}
+
+
+void EdMdbCnn::resetQuery()
+{
+	mQuery = NULL;
 }
 
 } /* namespace edft */

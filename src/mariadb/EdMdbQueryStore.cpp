@@ -31,20 +31,6 @@ EdMdbQueryStore::~EdMdbQueryStore()
 	close();
 }
 
-int EdMdbQueryStore::queryStart(const char* qs)
-{
-	dbgd("query, str=%s, status=%d", qs, mOpStatus);
-	mOpStatus = OP_QUERYING;
-	mMysql = mCnn->getMysql();
-	int ret = 0;
-	int stt = mysql_real_query_start(&ret, mMysql, qs, strlen(qs));
-	dbgd("query start, waitevt=%0x", stt);
-	if (stt == 0)
-	{
-		stt = startStore();
-	}
-	return stt;
-}
 
 int EdMdbQueryStore::query(const char* qs, int *perr)
 {
@@ -78,7 +64,7 @@ int EdMdbQueryStore::query(const char* qs, int *perr)
 	return ret;
 }
 
-int EdMdbQueryStore::queryContinue(int waitevt)
+int EdMdbQueryStore::IOnQueryContinue(int waitevt)
 {
 	int stt;
 	int ret;

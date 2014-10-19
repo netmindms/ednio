@@ -19,6 +19,7 @@ enum {
 	DB_OP_IDLE,
 	DB_OP_CONNECTING,
 	DB_OP_QUERYING,
+	DB_OP_FREERES,
 	DB_OP_MAX,
 };
 
@@ -59,24 +60,28 @@ public:
 	int connectDb(const char* ip, const char* dbname=NULL, const char* id=NULL, const char* pw=NULL, int port=0);
 	void disconnectDb();
 	void closeDb();
+	void freeResultSet(MYSQL_RES *res);
 
 	MYSQL* getMysql();
 	void setQuery(EdMdbQueryBase *qr);
-	int runQuery(EdMdbQueryBase* qr, const char* qs);
+	void resetQuery();
 	void changeWaitEvent(int waitevt);
 
 private:
 	void procCnnCont(int  waitevt);
+	void procFreeResultSet(int waitevt);
 	void procQueryEnd();
 	void setDbTimer();
 
 private:
 	MYSQL* mMysql;
+	MYSQL_RES *mRes;
 	CnnTimer *mTimer;
 	int mCnnStatus;
 	int mOpStatus;
 	EdMdbQueryBase* mQuery;
 	IMdbCnn* mOnLis;
+
 };
 
 } /* namespace edft */

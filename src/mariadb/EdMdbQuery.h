@@ -1,40 +1,81 @@
 /*
- * EdMdbQuery.h
+ * EdMdbCmd.h
  *
- *  Created on: Oct 15, 2014
+ *  Created on: Oct 16, 2014
  *      Author: netmind
  */
 
-#ifndef EDMDBQUERY_H_
-#define EDMDBQUERY_H_
+#ifndef EDMDBCMD_H_
+#define EDMDBCMD_H_
 
+#include <string>
 #include <mysql.h>
+
+#include "../EdEventFd.h"
+#include "EdMdbType.h"
 #include "EdMdbQueryBase.h"
+using namespace std;
 
 namespace edft
 {
-
+class EdMdbCnn;
 
 class EdMdbQuery: public EdMdbQueryBase
 {
-enum { QUERY_MODE, FETCH_MODE };
+private:
+	enum
+	{
+		STATUS_INIT = 0, STATUS_QUERY,
+	};
+
+	enum
+	{
+		OP_IDLE = 0, OP_QUERY, OP_FETCH,
+#if __MULTIROW
+	//OP_GETMULTIROWS,
+#endif
+	};
+
+	class _EarlyQueryEvent: public EdEventFd
+	{
+		friend class EdMdbQuery;
+		EdMdbQuery *mMdbQuery;
+		_EarlyQueryEvent(EdMdbQuery* qr);
+		void OnEventFd(int cnt);
+	};
+
 public:
-	EdMdbQuery();
+	EdMdbQuery(EdMdbCnn* pcnn);
 	virtual ~EdMdbQuery();
-	virtual void OnQueryResult(int result);
-	virtual void OnFetchEnd(MYSQL_ROW row, int num);
-	int fetch(int num);
+	void setConnection(EdMdbCnn* pcnn);
+
+	virtual void OnQueryResult(int err);
+	virtual void OnFetchRow(MYSQL_ROW row);
+	int query(const char* qs, int *perr=NULL);
+	void close();
+	int fetchRow(MYSQL_ROW* row=NULL);
+
+#if __MULTIROW // TODO
+	int getMultiRows(MDB_ROWS *rows, int maxnum);
+#endif
 
 private:
-	void setConnection(EdMdbCnn* pcnn);
-	int queryStart(const char* qs);
-	int queryContinue(int waitevt);
+	virtual int IOnQueryContinue(int waitevt);
+	void raiseEarlyEvent();
+
 private:
-	EdMdbCnn* mCnn;
+	string mCmd;
+	EdMdbCnn *mCnn;
+	_EarlyQueryEvent *mEarlyEvent;
 	MYSQL* mMysql;
-	int mStatus;
+	MYSQL_RES* mRes;
+	MYSQL_ROW mEarlyRow;
+	int mOpStatus;
+	int mMaxFetch;
+	int mQueryErr;
+
 };
 
 } /* namespace edft */
 
-#endif /* EDMDBQUERY_H_ */
+#endif /* EDMDBCMD_H_ */
