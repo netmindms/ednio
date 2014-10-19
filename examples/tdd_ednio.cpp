@@ -14,6 +14,10 @@
 #include <vector>
 
 #include "EdNio.h"
+#include "mariadb/EdMdb.h"
+#include "mariadb/EdMdbCnn.h"
+#include "mariadb/EdMdbQueryStore.h"
+#include "mariadb/EdMdbQuery.h"
 
 void levlog(int lev, const char *tagid, int line, const char *fmtstr, ...)
 {
@@ -1849,7 +1853,6 @@ void testmultipartapi()
 	}
 }
 
-
 #if 0
 void testHttpPipeLine(int mode)
 {
@@ -1992,8 +1995,405 @@ void testHttpPipeLine(int mode)
 }
 #endif
 
+void testMariadb(int mode)
+{
+	enum
+	{
+		TS_CNN_FAIL = EDM_USER + 1, TS_CNN_OK, TS_CREATE_TABLE, TS_QUERY_EARLY, TS_QUERY_PENDING, TS_NORMAL_QUERY_STORE,
+	};
+
+	class UserQuery: public EdMdbQueryStore
+	{
+	public:
+		UserQuery(EdMdbCnn* pcnn) :
+				EdMdbQueryStore(pcnn)
+		{
+
+		}
+		void printResult()
+		{
+			logs("print result...");
+			for (;;)
+			{
+				MYSQL_ROW row = getRow();
+				if (row == NULL)
+				{
+					logs("no more result...");
+					break;
+				}
+				logs("name=%s,  address=%s", row[0], row[1]);
+			}
+		}
+		void OnQueryEnd(MYSQL_RES *res)
+		{
+			logs(" query end...res=%0x", res);
+			if (res == NULL)
+			{
+				logs("### Fail: normal query result fail...");
+				assert(0);
+			}
+			printResult();
+			close();
+//			MYSQL_ROW row;
+//			for (;;)
+//			{
+//				row = mysql_fetch_row(res);
+//				if (row == NULL)
+//					break;
+//				dbgd("name=%s, addr=%s", row[1], row[2]);
+//			}
+			logs("normal query test ok...\n")
+			delete this;
+			TestTask *task = ((TestTask*) EdTask::getCurrentTask());
+			task->nextTest();
+		}
+	};
+
+	class DbTask: public TestTask, public EdMdbCnn::IMdbCnn
+	{
+
+		EdMdbCnn *Cnn;
+		UserQuery *qry;
+
+		int OnEventProc(EdMsg* pmsg)
+		{
+			if (pmsg->msgid == EDM_INIT)
+			{
+				Cnn = new EdMdbCnn;
+				addTest(TS_CNN_FAIL);
+				addTest(TS_CNN_OK);
+				//addTest(TS_CREATE_TABLE);
+				addTest(TS_QUERY_EARLY);
+				addTest(TS_QUERY_PENDING);
+				addTest(TS_NORMAL_QUERY_STORE);
+				nextTest();
+			}
+			else if (pmsg->msgid == EDM_CLOSE)
+			{
+				Cnn->closeDb();
+				delete Cnn;
+				Cnn = NULL;
+				EdMySqlEnd();
+			}
+			else if (pmsg->msgid == TS_CNN_FAIL)
+			{
+				int cnnret;
+				class _mdbstatus: public EdMdbCnn::IMdbCnn
+				{
+					void IOnMdbCnnStatus(EdMdbCnn* pcnn, int result)
+					{
+						if (result == 1)
+						{
+							logs("### Fail: unexpected connection ok...");
+							assert(0);
+						}
+
+						DbTask *task = ((DbTask*) getCurrentTask());
+						task->Cnn->closeDb();
+						task->nextTest();
+						delete this;
+						logs("== expected db disconnected...,  ok.\n");
+					}
+				};
+				logs("== Early disconnected test...");
+				_mdbstatus *mdbimpl = new _mdbstatus;
+				Cnn->setOnListener(mdbimpl);
+				cnnret = Cnn->connectDb("127.0.0.1", "myclient", "netmind", "1234", 5656);
+				//int cnnret = Cnn->connectDb("211.23.23.23", 0, "netmind", "1234", "myclient");
+				if (cnnret < 0)
+				{
+					logs("### Fail: connection error,ret=%d", cnnret);
+					assert(0);
+				}
+			}
+			else if (pmsg->msgid == TS_QUERY_EARLY)
+			{
+				testQueryEarly();
+			}
+			else if (pmsg->msgid == TS_QUERY_PENDING)
+			{
+				testQueryPending();
+			}
+			else if (pmsg->msgid == TS_CNN_OK)
+			{
+				int cnnret;
+				Cnn->setOnListener(this);
+				cnnret = Cnn->connectDb("127.0.0.1", "myclient", "netmind", "1234");
+				if (cnnret < 0)
+				{
+					logs("### Fail: connection error,ret=%d", cnnret);
+					assert(0);
+				}
+			}
+			else if (pmsg->msgid == TS_CREATE_TABLE)
+			{
+				create_table_subtest();
+			}
+			else if (pmsg->msgid == TS_NORMAL_QUERY_STORE)
+			{
+				logs("== start normal query and store...");
+				static UserQuery *qr = new UserQuery(Cnn);
+				int ret, err;
+				ret = qr->query("select name,address from userinfo", &err);
+				if (ret == MDB_COMPLETE)
+				{
+					logs("  early query,store...");
+					qr->printResult();
+					qr->close();
+					delete qr;
+					nextTest();
+				}
+			}
+
+			return 0;
+		}
+
+		void testQueryEarly()
+		{
+			logs("== start early query test...");
+			class ACmdQry: public EdMdbQuery
+			{
+				DbTask *mTask;
+			public:
+				ACmdQry(EdMdbCnn* pcnn) :
+						EdMdbQuery(pcnn)
+				{
+					mTask = (DbTask*) getCurrentTask();
+				}
+
+				void printRow(MYSQL_ROW row)
+				{
+					logs("name=%s,  address=%s", row[0], row[1]);
+				}
+
+				int getRows()
+				{
+					int ret;
+					MYSQL_ROW row;
+					for (;;)
+					{
+						ret = fetchRow(&row);
+						if (ret == MDB_COMPLETE)
+						{
+							if (row != NULL)
+							{
+								printRow(row);
+							}
+							else
+							{
+								logs("fetch no result...");
+								break;
+							}
+						}
+						else
+						{
+							break;
+						}
+					}
+					return ret;
+				}
+
+				virtual void OnQueryResult(int err)
+				{
+					logs("query result, err=%d", err);
+					if (err == 0)
+					{
+						int ret = getRows();
+						if (ret == MDB_COMPLETE)
+						{
+							mTask->nextTest();
+							close();
+							delete this;
+							logs("== earyl query test ok...\n");
+						}
+					}
+				}
+
+				virtual void OnFetchRow(MYSQL_ROW row)
+				{
+					if (row != NULL)
+					{
+						printRow(row);
+						int ret = getRows();
+						if (ret == MDB_COMPLETE)
+						{
+							mTask->nextTest();
+							close();
+							delete this;
+							logs("== earyl query test ok...\n");
+						}
+					}
+					else
+					{
+						logs("fetch row end...");
+						mTask->nextTest();
+						close();
+						delete this;
+						logs("== earyl query test ok...\n");
+					}
+				}
+			};
+
+			auto cmdq = new ACmdQry(Cnn);
+			int err;
+			int ret = cmdq->query("select name,address from userinfo", &err);
+			if (ret == MDB_COMPLETE)
+			{
+				if (err == 0)
+				{
+					ret = cmdq->getRows();
+					if (ret == MDB_COMPLETE)
+					{
+						nextTest();
+						cmdq->close();
+						delete cmdq;
+					}
+					else
+					{
+						logs("fetch pending...");
+					}
+				}
+			}
+			else
+			{
+				logs("query pending...");
+			}
+		}
+
+		void testQueryPending()
+		{
+			logs("== start pending query test...");
+			class ACmdQry: public EdMdbQuery
+			{
+				DbTask *mTask;
+			public:
+				ACmdQry(EdMdbCnn* pcnn) :
+						EdMdbQuery(pcnn)
+				{
+					mTask = (DbTask*) getCurrentTask();
+				}
+
+				void printRow(MYSQL_ROW row)
+				{
+					logs("name=%s,  address=%s", row[0], row[1]);
+				}
+
+				virtual void OnQueryResult(int err)
+				{
+					logs("on query result, err=%d", err);
+					if (err == 0)
+					{
+						int ret = fetchRow();
+						if (ret == MDB_COMPLETE)
+						{
+							logs("### Fail: unexpected fetch complete");
+							assert(0);
+						}
+					}
+				}
+
+				virtual void OnFetchRow(MYSQL_ROW row)
+				{
+					logs("on fetch result, row=%x", row);
+					if (row != NULL)
+					{
+						printRow(row);
+						int ret = fetchRow();
+						if (ret == MDB_COMPLETE)
+						{
+							logs("### Fail: unexpected fetch complete");
+							assert(0);
+						}
+					}
+					else
+					{
+						logs("fetch row end...");
+						mTask->nextTest();
+						close();
+						delete this;
+						logs("== Pending query test ok...\n");
+					}
+				}
+			};
+
+			auto cmdq = new ACmdQry(Cnn);
+			int ret = cmdq->query("select name,address from userinfo");
+			if (ret == MDB_COMPLETE)
+			{
+				logs("### Fail: unexpected query pending...");
+				assert(0);
+			}
+		} // testQueryPending
+
+		void create_table_subtest()
+		{
+			logs("== Test: create table ...");
+			class ACrtTbl: public EdMdbQuery
+			{
+				DbTask *mTask;
+			public:
+				ACrtTbl() :
+						EdMdbQuery(NULL)
+				{
+					mTask = (DbTask*) getCurrentTask();
+				}
+				void OnQueryResult(int err)
+				{
+					logs("create table result, err=%d", err);
+					checkResult(MDB_COMPLETE, err);
+				}
+
+				void checkResult(int ret, int err)
+				{
+					if (ret == MDB_COMPLETE)
+					{
+						if (err != 0)
+						{
+							logs("### Fail: create table error,");
+							assert(0);
+						}
+						mTask->nextTest();
+						delete this;
+					}
+					else if (ret == MDB_CONTINUE)
+					{
+						logs("create table pending...");
+					}
+				}
+			};
+
+			auto qr = new ACrtTbl;
+			qr->setConnection(Cnn);
+			qr->query("create table test_tbl (col1 int, col2 int)");
+			//qr->checkResult(ret, err);
+		}
+
+		void IOnMdbCnnStatus(EdMdbCnn* pcnn, int result)
+		{
+			logs("on mdb cnn, result=%d", result);
+			if (pcnn != Cnn || result != 1)
+			{
+				logs("### Fail: unexpected connection fail...result=%d", result);
+				assert(0);
+			}
+			logs("normal connection test ok...\n");
+			nextTest();
+		}
+
+	};
+	logm(">>>> Test: Db Task, mode=%d", mode);
+	fdcheck_start();
+	auto task = new DbTask;
+	task->run(mode);
+	task->wait();
+	delete task;
+	fdcheck_end();
+	logm("<<<< Task Db test OK\n");
+}
+
 int main()
 {
+
 	EdNioInit();
 	init_test();
 	for (int i = 0; i < 1; i++)
@@ -2008,8 +2408,9 @@ int main()
 		//testssl(i);
 		//testsmartsock(i);
 		//testHttpBase(i);
-		testHttpSever(i);
+		//testHttpSever(i);
 		//testmultipartapi();
+		testMariadb(i);
 	}
 	return 0;
 }
