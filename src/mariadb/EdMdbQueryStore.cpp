@@ -31,7 +31,6 @@ EdMdbQueryStore::~EdMdbQueryStore()
 	close();
 }
 
-
 int EdMdbQueryStore::query(const char* qs, int *perr)
 {
 	dbgd("query, str=%s, status=%d", qs, mOpStatus);
@@ -78,7 +77,8 @@ int EdMdbQueryStore::IOnQueryContinue(int waitevt)
 			dbgd("  query cont end, start store...");
 #if 1
 			ret = startStore();
-			if(ret == MDB_COMPLETE) {
+			if (ret == MDB_COMPLETE)
+			{
 				OnQueryEnd(mRes);
 			}
 #else
@@ -101,7 +101,7 @@ int EdMdbQueryStore::IOnQueryContinue(int waitevt)
 		{
 			dbgd("store result end...");
 			mOpStatus = OP_INIT;
-			OnQueryEnd (mRes);
+			OnQueryEnd(mRes);
 			//mysql_free_result(mRes);
 		}
 	}
@@ -143,19 +143,23 @@ void EdMdbQueryStore::setConnection(EdMdbCnn* pcnn)
 
 void EdMdbQueryStore::close()
 {
-	if(mRes != NULL)
+	if (mMysql != NULL)
 	{
-		dbgd("close query...");
-		mysql_free_result(mRes);mRes=NULL;
+		mCnn->resetQuery();
+		mMysql = NULL;
+		if (mRes != NULL)
+		{
+			dbgd("close query...");
+			mCnn->freeResultSet(mRes);
+			mRes = NULL;
+		}
 	}
 }
-
 
 MYSQL_RES* EdMdbQueryStore::getResult()
 {
 	return mRes;
 }
-
 
 MYSQL_ROW EdMdbQueryStore::getRow()
 {
