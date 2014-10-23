@@ -7,9 +7,15 @@ import installer
 #                  default=False
 #                  )
 
+PRJ_BUILD_VAR_FILE = '.buildvar.conf' 
+PRJ_MAJOR_VER = '0'
+PRJ_MINOR_VER = '5.0'
+PRJ_LIB_SUFFIX = '.so.' + PRJ_MAJOR_VER + '.' + PRJ_MINOR_VER
+
 TopEnv = Environment()
 
-TopEnv['TARGET_SUFFIX'] = '.so.0.5.0' 
+TopEnv['TARGET_SUFFIX'] = PRJ_LIB_SUFFIX
+
 
 def gen_configh(target, source, env):
 	defs = {}
@@ -28,7 +34,8 @@ def gen_configh(target, source, env):
 	else:
 		defs['USE_CURL'] = 0	
 		
-	infile = file(str(source[0]), 'r')
+	#infile = file(str(source[0]), 'r')
+	infile = file(curdir+'/src/config.h.in', 'r')
 	cbuf = infile.read() % defs 
 	cfgfile = file(str(target[0]), 'w')
 	cfgfile.write(cbuf)
@@ -36,25 +43,18 @@ def gen_configh(target, source, env):
 
 def gen_oconf(target, source, env):
 	vars = load_ednio_options()
-	vars.Save('options.conf', env)
+	vars.Save(PRJ_BUILD_VAR_FILE, env)
 
 def load_ednio_options():
-	vars = Variables("options.conf", ARGUMENTS)
+	vars = Variables(PRJ_BUILD_VAR_FILE, ARGUMENTS)
 	vars.Add('libevent', '', 'false')
 	vars.Add('ssl', '', 'false')
 	vars.Add('curl', '', 'false')
 	vars.Add('mariadb', '', 'false')
 	installer.AddOptions(vars)
 	vars.Update( TopEnv )
-	TopEnv['includedir'] += '/ednio'
+	TopEnv['includedir'] = TopEnv['prefix'] + '/include/ednio'
 	return vars
-
-def install_libsymlink(target, source, env):
-	print '=== installing symlink..., target='
-		
-
-#def make_symlink(target, source, env):
-#	os.symlink(os.path.abspath(str(source[0])), os.path.abspath(str(target[0])) )
 
 build_target = 'ednio'
 if 'configure' in COMMAND_LINE_TARGETS:
@@ -63,6 +63,7 @@ if 'configure' in COMMAND_LINE_TARGETS:
 if 'install' in COMMAND_LINE_TARGETS:
 	build_target = 'install'
 
+TopEnv['LIBS']= []
 TopEnv.Append(CPPFLAGS=' -O3 -fmessage-length=0 --std=c++0x -fPIC ')
 TopEnv['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME']=1
 Export('TopEnv')
@@ -74,8 +75,8 @@ curdir = Dir('.').srcnode().abspath
 if build_target == 'configure':
 	if not TopEnv.GetOption('clean'):
 		print 'Start configuring ...'
-		if os.path.exists('options.conf'):
-			os.remove('options.conf')
+		if os.path.exists(PRJ_BUILD_VAR_FILE):
+			os.remove(PRJ_BUILD_VAR_FILE)
 		
 		print 'Start checking required libraries...'
 		conf = Configure(TopEnv)
@@ -96,38 +97,32 @@ if build_target == 'configure':
 		conf.Finish()
 		print 'generating config files...'
 		
-	TopEnv.Command('options.conf', '', gen_oconf )
-	load_ednio_options()
-	cfgtarget = TopEnv.AlwaysBuild(TopEnv.Command(curdir+'/src/config.h', curdir+'/src/config.h.in', gen_configh) )
-	TopEnv.Alias('configure', ['options.conf', cfgtarget])
+prjvarfile = TopEnv.Command(PRJ_BUILD_VAR_FILE, '', gen_oconf )
+cfgtarget = TopEnv.Command(curdir+'/src/config.h', prjvarfile, gen_configh)
+TopEnv.Alias('configure', [PRJ_BUILD_VAR_FILE, cfgtarget])
 
 
 
-# main build
-if build_target == 'ednio':
-	TopEnv['LIBS']= []
-	vars = load_ednio_options()
-	obj = SConscript('src/SConscript', variant_dir='out', duplicate=0)
-	ednio = TopEnv.SharedLibrary('./out/ednio', obj, SHLIBSUFFIX=TopEnv['TARGET_SUFFIX'])
-	builder = Builder(action = "ln -s ${SOURCE.file} ${TARGET.file}", chdir=True)
-	TopEnv.Append(BUILDERS = {"Symlink" : builder} )
-	mylib_link = TopEnv.Symlink("./out/libednio.so", ednio)
+# ednio target builder
+vars = load_ednio_options()
+obj = SConscript('src/SConscript', variant_dir='out', duplicate=0)
+target_ednio = TopEnv.SharedLibrary('./out/ednio', obj, SHLIBSUFFIX=PRJ_LIB_SUFFIX)
+builder = Builder(action = "ln -s ${SOURCE.file} ${TARGET.file}", chdir=True)
+TopEnv.Append(BUILDERS = {"Symlink" : builder} )
+mylib_link = TopEnv.Symlink("./out/libednio.so", target_ednio)
+TopEnv.Alias('ednio', [target_ednio, mylib_link] )
+
 
 # install
-if build_target == 'install':
-	TopEnv['LIBS']= []
-	vars = load_ednio_options()
-	obj = SConscript('src/SConscript', variant_dir='out', duplicate=0)
-	ednio = TopEnv.SharedLibrary('./out/ednio', obj, SHLIBSUFFIX=TopEnv['TARGET_SUFFIX'])
-	builder = Builder(action = "ln -s ${SOURCE.file} ${TARGET.file}", chdir=True)
-	TopEnv.Append(BUILDERS = {"Symlink" : builder} )
-	install_link = TopEnv.Symlink( TopEnv['libdir']+'/libednio.so' , ednio)
+# install so and headers,
+install = installer.Installer( TopEnv )
+install.AddLibrary(target_ednio)
+install.AddHeaders(curdir+'/src', '*.h', basedir='', recursive=True)
+# install symbolic
+install_symbuilder = Builder(action = "ln -s ${SOURCE.file} ${TARGET.file}", chdir=True)
+TopEnv.Append(BUILDERS = {"Symlink" : install_symbuilder} )
+target_install_link = TopEnv.Symlink( TopEnv['libdir']+'/libednio.so' , target_ednio)
+TopEnv.Alias('install', target_install_link)
 	
-	# install target files.
-	install = installer.Installer( TopEnv )
-	install.AddLibrary(ednio)
-	install.AddHeaders('/home/netmind/prj/ednioprj/ednio/src', '*.h', basedir='', recursive=True)
-	TopEnv.Alias('install', install_link)
-	#TopEnv.AddPostAction(mylib_link, install_libsymlink)
-	
-
+		
+Default('ednio')
