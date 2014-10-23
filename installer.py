@@ -16,7 +16,7 @@ INCLUDEDIR = "includedir"
 
 def AddOptions( opts ):
         """ Adds the installer options to the opts.  """
-        opts.Add( PREFIX, "Directory of architecture independant files.", "/usr" )
+        opts.Add( PREFIX, "Directory of architecture independant files.", "/usr/local" )
         opts.Add( EPREFIX, "Directory of architecture dependant files.", "${%s}" % PREFIX )
         opts.Add( BINDIR, "Directory of executables.", "${%s}/bin" % EPREFIX )
         opts.Add( LIBDIR, "Directory of libraries.", "${%s}/lib" % EPREFIX )

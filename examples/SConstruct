@@ -1,0 +1,8 @@
+env = Environment()
+#env.Append(CCFLAGS=['-std=c++0x', '-g', '-O2'])
+env.Append(CCFLAGS=['-std=c++0x', '-g'])
+env.Append(LIBS=['ednio'])
+
+env.Program('exam_task', 'exam_task.cpp')
+env.Program('exam_timer', 'exam_timer.cpp')
+env.Program('exam_timer2.cpp')
