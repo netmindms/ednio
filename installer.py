@@ -37,6 +37,7 @@ class Installer:
         self._libdir = env.get( LIBDIR, os.path.join( self._eprefix, "lib" ) )
         self._includedir = env.get( INCLUDEDIR, os.path.join( self._prefix, "include" ) )
         self._env = env
+        
 
     def Add( self, destdir, name, basedir="", perm=0644 ):
         destination = os.path.join( destdir, basedir )
@@ -57,7 +58,7 @@ class Installer:
 
         @param library the library to install.
         """
-        self.Add( self._libdir, library )
+        self.Add( self._libdir, library, perm=0775 )
 
     def AddHeader( self, header, basedir="" ):
         self.Add( self._includedir, header, basedir )

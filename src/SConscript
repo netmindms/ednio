@@ -1,35 +1,7 @@
 import os
 Import('TopEnv')
 
-
-
-#def gen_configh(target, source, env):
-	#defs = {}
-	#if TopEnv['USE_LIBEVENT'] == 'true':
-		#defs['USE_LIBEVENT'] = 1
-	#else:
-		#defs['USE_LIBEVENT'] = 0
-		
-	#if TopEnv['USE_SSL'] == 'true':
-		#defs['USE_SSL'] = 1
-	#else:
-		#defs['USE_SSL'] = 0		
-		
-	#if TopEnv['USE_CURL'] == 'true':
-		#defs['USE_CURL'] = 1
-	#else:
-		#defs['USE_CURL'] = 0	
-		
-	#infile = file(str(source[0]), 'r')
-	#cbuf = infile.read() % defs 
-	#cfgfile = file(str(target[0]), 'w')
-	#cfgfile.write(cbuf)
-	#cfgfile.close()
-	#infile.close()
-
-#curdir = Dir('.').srcnode().abspath
-##if 'configure' in COMMAND_LINE_TARGETS:
-#TopEnv.AlwaysBuild(TopEnv.Command(curdir+'/config.h', './config.h.in', gen_configh) )
+curdir = Dir('.').srcnode().abspath
 
 incpath = '-I' + curdir
 TopEnv.Append(CPPFLAGS=incpath)
@@ -37,7 +9,7 @@ TopEnv.Append(CPPFLAGS=incpath)
 needlibs = TopEnv['LIBS']
 needlibs += ['pthread', 'rt' ]
 
-if TopEnv['USE_LIBEVENT'] == 'true':
+if TopEnv['libevent'] == 'true':
 	needlibs += ['event']
 	
 
@@ -46,10 +18,10 @@ print 'needlibs == ',  needlibs
 curobj = TopEnv.Object(Glob('*.cpp')) + TopEnv.Object(Glob('*.cc'))
 
 subobj = []
-if TopEnv['USE_SSL'] == 'true':
+if TopEnv['ssl'] == 'true':
 	subobj = SConscript('edssl/SConscript')
 
-if TopEnv['USE_CURL'] == 'true':
+if TopEnv['curl'] == 'true':
 	subobj += SConscript('edcurl/SConscript')
 
 subobj += SConscript('http/SConscript')
