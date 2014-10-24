@@ -64,7 +64,7 @@ if 'install' in COMMAND_LINE_TARGETS:
 	build_target = 'install'
 
 TopEnv['LIBS']= []
-TopEnv.Append(CPPFLAGS=' -O3 -fmessage-length=0 --std=c++0x -fPIC ')
+TopEnv.Append(CCFLAGS=' -O2 -fmessage-length=0 --std=c++0x -fPIC ')
 TopEnv['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME']=1
 Export('TopEnv')
 
@@ -100,7 +100,7 @@ if build_target == 'configure':
 prjvarfile = TopEnv.Command(PRJ_BUILD_VAR_FILE, '', gen_oconf )
 cfgtarget = TopEnv.Command(curdir+'/src/config.h', prjvarfile, gen_configh)
 TopEnv.Alias('configure', [PRJ_BUILD_VAR_FILE, cfgtarget])
-
+TopEnv.AddPostAction(cfgtarget, action="@echo '=== Configure Complete ==='")
 
 
 # ednio target builder
@@ -111,6 +111,7 @@ builder = Builder(action = "ln -s ${SOURCE.file} ${TARGET.file}", chdir=True)
 TopEnv.Append(BUILDERS = {"Symlink" : builder} )
 mylib_link = TopEnv.Symlink("./out/libednio.so", target_ednio)
 TopEnv.Alias('ednio', [target_ednio, mylib_link] )
+TopEnv.AddPostAction(mylib_link, action="@echo '=== Build Complete ==='")
 
 
 # install
@@ -119,10 +120,10 @@ install = installer.Installer( TopEnv )
 install.AddLibrary(target_ednio)
 install.AddHeaders(curdir+'/src', '*.h', basedir='', recursive=True)
 # install symbolic
-install_symbuilder = Builder(action = "ln -s ${SOURCE.file} ${TARGET.file}", chdir=True)
+install_symbuilder = Builder(action = ["ln -s ${SOURCE.file} ${TARGET.file}", "/sbin/ldconfig"], chdir=True)
 TopEnv.Append(BUILDERS = {"Symlink" : install_symbuilder} )
 target_install_link = TopEnv.Symlink( TopEnv['libdir']+'/libednio.so' , target_ednio)
 TopEnv.Alias('install', target_install_link)
-	
+TopEnv.AddPostAction(target_install_link, action="@echo ' === Install Complete ===' ")	
 		
 Default('ednio')
