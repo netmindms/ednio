@@ -1,16 +1,11 @@
 import os
 import installer
 
-#AddOption('--libevent',
-#                  dest='libevent',
-#                  action='store_true',
-#                  default=False
-#                  )
-
 PRJ_BUILD_VAR_FILE = '.buildvar.conf' 
 PRJ_MAJOR_VER = '0'
 PRJ_MINOR_VER = '5.0'
 PRJ_LIB_SUFFIX = '.so.' + PRJ_MAJOR_VER + '.' + PRJ_MINOR_VER
+PRJ_OUT_LIB = 'out/' + 'libedio' + PRJ_LIB_SUFFIX
 
 TopEnv = Environment()
 
@@ -116,14 +111,19 @@ TopEnv.AddPostAction(mylib_link, action="@echo '=== Build Complete ==='")
 
 # install
 # install so and headers,
+if not TopEnv.GetOption('clean'):
+	if 'install' in COMMAND_LINE_TARGETS and not os.path.exists(curdir+'/out/libednio'+PRJ_LIB_SUFFIX):
+		print '### Install Fail: build output not found '
+		Exit(1)
 install = installer.Installer( TopEnv )
 install.AddLibrary(target_ednio)
 install.AddHeaders(curdir+'/src', '*.h', basedir='', recursive=True)
 # install symbolic
-install_symbuilder = Builder(action = ["ln -s ${SOURCE.file} ${TARGET.file}", "/sbin/ldconfig"], chdir=True)
+install_symbuilder = Builder(action = ["ln -s ${SOURCE.file} ${TARGET.file}"], chdir=True)
 TopEnv.Append(BUILDERS = {"Symlink" : install_symbuilder} )
 target_install_link = TopEnv.Symlink( TopEnv['libdir']+'/libednio.so' , target_ednio)
 TopEnv.Alias('install', target_install_link)
-TopEnv.AddPostAction(target_install_link, action="@echo ' === Install Complete ===' ")	
-		
+#TopEnv.AddPostAction(target_install_link, action="@echo ' === Install Complete ===' ")	
+TopEnv.AddPostAction("install", action="@echo ' === Install Complete ===' ")
+
 Default('ednio')
