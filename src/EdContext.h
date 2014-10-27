@@ -1,7 +1,7 @@
 #ifndef __EDCONTEXTH__
 #define __EDCONTEXTH__
 
-#include "config.h"
+#include "ednio_config.h"
 
 #include <stdio.h>
 #include <stdlib.h>

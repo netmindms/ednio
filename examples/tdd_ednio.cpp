@@ -27,7 +27,7 @@ void levlog(int lev, const char *tagid, int line, const char *fmtstr, ...)
 	gettimeofday(&tm, NULL);
 	struct tm* ptr_time = localtime(&tm.tv_sec);
 
-	char buf[4096];
+	char buf[2048];
 
 	int splen = 2 * lev;
 	char spbuf[splen + 1];
@@ -318,6 +318,207 @@ void testmsg(int mode)
 	msgtask.wait();
 	logm("<<<< Message Test OK\n");
 	fdcheck_end();
+}
+
+void testSocket(int mode)
+{
+	enum
+	{
+		TS_TCP_SOCKET = EDM_USER + 1,
+		TS_UNIX_SOCKET,
+	};
+
+	class SocketTestTask: public TestTask, public EdSocket::ISocketCb
+	{
+		EdSocket* mSvrSock;
+		EdSocket* mChildSock;
+
+
+		int OnEventProc(EdMsg* pmsg)
+		{
+			if (pmsg->msgid == EDM_INIT)
+			{
+				mChildSock = NULL, mSvrSock = NULL;
+				mSvrSock = new EdSocket;
+				mSvrSock->setOnListener(this);
+				mSvrSock->listenSock(9090);
+
+				addTest(TS_TCP_SOCKET);
+				addTest(TS_UNIX_SOCKET);
+				nextTest();
+			}
+			else if (pmsg->msgid == EDM_CLOSE)
+			{
+				mSvrSock->close();
+				delete mSvrSock;
+				mSvrSock = NULL;
+			}
+			else if (pmsg->msgid == TS_TCP_SOCKET)
+			{
+				tcpclient_subtest();
+			}
+			else if(pmsg->msgid == TS_UNIX_SOCKET)
+			{
+				udpclient_subtest();
+			}
+			return 0;
+		}
+
+		void tcpclient_subtest()
+		{
+			static const char *str = "send socket data...";
+			static string recvStr;
+			class _Client: public EdSocket
+			{
+				void OnConnected()
+				{
+					logs("connected...");
+					recvStr.clear();
+					this->send(str, strlen(str));
+				}
+				void OnDisconnected()
+				{
+					logs("disconnected...");
+					logs("  unexpected...");
+					assert(0);
+				}
+				void OnRead()
+				{
+					char buf[100];
+					int rcnt = recv(buf, 100);
+					if (rcnt > 0)
+					{
+						recvStr.append(buf, rcnt);
+						if (recvStr == str)
+						{
+							logs("tcp client send/recv ok...");
+							logs("== Tcp client test ok.../n");
+							delete this;
+							((TestTask*) getCurrentTask())->nextTest();
+						}
+					}
+				}
+
+			};
+			logs("== Start tcp client test ...");
+			auto client = new _Client;
+			client->connect("127.0.0.1", 9090);
+
+		}
+
+		void udpclient_subtest()
+		{
+			logs("== Start unix socket test ...");
+			static char *_msg = "client send msg";
+			class _UnixDgramServer : public EdSocket {
+
+				void OnRead()
+				{
+					char buf[100];
+					string addr;
+					int rcnt = recvFromUnix(buf, 100, &addr);
+					logs("unix dgram server on read, cnt=%d, from=%s", rcnt, addr.c_str());
+					sendto(addr.c_str(), buf, rcnt);
+					close();
+					delete this;
+				}
+			};
+
+			class _UnixDgramClient : public EdSocket {
+				void OnConnected() {
+					logs("unix connected...");
+				}
+				void OnDisconnected() {
+					logs("unix disconnected ...");
+				}
+				void OnRead() {
+					logs("unix on read");
+					string addr;
+					char buf[100];
+					int rcnt = recvFromUnix(buf, 100, &addr);
+					buf[rcnt] = 0;
+					if(!strcmp(buf, _msg)) {
+						logs("== Unix DGram test ok...\n");
+						close();
+						delete this;
+						((TestTask*)getCurrentTask())->nextTest();
+					}
+				}
+			};
+
+			auto _svrx = new _UnixDgramServer;
+			unlink("/tmp/ts.socket");
+			_svrx->openSock(SOCK_TYPE_UNIXDGRAM);
+			_svrx->bindSock(0, "/tmp/ts.socket");
+
+			auto _client = new _UnixDgramClient;
+			unlink("/tmp/tc.socket");
+			_client->openSock(SOCK_TYPE_UNIXDGRAM);
+			_client->bindSock(0, "/tmp/tc.socket");
+			int cret;
+			cret = _client->connect("/tmp/ts.socket", 0);
+
+			//int wcnt = _client->sendto("/tmp/ts.socket", _msg, strlen(_msg));
+			int wcnt = _client->send(_msg, strlen(_msg));
+			logs("wcnt=%d, errno=%d, cret=%d", wcnt, errno, cret);
+		}
+
+		void IOnSocketEvent(EdSocket *psock, int event)
+		{
+			if (psock == mSvrSock)
+			{
+				if (event == SOCK_EVENT_INCOMING_ACCEPT)
+				{
+					if (mChildSock == NULL)
+					{
+						mChildSock = new EdSocket;
+						psock->acceptSock(mChildSock, this);
+					}
+					else
+					{
+						logs("### Fail: child socket already exists...");
+						assert(0);
+					}
+				}
+				else
+				{
+					logs("### Fail: unexpected socket event=%x", event);
+					assert(0);
+				}
+			}
+			else if (psock == mChildSock)
+			{
+				if (event == SOCK_EVENT_DISCONNECTED)
+				{
+					logs("child disconnected...");
+					psock->close();
+					delete psock;
+				}
+				else if (event == SOCK_EVENT_READ)
+				{
+					char buf[100];
+					int rcnt = psock->recv(buf, 100);
+					if (rcnt > 0)
+					{
+						buf[rcnt] = 0;
+						logs("  recv cnt=%d, str=%s", rcnt, buf);
+						psock->send(buf, rcnt);
+					}
+				}
+			}
+
+		}
+
+	};
+
+	logm(">>>> Test: Socket, mode=%d", mode);
+	fdcheck_start();
+	auto task = new SocketTestTask;
+	task->run(mode);
+	task->wait();
+	delete task;
+	fdcheck_end();
+	logm("<<<< Timer Socket OK\n");
 }
 
 void testtimer(int mode)
@@ -2393,12 +2594,12 @@ void testMariadb(int mode)
 
 int main()
 {
-
 	EdNioInit();
 	init_test();
 	for (int i = 0; i < 1; i++)
 	{
 //		testmsg(i);
+		testSocket(i);
 //		testMainThreadTask(i);
 //		testMultiTaskInstance(1);
 //		testtimer(i);
@@ -2410,7 +2611,7 @@ int main()
 		//testHttpBase(i);
 		//testHttpSever(i);
 		//testmultipartapi();
-		testMariadb(i);
+		//testMariadb(i);
 	}
 	return 0;
 }

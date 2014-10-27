@@ -8,7 +8,7 @@
 #ifndef ESHTTPCNN_H_
 #define ESHTTPCNN_H_
 
-#include "../config.h"
+#include "../ednio_config.h"
 
 #include <unordered_map>
 #include <string>

@@ -7,7 +7,7 @@
 #define DBGTAG "EDNIO"
 #define DBG_LEVEL DBG_WARN
 
-#include "config.h"
+#include "ednio_config.h"
 
 #include "EdNio.h"
 #include "EdTask.h"

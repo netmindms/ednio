@@ -7,7 +7,7 @@
 
 #ifndef __EDOBJLISTH__
 #define __EDOBJLISTH__
-#include "config.h"
+#include "ednio_config.h"
 
 #include <pthread.h>
 #include <string.h>

@@ -7,7 +7,7 @@
 
 #ifndef EDHTTPSTRINGREADER_H_
 #define EDHTTPSTRINGREADER_H_
-#include "../config.h"
+#include "../ednio_config.h"
 
 #include <string>
 #include "EdHttpReader.h"

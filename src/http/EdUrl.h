@@ -8,7 +8,7 @@
 #ifndef EDURL_H_
 #define EDURL_H_
 
-#include "../config.h"
+#include "../ednio_config.h"
 
 #include <string>
 using namespace std;

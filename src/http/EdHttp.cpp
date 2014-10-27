@@ -4,7 +4,7 @@
  *  Created on: Jul 8, 2014
  *      Author: netmind
  */
-#include "../config.h"
+#include "../ednio_config.h"
 
 
 #include <stdio.h>

@@ -7,7 +7,7 @@
 
 #ifndef EDHTTPSTRINGWRITER_H_
 #define EDHTTPSTRINGWRITER_H_
-#include "../config.h"
+#include "../ednio_config.h"
 #include <string>
 #include "EdHttpWriter.h"
 

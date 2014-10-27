@@ -5,7 +5,7 @@
  *      Author: netmind
  */
 
-#include "../config.h"
+#include "../ednio_config.h"
 
 #define DBGTAG "HTSWR"
 #define DBG_LEVEL DBG_WARN

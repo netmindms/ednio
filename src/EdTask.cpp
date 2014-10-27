@@ -4,7 +4,7 @@
  *  Created on: 2014. 02. 10.
  *      Author: khkim
  */
-#include "config.h"
+#include "ednio_config.h"
 
 #define DBG_LEVEL DBG_WARN
 #define DBGTAG "etask"

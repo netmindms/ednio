@@ -7,7 +7,9 @@
 
 #ifndef EDSOCKET_H_
 #define EDSOCKET_H_
-#include "config.h"
+#include "ednio_config.h"
+
+#include <string>
 #include <errno.h>
 #include <sys/un.h>
 #include <net/if.h>
@@ -16,12 +18,14 @@
 #include "EdEvent.h"
 #include "EdType.h"
 
+using namespace std;
+
 namespace edft
 {
 
 #define SOCK_TYPE_TCP 0
 #define SOCK_TYPE_UDP 1
-#if 0
+#if 1
 #define SOCK_TYPE_UNIXSTREAM 2
 #define SOCK_TYPE_UNIXDGRAM 3
 #endif
@@ -61,6 +65,9 @@ public:
 	 */
 	int recv(void *buf, int size);
 
+	ssize_t recvFromUnix(void *buf, int size, string *fromaddr);
+
+	ssize_t recvFrom(void* buf, int size, unsigned int *ipaddr=NULL, unsigned short *port=NULL);
 	/**
 	 * @brief Write data to socket.
 	 * @param buf
@@ -68,6 +75,9 @@ public:
 	 * @return Real written bytes
 	 */
 	int send(const void *buf, int size);
+
+	int sendto(const char* destaddr, unsigned int addrlen, const void* buf, int len);
+	int sendto(const char* destaddr, const void* buf, int len);
 
 	/**
 	 * @brief Connect to peer socket.
@@ -99,6 +109,7 @@ public:
 	 */
 	int bindSock(int port, const char* ip = "0.0.0.0");
 
+
 	/**
 	 * @brief accept incoming connection from listening socket.
 	 * @return child socket fd
@@ -116,7 +127,7 @@ public:
 	 * @param pchild
 	 * @param cb
 	 */
-	void acceptSock(EdSocket* pchild, ISocketCb *cb=NULL);
+	int acceptSock(EdSocket* pchild, ISocketCb *cb=NULL);
 
 	/**
 	 * @brief Reject incoming connection on listening socket.

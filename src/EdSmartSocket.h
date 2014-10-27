@@ -8,7 +8,7 @@
 #ifndef EDSMARTSOCKET_H_
 #define EDSMARTSOCKET_H_
 
-#include "config.h"
+#include "ednio_config.h"
 
 #if USE_SSL
 #include <openssl/evp.h>

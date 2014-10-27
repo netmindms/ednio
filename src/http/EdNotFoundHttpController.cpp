@@ -4,7 +4,7 @@
  *  Created on: Sep 22, 2014
  *      Author: netmind
  */
-#include "../config.h"
+#include "../ednio_config.h"
 #include "EdNotFoundHttpController.h"
 
 namespace edft
