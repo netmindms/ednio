@@ -30,9 +30,19 @@ After you install scons, you just enter follwing command on top folder of source
 
 	$ scons
 
-To include non-block, asynchronous mode wrapper API of famous some libraries, run as follwing.
+Or, To include non-block, asynchronous mode wrapper API for some famous libraries, run as follwing.
 
-	$ scons ssl=true curl=true libevent=true
+	$ scons configure ssl=true curl=true libevent=true
+	$ scons
+
+
+How to install
+--------------
+You may want to install this library. To do so, run 'scons install' after build.
+	$ scons install
+
+The default destination is /usr/local/lib/ for so file and /usrlocal/include/ednio/ for header files. If you change the destination, specifiy prefix option.
+	$ scons install '/your/prefered/folder'
 
 Typical Usage
 -------------
