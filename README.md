@@ -39,10 +39,13 @@ Or, To include non-block, asynchronous mode wrapper API for some famous librarie
 How to install
 --------------
 You may want to install this library. To do so, run 'scons install' after build.
+
 	$ scons install
 
-The default destination is /usr/local/lib/ for so file and /usrlocal/include/ednio/ for header files. If you change the destination, specifiy prefix option.
-	$ scons install '/your/prefered/folder'
+The default destination is /usr/local/lib/ for so file and /usr/local/include/ednio/ for header files. If you change the destination, specifiy prefix option.
+
+	$ scons install prefix=/your/prefered/folder
+
 
 Typical Usage
 -------------
