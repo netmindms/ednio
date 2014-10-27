@@ -7,7 +7,7 @@
 
 #ifndef EDTIME_H_
 #define EDTIME_H_
-#include "config.h"
+#include "ednio_config.h"
 
 #include "EdType.h"
 

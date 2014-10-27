@@ -7,7 +7,7 @@
 
 #ifndef EDTIMER_H_
 #define EDTIMER_H_
-#include "config.h"
+#include "ednio_config.h"
 
 #include <unistd.h>
 #include <stdio.h>

@@ -8,7 +8,7 @@
 #ifndef ESHTTPSERVER_H_
 #define ESHTTPSERVER_H_
 
-#include "../config.h"
+#include "../ednio_config.h"
 
 #include <list>
 #include "EdHttpTask.h"

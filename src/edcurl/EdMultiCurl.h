@@ -8,7 +8,7 @@
 #ifndef EDCURLMULTI_H_
 #define EDCURLMULTI_H_
 
-#include "../config.h"
+#include "../ednio_config.h"
 #include <map>
 #include <unordered_map>
 #include <string>

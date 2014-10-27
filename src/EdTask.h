@@ -7,7 +7,7 @@
 #ifndef EDTASK_H_
 #define EDTASK_H_
 
-#include "config.h"
+#include "ednio_config.h"
 
 #include <pthread.h>
 #include <list>

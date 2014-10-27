@@ -7,7 +7,7 @@
 
 #ifndef EDEVENTFD_H_
 #define EDEVENTFD_H_
-#include "config.h"
+#include "ednio_config.h"
 
 #include "EdEvent.h"
 

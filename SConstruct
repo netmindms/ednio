@@ -30,7 +30,7 @@ def gen_configh(target, source, env):
 		defs['USE_CURL'] = 0	
 		
 	#infile = file(str(source[0]), 'r')
-	infile = file(curdir+'/src/config.h.in', 'r')
+	infile = file(curdir+'/src/ednio_config.h.in', 'r')
 	cbuf = infile.read() % defs 
 	cfgfile = file(str(target[0]), 'w')
 	cfgfile.write(cbuf)
@@ -93,7 +93,7 @@ if build_target == 'configure':
 		print 'generating config files...'
 		
 prjvarfile = TopEnv.Command(PRJ_BUILD_VAR_FILE, '', gen_oconf )
-cfgtarget = TopEnv.Command(curdir+'/src/config.h', prjvarfile, gen_configh)
+cfgtarget = TopEnv.Command(curdir+'/src/ednio_config.h', prjvarfile, gen_configh)
 TopEnv.Alias('configure', [PRJ_BUILD_VAR_FILE, cfgtarget])
 TopEnv.AddPostAction(cfgtarget, action="@echo '=== Configure Complete ==='")
 

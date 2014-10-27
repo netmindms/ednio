@@ -7,7 +7,7 @@
 #define DBGTAG "HTSRD"
 #define DBG_LEVEL DBG_WARN
 
-#include "../config.h"
+#include "../ednio_config.h"
 
 #include <algorithm>
 #include <string.h>

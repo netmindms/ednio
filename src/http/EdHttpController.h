@@ -8,7 +8,7 @@
 #ifndef EDHTTPCONTROLLER_H_
 #define EDHTTPCONTROLLER_H_
 
-#include "../config.h"
+#include "../ednio_config.h"
 
 #include <list>
 #include "../EdObject.h"

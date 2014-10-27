@@ -4,7 +4,7 @@
  *  Created on: Sep 6, 2014
  *      Author: netmind
  */
-#include "../config.h"
+#include "../ednio_config.h"
 
 #include <string.h>
 #include "EdUrl.h"

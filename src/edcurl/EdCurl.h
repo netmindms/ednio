@@ -7,7 +7,7 @@
 
 #ifndef EDCURL_H_
 #define EDCURL_H_
-#include "../config.h"
+#include "../ednio_config.h"
 
 #include <string>
 #include <unordered_map>

@@ -7,7 +7,7 @@
 
 #ifndef EDPIPE_H_
 #define EDPIPE_H_
-#include "config.h"
+#include "ednio_config.h"
 #include "EdEvent.h"
 namespace edft {
 

@@ -7,7 +7,7 @@
 
 #ifndef ESHTTPTASK_H_
 #define ESHTTPTASK_H_
-#include "../config.h"
+#include "../ednio_config.h"
 
 #include <string>
 #include <unordered_map>

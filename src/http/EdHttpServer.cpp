@@ -8,7 +8,7 @@
 #define DBGTAG "HTSVR"
 #define DBG_LEVEL DBG_WARN
 
-#include "../config.h"
+#include "../ednio_config.h"
 
 #include "../edslog.h"
 #include "EdHttpServer.h"

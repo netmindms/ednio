@@ -7,7 +7,7 @@
 
 #ifndef EDHTTPTYPE_H_
 #define EDHTTPTYPE_H_
-#include "../config.h"
+#include "../ednio_config.h"
 
 
 namespace edft {

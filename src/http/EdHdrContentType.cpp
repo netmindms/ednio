@@ -4,7 +4,7 @@
  *  Created on: Oct 3, 2014
  *      Author: netmind
  */
-#include "../config.h"
+#include "../ednio_config.h"
 
 #include "EdHdrContentType.h"
 

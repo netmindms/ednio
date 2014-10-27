@@ -4,7 +4,7 @@
  *  Created on: Oct 7, 2014
  *      Author: netmind
  */
-#include "../config.h"
+#include "../ednio_config.h"
 
 #define DBGTAG "DMCTR"
 #define DBG_LEVEL DBG_WARN
