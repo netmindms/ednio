@@ -29,7 +29,7 @@ enum {
 
 typedef struct {
 	int recv_buf_size;
-
+	int cnn_time_out;
 } http_server_cfg_t;
 
 class EdHttpTask: public EdTask

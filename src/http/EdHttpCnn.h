@@ -15,6 +15,8 @@
 #include <list>
 #include "../EdSocket.h"
 #include "../EdSmartSocket.h"
+#include "../EdTimer.h"
+
 #include "http_parser.h"
 #include "EdHttpController.h"
 #include "MultipartParser.h"
@@ -24,6 +26,7 @@ using namespace std;
 namespace edft
 {
 
+#define HTTP_CNN_TIMEOUT 20000
 
 enum PARSER_STATUS_E
 {
@@ -37,7 +40,7 @@ enum SEND_RESULT_E
 
 class EdHttpTask;
 
-class EdHttpCnn: public EdObject, public EdSmartSocket::INet
+class EdHttpCnn: public EdObject, public EdSmartSocket::INet, public EdTimer::ITimerCb
 {
 	friend class EdHttpTask;
 	friend class EdHttpController;
@@ -50,6 +53,7 @@ public:
 	static void initHttpParser();
 
 private:
+	void IOnTimerEvent(EdTimer* ptimer);
 	static int head_field_cb(http_parser*, const char *at, size_t length);
 	int dgHeaderNameCb(http_parser*, const char *at, size_t length);
 	static int head_val_cb(http_parser*, const char *at, size_t length);
@@ -131,10 +135,10 @@ private:
 	// controller list
 	std::list<EdHttpController*> mCtrlList;
 	EdHttpController* mCurCtrl;
-	//EdHttpController* mCurSendCtrl;
 	EdHttpContent* mCurContent;
 	EdSmartSocket mSock;
 	bool mTxTrying;
+	EdTimer *mTimeout;
 };
 
 } // namespace edft

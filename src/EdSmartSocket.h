@@ -135,6 +135,7 @@ private:
 	bool mSessionConencted;
 	bool mIsSSLServer;
 	int mSSLWantEvent;
+
 #endif
 
 };

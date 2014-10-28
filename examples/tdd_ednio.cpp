@@ -1442,6 +1442,7 @@ void testHttpSever(int mode)
 			}
 			else if (pmsg->msgid == TS_NORMAL)
 			{
+				logs("== Start server normal test ...");
 				EdHttpSettings settings = EdHttpServer::getDefaultSettings();
 				settings.port = 9090;
 				settings.ssl_port = 7070;
@@ -2599,7 +2600,7 @@ int main()
 	for (int i = 0; i < 1; i++)
 	{
 //		testmsg(i);
-		testSocket(i);
+		//testSocket(i);
 //		testMainThreadTask(i);
 //		testMultiTaskInstance(1);
 //		testtimer(i);
@@ -2609,7 +2610,7 @@ int main()
 		//testssl(i);
 		//testsmartsock(i);
 		//testHttpBase(i);
-		//testHttpSever(i);
+		testHttpSever(i);
 		//testmultipartapi();
 		//testMariadb(i);
 	}

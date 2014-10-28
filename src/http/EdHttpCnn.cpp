@@ -7,7 +7,7 @@
 #include "../ednio_config.h"
 
 #define DBGTAG "HTCNN"
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 
 #include <stack>
 #include <unordered_map>
@@ -50,6 +50,7 @@ EdHttpCnn::EdHttpCnn()
 
 	mTxTrying = false;
 	mMpParser = NULL;
+	mTimeout = NULL;
 }
 
 EdHttpCnn::~EdHttpCnn()
@@ -70,6 +71,11 @@ void EdHttpCnn::close()
 		mReadBuf = NULL;
 	}
 
+	if(mTimeout != NULL)
+	{
+		mTimeout->kill();
+		delete mTimeout; mTimeout=NULL;
+	}
 
 }
 
@@ -80,12 +86,10 @@ int EdHttpCnn::initCnn(int fd, u32 handle, EdHttpTask *ptask, int socket_mode)
 
 	mSock.setOnNetListener(this);
 	mSock.socketOpenChild(fd, socket_mode);
-
 	mHandle = handle;
 
 	http_parser_init(&mParser, HTTP_REQUEST);
 	mParser.data = this;
-
 
 	mBufSize = serverCfg->recv_buf_size;
 	mReadBuf = malloc(mBufSize);
@@ -95,6 +99,10 @@ int EdHttpCnn::initCnn(int fd, u32 handle, EdHttpTask *ptask, int socket_mode)
 		goto error_exit;
 	}
 
+	mTimeout = new EdTimer;
+	mTimeout->setOnListener(this);
+	mTimeout->setUserInt(0);
+	mTimeout->set(5000);
 	return 0;
 	error_exit: mSock.socketClose();
 	return -1;
@@ -108,6 +116,7 @@ void EdHttpCnn::procRead()
 	{
 		http_parser_execute(&mParser, &_parserSettings, (char*) mReadBuf, rdcnt);
 	}
+	mTimeout->setUserInt(1);
 }
 
 void EdHttpCnn::procDisconnectedNeedEnd()
@@ -175,7 +184,6 @@ int EdHttpCnn::dgHeaderNameCb(http_parser*, const char* at, size_t length)
 		procHeader();
 		mIsHdrVal = false;
 	}
-
 
 	mCurHdrName.append(at, length);
 	return 0;
@@ -344,7 +352,7 @@ int EdHttpCnn::scheduleTransmitNeedEnd()
 	stack<list<EdHttpController*>::iterator> dellist;
 
 	int sr;
-	EdHttpController *sctrl=NULL;
+	EdHttpController *sctrl = NULL;
 	auto itr = mCtrlList.begin();
 	for (; itr != mCtrlList.end(); itr++)
 	{
@@ -640,6 +648,21 @@ void EdHttpCnn::initHttpParser()
 	_parserSettings.on_header_value = head_val_cb;
 	_parserSettings.on_headers_complete = on_headers_complete;
 	_parserSettings.on_body = body_cb;
+}
+
+void EdHttpCnn::IOnTimerEvent(EdTimer* ptimer)
+{
+	if (ptimer->getUserInt() == 0)
+	{
+		dbgd("connection timeout...");
+		close();
+		mTask->removeConnection(this);
+	}
+	else
+	{
+		dbgd("pass timeout check ...");
+		ptimer->setUserInt(0);
+	}
 }
 
 } // namespace edft

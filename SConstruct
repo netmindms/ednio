@@ -27,9 +27,8 @@ def gen_configh(target, source, env):
 	if TopEnv['curl'] == 'true':
 		defs['USE_CURL'] = 1
 	else:
-		defs['USE_CURL'] = 0	
-		
-	#infile = file(str(source[0]), 'r')
+		defs['USE_CURL'] = 0
+
 	infile = file(curdir+'/src/ednio_config.h.in', 'r')
 	cbuf = infile.read() % defs 
 	cfgfile = file(str(target[0]), 'w')
@@ -64,7 +63,7 @@ TopEnv['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME']=1
 Export('TopEnv')
 
 curdir = Dir('.').srcnode().abspath
-
+#vars = load_ednio_options()
 
 # make configuration
 if build_target == 'configure':
