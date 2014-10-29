@@ -30,9 +30,22 @@ After you install scons, you just enter follwing command on top folder of source
 
 	$ scons
 
-To include non-block, asynchronous mode wrapper API of famous some libraries, run as follwing.
+Or, To include non-block, asynchronous mode wrapper API for some famous libraries, run as follwing.
 
-	$ scons ssl=true curl=true libevent=true
+	$ scons configure ssl=true curl=true libevent=true
+	$ scons
+
+
+How to install
+--------------
+You may want to install this library. To do so, run 'scons install' after build.
+
+	$ scons install
+
+The default destination is /usr/local/lib/ for so file and /usr/local/include/ednio/ for header files. If you change the destination, specifiy prefix option.
+
+	$ scons install prefix=/your/prefered/folder
+
 
 Typical Usage
 -------------
@@ -67,7 +80,7 @@ EdTask has its own specific event dispatching loop. But if you want, you can use
 To make EdTask run with libevent, call EdTask::run(MODE_LIBEVENT).
 Also, You need to build sources with following build argument.
 
-	$ scons libevent=true
+	$ scons configure libevent=true
 Make sure that libevent library is installed on your system in advance as well.
 
 
@@ -88,10 +101,6 @@ I believe the best solution for thread sychronization problem is not making the 
 ednio prefers single-thread, multi-instance model.
 EdEvent classes(EdSocket, EdTimer, EdPipe) refer context object stored in thread local storage to determine to run on which task. Therefore, If you opened an event object on A EdTask, callback will be on A EdTask. Also, it is not a good choice to refer event object directly on other task. If you need the situation, use IPC functions.
 
-
-ToDo
-----
-- Support some DB APIs for non block mode.
 
 
 
