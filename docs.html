@@ -11,12 +11,12 @@
 				<h1 id="logo">EDNIO<span class="gray">Home</span></h1>
 				<h2 id="slogan">High performance, Non-Blocking Task Library...</h2>
 				<!-- <div id="searchform">
-					<form method="post" class="search" action="#">
-						<p>
-							<input name="search_query" class="textbox" type="text" />
-							<input name="search" class="button" type="submit" value="search" />
-						</p>
-					</form>
+				<form method="post" class="search" action="#">
+				<p>
+				<input name="search_query" class="textbox" type="text" />
+				<input name="search" class="button" type="submit" value="search" />
+				</p>
+				</form>
 				</div> -->
 			</div>
 			<div id="menu">
@@ -24,38 +24,167 @@
 					<li><a href="./ednio.html"><span>Home</span></a></li>
 					<li id="current"><a href="#"><span>Documents</span></a></li>
 					<li><a href="./downloads.html"><span>Downloads</span></a></li>
-					<li><a href="./links.html"><span>Links</span></a></li>
 				</ul>
 			</div>
 			<div id="content-wrap">
-				<!-- <div id="sidebar">
-					<h1>Sidebar Menu</h1>
+				<div id="sidebar">
+					<h1>Site Links</h1>
 					<ul class="sidemenu">
-						<li><a href="#">Home</a></li>
-						<li><a href="#TemplateInfo">Template Info</a></li>
-						<li><a href="#SampleTags">Sample Tags</a></li>
-						<li><a href="#">More Free Templates</a></li>
-						<li><a href="#">Premium Templates</a></li>
+						<li><a href="http://github.com/netmindms/ednio">GitHub Ednio</a></li>
+						<li><a href="http://curl.haxx.se">Curl</a></li>
+						<li><a href="http://www.openssl.org">OpenSSL</a></li>
+						<li><a href="http://www.mariadb.org">Maria DB</a></li>
+						<li><a href="http://www.scons.org">SCons</a></li>
 					</ul>
-					<h1>Site Partners</h1>
-					<ul class="sidemenu">
-						<li><a href="#">Dreamhost</a></li>
-						<li><a href="#">4templates</a></li>
-						<li><a href="#">TemplateMonster</a></li>
-						<li><a href="#">Fotolia.com</a></li>
-						<li><a href="#">Text Link Ads</a></li>
-					</ul>
-					<h1>Wise Words</h1>
-					<p>&quot;Be not afraid of life. Believe that life is worth living, and your belief will help create the fact.&quot; </p>
-					<p class="align-right">- William James</p>
-					<h1>Support Styleshout</h1>
-					<p>If you are interested in supporting my work and would like to contribute, you are welcome to make a small donation through the donate link on my website - it will be a great help and will surely be appreciated.</p>
-				</div> -->
+				</div>
+
 				<div id="main">
 					<a name="TemplateInfo"></a>
 					<h1>Introduction</h1>
+
+					<!-- build document -->
 					<h1>Build and Install</h1>
+					<h3>Build Requirements</h3>
+					<p>
+						<p>The essential environment is for Ednio,</p>
+						<ul>
+							<li>Linux kernel 2.6.25 or later</li>
+							<li>gcc 4.4.3 or later</li>
+						</ul>
+						<p>Ubuntu 10.04 and CentOS 6.5 meet this condition.</p>
+					</p>
+					
+					<p>To build the sources, you need to install SCons build tool. On Ubuntu, you can install it as following.
+						<code>
+							$ sudo apt-get install scons
+						</code> In case of other Linux, refer to scons.org of official scons home page. </p>
+					<h3>Build the sources</h3>
+					<p> After you install scons, you just enter follwing commands on top folder of source to build in order.
+						<code>$ scons configure</br>
+								$ scons
+						</code></p>
+					<h3>Install binary</h3>
+					<p>After build is complete successfully, You can install the library on system folder.
+						<code>
+							$ sudo scons install</br>
+							$ sudo ldconfig
+						</code></p>
+					<h3>Configure Build</h3>
+					<p>If any option is not specified, the ednio souce is built including only core APIs.
+						To include the supplementary APIs, you need to configure build.</br>
+						In the follwing example, build is configured to include ssl, curl asynchronous wrapper APIs.
+						<code>
+							$ scons configure ssl=true curl=true
+						</code><p>The available configuration options are as follwing.
+						<table class="reference" style="width:100%">
+							<tr>
+								<th>Option</th>
+								<th>Description</th>
+								<th>Dependency</th>
+								<th>Value</th>
+							</tr>
+							<tr>
+								<td>ssl</td>
+								<td>OpenSSL wrapper API</td>
+								<td>libssl-dev</td>
+								<td>true/false</td>
+							</tr>
+							<tr>
+								<td>Curl</td>
+								<td>Curl wrapper API</td>
+								<td>libcurl4-openssl-dev</td>
+								<td>true/false</td>
+							</tr>
+							<tr>
+								<td>mariadb</td>
+								<td>MariaDb wrapper API</td>
+								<td>libmysqlclient:</br>&nbsp&nbspthis should be installed from MariaDB server source.</td>
+								<td>ture/false</td>
+							</tr>
+							<tr>
+								<td>libevent</td>
+								<td>libevent</td>
+								<td>libevent:</br>&nbsp&nbspfor libevent compatible mode</td>
+								<td>true/false</td>
+							</tr>
+						</table>
+						</p>
+						
+						<blockquote>
+							<p>To build the wrapper APIs of ssl and curl API normally, the openssl and curl library should be install in advance.
+								In case of ubuntu, you can install as follwing.
+								<code>
+									$ sudo apt-get install libssl-dev</br>
+									$ sudo apt-get install libcurl4-openssl-dev
+								</code></p>
+
+						</blockquote></p>
+					<h3>Building your application with ednio library</h3>
+					<p>To build your application with libednio, there is a build flag to include.
+						ednio uses c++11 APIs. So, you should include '-std=c++0x' builf flag when building your sources.</p>	
+						
+					<!-- api guide -->
 					<h1>Task and Event</h1>
+					<h3>Task</h3>
+					<p>In general, what you should do is making the tasks first of all before calling other APIs.
+						Task means a thread having event loop in Ednio. Task is responsible for event sending/receiving, notification to object, processing message IPC.
+						You can make a task by inheriting EdTask class and overriding OnEventProc virtual function.</br></br>
+						<strong>Example</strong>:
+						<pre class='code_pre'>
+class MyTask : public EdTask {
+  virtual int OnEventProc(EdMsg *pmsg, u16 msgid, u32 p1, u32 p2);
+  ...
+}
+...
+int main(int argc, char* argv[]) {
+  MyTask *task;
+  task = new MyTask;
+  task->run();
+  ...
+}
+</pre>
+					To start a task, run() or runMain(). run() makes a new thread and starts event loop, while runMain() starts event loop in current thread.
+					You should override OnEventProc() to make the task work as you want. OnEventProc() provides the change to initialize or close task by providing predefined task messages.
+					</br></br>
+					<strong>Example:</strong>
+					<pre class="code_pre">
+int MyTask::OnEventProc(EdMsg* pmsg, u16 msgid, u32 p1, u32 p2) {
+  if(pmsg->msgid == EDM_INIT) {
+    // init your task.
+        ...
+	} else if(pmsg->msgid == EDM_CLOE) {
+    // clean resources. after EDM_CLOE, task is terminated.
+    ...
+    }
+}						
+</pre></br>
+					EDM_INIT message and EDM_CLOSE are messages predefined by EdTask. EDM_INIT is sent when task is stated.(that is, run() is called.)
+					EDM_CLOSE is sent when task is terminated. In addtiton these message, there are some messages predefined by EdTask.</br>
+					 <table class="reference" style="width:100%">
+					 	<tr>
+					 		<th>Message Id</th>
+					 		<th>Description</th>
+					 	</tr>
+					 	<tr>
+					 		<td>EDM_INIT</td>
+					 		<td>Task will be initialize</td>
+					 	</tr>
+					 	<tr>
+					 		<td>EDM_CLOSE</td>
+					 		<td>Task will be closed</td>
+					 	</tr>
+					 	<tr>
+					 		<td>EDM_TIMER</td>
+					 		<td>Timer is expired</td>
+					 	</tr>
+					 	<tr>
+					 		<td>EDM_USER</td>
+					 		<td>After this, user message id is availabe</td>
+					 	</tr>
+					 </table>
+					 You can send/post your specific messages. To do so, first, define a your message as EDM_USE+any_number, and call sendMsg or postMsg. Refer to sendMsg/postMsg API reference for detail.				 	  
+					</p>
+					
 					<h1>Core APIs</h1>
 					<h1>Supplementary APIs</h1>
 				</div>
