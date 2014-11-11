@@ -8,7 +8,7 @@
 	<body>
 		<div id="wrap">
 			<div id="header">
-				<h1 id="logo">EDNIO<span class="gray">Home</span></h1>
+				<h1 id="logo">EDNIO<span class="gray">Blog</span></h1>
 				<h2 id="slogan">High performance, Non-Blocking Task Library...</h2>
 				<!-- <div id="searchform">
 				<form method="post" class="search" action="#">
@@ -27,7 +27,15 @@
 				</ul>
 			</div>
 			<div id="content-wrap">
+					  
 				<div id="sidebar">
+					<h1>Menu</h1>
+				      <ul class="sidemenu">
+				      	<li><a href="#BuildInstall">Build and Install</a></li>
+				        <li><a href="#EdnioBasic">Ednio Basic</a></li>
+				        <li><a href="#CoreAPI">Core APIs</a></li>
+				        <li><a href="#SupplementaryAPI">Supplementary API</a></li>
+				      </ul>
 					<h1>Site Links</h1>
 					<ul class="sidemenu">
 						<li><a href="http://github.com/netmindms/ednio">GitHub Ednio</a></li>
@@ -41,34 +49,60 @@
 				<div id="main">
 					<a name="TemplateInfo"></a>
 					<h1>Introduction</h1>
-
+					<p>Ednio is a event-driven, asynchronous, non-blocked IO task library for C++ programmer on Linux.
+						This library provides the core APIs for basic event processing and
+						the wrapper APIs to provide the asynchronous framework to some famous libraries. </p>
+					<h3>Core APIs</h3>
+					<p>Core APIs has the follwing functions.</p>
+					<ul>
+						<li>Make task having event loop.</li>
+						<li>IPC functions to communicate with tasks.</li>
+						<li>Basic timer, socket, pipe APIs.</li>
+					</ul>
+					<hr />
+					<h3>Supplementary APIs</h3>
+					<p>Ednio supports the asynchronous wrapper for as follwing libraries.</p>
+					<ul>
+						<li>Curl</li>
+						<li>OpenSSL</li>
+						<li>MariaDB</li>
+					</ul>
+					<p>In addition, provides simple <strong>HTTP server</strong> API.</p>
+					</br></br>
+					
+					
 					<!-- build document -->
+					<a name="BuildInstall"></a>
 					<h1>Build and Install</h1>
 					<h3>Build Requirements</h3>
-					<p>
-						<p>The essential environment is for Ednio,</p>
+					<p><p>The essential environment for Ednio is,</p>
 						<ul>
 							<li>Linux kernel 2.6.25 or later</li>
 							<li>gcc 4.4.3 or later</li>
-						</ul>
-						<p>Ubuntu 10.04 and CentOS 6.5 meet this condition.</p>
-					</p>
-					
+						</ul><p>Ubuntu 10.04 and CentOS 6.5 meet the conditions.
+
 					<p>To build the sources, you need to install SCons build tool. On Ubuntu, you can install it as following.
 						<code>
 							$ sudo apt-get install scons
-						</code> In case of other Linux, refer to scons.org of official scons home page. </p>
+						</code> In case of other Linux, refer to scons.org of official scons home page. 
+					</p>
+					<hr />
+					
 					<h3>Build the sources</h3>
-					<p> After you install scons, you just enter follwing commands on top folder of source to build in order.
+					<p> After you install scons, you just enter follwing commands in order on top folder of source to build. 
 						<code>$ scons configure</br>
-								$ scons
-						</code></p>
+							$ scons
+						</code>
+					</p>
+					<hr />
+						
 					<h3>Install binary</h3>
-					<p>After build is complete successfully, You can install the library on system folder.
+					<p>After build is complete successfully, you can install the library on system folder.
 						<code>
 							$ sudo scons install</br>
 							$ sudo ldconfig
 						</code></p>
+					<hr />	
 					<h3>Configure Build</h3>
 					<p>If any option is not specified, the ednio souce is built including only core APIs.
 						To include the supplementary APIs, you need to configure build.</br>
@@ -76,40 +110,38 @@
 						<code>
 							$ scons configure ssl=true curl=true
 						</code><p>The available configuration options are as follwing.
-						<table class="reference" style="width:100%">
-							<tr>
-								<th>Option</th>
-								<th>Description</th>
-								<th>Dependency</th>
-								<th>Value</th>
-							</tr>
-							<tr>
-								<td>ssl</td>
-								<td>OpenSSL wrapper API</td>
-								<td>libssl-dev</td>
-								<td>true/false</td>
-							</tr>
-							<tr>
-								<td>Curl</td>
-								<td>Curl wrapper API</td>
-								<td>libcurl4-openssl-dev</td>
-								<td>true/false</td>
-							</tr>
-							<tr>
-								<td>mariadb</td>
-								<td>MariaDb wrapper API</td>
-								<td>libmysqlclient:</br>&nbsp&nbspthis should be installed from MariaDB server source.</td>
-								<td>ture/false</td>
-							</tr>
-							<tr>
-								<td>libevent</td>
-								<td>libevent</td>
-								<td>libevent:</br>&nbsp&nbspfor libevent compatible mode</td>
-								<td>true/false</td>
-							</tr>
-						</table>
-						</p>
-						
+							<table class="reference" style="width:100%">
+								<tr>
+									<th>Option</th>
+									<th>Description</th>
+									<th>Dependency</th>
+									<th>Value</th>
+								</tr>
+								<tr>
+									<td>ssl</td>
+									<td>OpenSSL wrapper API</td>
+									<td>libssl-dev</td>
+									<td>true/false</td>
+								</tr>
+								<tr>
+									<td>curl</td>
+									<td>Curl wrapper API</td>
+									<td>libcurl4-openssl-dev</td>
+									<td>true/false</td>
+								</tr>
+								<tr>
+									<td>mariadb</td>
+									<td>MariaDb wrapper API</td>
+									<td>libmysqlclient:</br>&nbsp&nbspthis should be installed from MariaDB server source.</td>
+									<td>ture/false</td>
+								</tr>
+								<tr>
+									<td>libevent</td>
+									<td>libevent</td>
+									<td>libevent:</br>&nbsp&nbspfor libevent compatible mode</td>
+									<td>true/false</td>
+								</tr>
+							</table></p>
 						<blockquote>
 							<p>To build the wrapper APIs of ssl and curl API normally, the openssl and curl library should be install in advance.
 								In case of ubuntu, you can install as follwing.
@@ -119,20 +151,21 @@
 								</code></p>
 
 						</blockquote></p>
+					<hr />
+					
 					<h3>Building your application with ednio library</h3>
 					<p>To build your application with libednio, there is a build flag to include.
-						ednio uses c++11 APIs. So, you should include '-std=c++0x' builf flag when building your sources.</p>	
-						
+						ednio uses <strong>c++11</strong> APIs. So, you should include <strong>'-std=c++0x'</strong> builf flag when building your sources.</p>
+
 					<!-- api guide -->
-					<h1>Task and Event</h1>
+					<a name="EdnioBasic"></a>
+					<h1>Ednio Basic : Task and Event</h1>
 					<h3>Task</h3>
 					<p>In general, what you should do is making the tasks first of all before calling other APIs.
 						Task means a thread having event loop in Ednio. Task is responsible for event sending/receiving, notification to object, processing message IPC.
-						You can make a task by inheriting EdTask class and overriding OnEventProc virtual function.</br></br>
-						<strong>Example</strong>:
-						<pre class='code_pre'>
+						You can make a task by inheriting EdTask class and overriding OnEventProc virtual function.</br></br> <strong>Example</strong>: 						<pre class='code_pre'>
 class MyTask : public EdTask {
-  virtual int OnEventProc(EdMsg *pmsg, u16 msgid, u32 p1, u32 p2);
+  virtual int OnEventProc(EdMsg *pmsg);
   ...
 }
 ...
@@ -142,13 +175,10 @@ int main(int argc, char* argv[]) {
   task->run();
   ...
 }
-</pre>
-					To start a task, run() or runMain(). run() makes a new thread and starts event loop, while runMain() starts event loop in current thread.
-					You should override OnEventProc() to make the task work as you want. OnEventProc() provides the change to initialize or close task by providing predefined task messages.
-					</br></br>
-					<strong>Example:</strong>
-					<pre class="code_pre">
-int MyTask::OnEventProc(EdMsg* pmsg, u16 msgid, u32 p1, u32 p2) {
+</pre> To start a task, run() or runMain(). run() makes a new thread and starts event loop, while runMain() starts event loop in current thread.
+						You should override OnEventProc() to make the task work as you want. OnEventProc() provides the change to initialize or close task by providing predefined task messages.
+						</br></br> <strong>Example:</strong>						<pre class="code_pre">
+int MyTask::OnEventProc(EdMsg* pmsg) {
   if(pmsg->msgid == EDM_INIT) {
     // init your task.
         ...
@@ -157,36 +187,192 @@ int MyTask::OnEventProc(EdMsg* pmsg, u16 msgid, u32 p1, u32 p2) {
     ...
     }
 }						
-</pre></br>
-					EDM_INIT message and EDM_CLOSE are messages predefined by EdTask. EDM_INIT is sent when task is stated.(that is, run() is called.)
-					EDM_CLOSE is sent when task is terminated. In addtiton these message, there are some messages predefined by EdTask.</br>
-					 <table class="reference" style="width:100%">
-					 	<tr>
-					 		<th>Message Id</th>
-					 		<th>Description</th>
-					 	</tr>
-					 	<tr>
-					 		<td>EDM_INIT</td>
-					 		<td>Task will be initialize</td>
-					 	</tr>
-					 	<tr>
-					 		<td>EDM_CLOSE</td>
-					 		<td>Task will be closed</td>
-					 	</tr>
-					 	<tr>
-					 		<td>EDM_TIMER</td>
-					 		<td>Timer is expired</td>
-					 	</tr>
-					 	<tr>
-					 		<td>EDM_USER</td>
-					 		<td>After this, user message id is availabe</td>
-					 	</tr>
-					 </table>
-					 You can send/post your specific messages. To do so, first, define a your message as EDM_USE+any_number, and call sendMsg or postMsg. Refer to sendMsg/postMsg API reference for detail.				 	  
-					</p>
+</pre></br> EDM_INIT message and EDM_CLOSE are messages predefined by EdTask. EDM_INIT is sent when task is stated.(that is, run() is called.)
+						EDM_CLOSE is sent when task is terminated. In addtiton these message, there are some messages predefined by EdTask.</br>
+						<table class="reference" style="width:100%">
+							<tr>
+								<th>Message Id</th>
+								<th>Description</th>
+							</tr>
+							<tr>
+								<td>EDM_INIT</td>
+								<td>Task will be initialize</td>
+							</tr>
+							<tr>
+								<td>EDM_CLOSE</td>
+								<td>Task will be closed</td>
+							</tr>
+							<tr>
+								<td>EDM_TIMER</td>
+								<td>Timer is expired</td>
+							</tr>
+							<tr>
+								<td>EDM_USER</td>
+								<td>After this, user message id is availabe</td>
+							</tr>
+						</table> You can send/post your specific messages. To do so, first, define a your message as EDM_USE+any_number, and call <strong>sendMsg()</strong> or <strong>postMsg()</strong>. Refer to sendMsg/postMsg API reference for detail. </p>
+					<hr />
 					
+					<h3>Event</h3>
+					<p>Ednio is event-driven API. Each event object run asynchronously and the result of calling is provided by event.
+						All Ednio event object is derived from EdEvent base class. EdEvent has the basic logic for raising events, receiving events.
+						The events are notified by monitoring fd(file descriptor) associated with the events. Ednio provides the basic event class APIs like timer, socket and pipe.
+						In addition, you can make your own event class by deriving and overriding the read/write fd event from EdEvent. Refer the source of EdTimer or EdEventFd for understanding. </p>
+					</br>
+
+					<a name="CoreAPI"></a>
 					<h1>Core APIs</h1>
+					<h3>Message IPC</h3>
+					<p>For exchanging message between tasks, Ednio has two APIs. <strong>postMsg()</strong> adds a messae on que of target task and return immediately,
+						while <strong>sendMsg()</strong> waits until message is processed by target task.
+						Because sendMsg works synchronously, you make sure to be careful as message processing doesn't spends too much time.</br> <strong>postMsg()</strong> can be called in any task. While, <strong>sendMsg()</strong> must be called in a different task with the target task.
+						<blockquote>
+							<p>If <strong>sendMsg()</strong> is called in target task, thread will be blocked permanently.!!!</br></p>
+						</blockquote></p>
+					<hr />
+						
+					<h3>Timer</h3>
+					<p>There are two methods for using timer in Ednio.</p>
+					<ul>
+						<li>Use <strong>EdTask</strong> timer API</li>
+						<li>Use <strong>EdTimer</strong> Ojbect</li>
+					</ul>
+					<p>You can make a timer simply using EdTask timer API. When a timer is expired, EDM_TIMER event message is sent to the task.</p>
+					<pre class='code_pre'>
+#define MY_TIMER_ID 1						
+int MyTask::OnEventProc(EdMsg* pmsg) {
+  if(pmsg->msgid == EDM_INIT) {
+    // start a timer with interval 1000 msec.
+    setTimer(MY_TIMER_ID, 1000, 1000);
+  }	
+  else if(pmsg->msgid == EDM_TIMER) { // ==> timer expired
+    if(pmsg->p1 == MY_TIMER_ID) {
+      // kill timer
+      killTimer(pmsg->p1);
+    }
+  }
+  ...	
+}</pre>
+					<p>EdTask timer is simple and easy in task level. But this api is not proper to use in object.
+						For this case, use <strong>EdTimer</strong> object. <strong>EdTimer</strong> provides the expiration of timer in two ways.</br>
+						First way is using ITimerCb interface. If you want a simple timer, this is enough.</br>
+						Second way is inheriting <strong>EdTimer</strong> and overriding OnTimer().</br>
+						Below example is the case of using ITimerCb interface.</p>
+					<p><strong>Example:</strong></p>
+					<pre class='code_pre'>
+class MyObject: public EdTimer::ITimerCb {
+  ...	
+  void init();
+  virtual void IOnTimerEvent(EdTimer* ptimer);
+}
+...
+void MyObject::init() {
+  EdTimer *timer = new EdTimer;
+  
+  // set timer notification interface to this class.
+  timer->setOnListener(this); 
+  timer->set(1000); // timer start
+}
+
+void MyObject::IOnTimerEvent(EdTimer* ptimer) {
+  printf("timer is expired ..."); 
+  ptimer->kill(); // timer stop
+}</pre>
+					<p>For detail usage, refer example sources.</p></br></br>
+					<hr />
+					
+					<h3>Socket</h3>
+					<p><strong>EdSocket</strong> is a class API for non-block socket communication. This object read and write data to socket and can provide notification read/write event on socket.</br>
+						You can get the event notifications in the ways like EdTimer.</br>
+						EdSocket socket event notification interface is <strong>EdSocket::ISocketCb</strong>. 
+						<code>
+							virtual void IOnSocketEvent(EdSocket *psock, int event)
+						</code> 
+						By implementing this interface class, you can get events on socket. event constant is as following. 
+					</p>
+					<table class="reference" style="width:100%">
+						<tr>
+							<th>Socket Event</th>
+							<th>Description</th>
+						</tr>
+						<tr>
+							<td>SOCK_EVENT_CONNECTED</td>
+							<td>socket is connected.</td>
+						</tr>
+						<tr>
+							<td>SOCK_EVENT_DISCONNECTED</td>
+							<td>socket is disconnected.</td>
+						</tr>
+						<tr>
+							<td>SOCK_EVENT_READ</td>
+							<td>there is data to read.</td>
+						</tr>
+						<tr>
+							<td>SOCK_EVENT_WRITE</td>
+							<td>socket is writable.</td>
+						</tr>
+						<tr>
+							<td>SOCK_EVENT_INCOMING_ACCEPT</td>
+							<td>peer is requesting to connect.</td>
+						</tr>
+					</table>
+					<p>If you need your specific socket object, inherit <strong>EdSocket</strong> and override <strong>OnRead</strong>, <strong>OnWrite</strong>, <strong>OnConnected</strong>, <strong>OnDisconneted</strong> and <strong>OnIncomingConnection</strong> as you need.
+						<blockquote>
+							<p>For getting the event of disconnection normally,
+								you should read data from socket on socket read event although there is no data to read actually.</p>
+						</blockquote></p>
+					<p><strong>EdSmartSocket</strong> is high-level socket API. It is easier and more useful than EdSocket.
+						A headache on tcp is the partial write. <strong>EdSmartSocket</strong> processes the problem internally.
+						And, <strong>EdSmartSocket</strong> has a capability for <strong>SSL</strong>.
+						From this API, SSL session connect/disconnect or data read/write event can be notified by using the interface as like noraml socket.
+						You should implement as folling interface.
+						<code>
+							virtual void IOnNet(EdSmartSocket *psock, int event)
+						</code>
+						<table class='reference' style="width:100%">
+							<tr>
+								<th>Event</th>
+								<th>Description</th>
+							</tr>
+							<tr>
+								<td>NETEV_DISCONNECTED</td>
+								<td>Normal: tcp disconnected.</br>SSL: SSL session or tcp disconnected.</td>
+							</tr>
+							<tr>
+								<td>NETEV_CONNECTED</td>
+								<td>Normal: tcp connected.</br>SSL: SSL session.</td>
+							</tr>
+							<tr>
+								<td>NETEV_READ</td>
+								<td>Data is ready to read.</td>
+							</tr>
+							<tr>
+								<td>NETEV_SENDCOMPLETE</td>
+								<td>Data sending is just complete.</td>
+							</tr>
+						</table>
+						<blockquote>
+							<p>To use EdSmartSocket, you should build the sources with ssl=true build option and OpenSSL library must be installed in advance. </p>
+						</blockquote></p>
+					<p>For defatail usage, refer the example source or reference guide.</p>
+					</br>
+					<hr />
+					
+					<h3>Pipe</h3>
+					<p><strong>EdPipe</strong> is a simple API for pipe commnuncation between processes. In addition message functions, you can use this API for IPC.</p>
+					</br></br>
+					
+					<a name="SupplementaryAPI"></a>
 					<h1>Supplementary APIs</h1>
+					<h3>Curl</h3>
+					<p>In working,.. Refer the example.</p>
+					<h3>OpenSSL</h3>
+					<p>In working,.. Refer the example.</p>
+					<h3>MariaDB</h3>
+					<p>In working,.. Refer the example.</p>
+					<h3>HTTP Server</h3>
+					<p>In working,.. Refer the example.</p>
+					
 				</div>
 			</div>
 			<div id="footer">
