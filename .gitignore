@@ -1,0 +1,9 @@
+/Debug/
+*.swp
+.buildvar.conf
+.project
+.sconsign.dblite
+config.log
+installer.pyc
+.cproject
+
