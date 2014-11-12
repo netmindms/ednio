@@ -6,4 +6,4 @@
 config.log
 installer.pyc
 .cproject
-
+src/ednio_config.h
