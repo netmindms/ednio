@@ -22,11 +22,11 @@ namespace edft {
 
 using namespace std;
 
-class EdCurl;
+class EdEasyCurl;
 
 class EdMultiCurl:  public EdTimer::ITimerCb
 {
-	friend class EdCurl;
+	friend class EdEasyCurl;
 	friend class EdCurlSocket;
 
 public:
@@ -44,7 +44,7 @@ public:
 
 private:
 	char* clean_str(char *str);
-	void startSingleCurl(EdCurl* pcurl);
+	void startSingleCurl(EdEasyCurl* pcurl);
 	void check_multi_info();
 	void setEvent(int evt);
 	int sockCb(CURL* e, curl_socket_t s, int what);

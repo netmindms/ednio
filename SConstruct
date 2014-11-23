@@ -3,7 +3,7 @@ import installer
 
 PRJ_BUILD_VAR_FILE = '.buildvar.conf' 
 PRJ_MAJOR_VER = '0'
-PRJ_MINOR_VER = '5.0'
+PRJ_MINOR_VER = '9.1'
 PRJ_LIB_SUFFIX = '.so.' + PRJ_MAJOR_VER + '.' + PRJ_MINOR_VER
 PRJ_OUT_LIB = 'out/' + 'libedio' + PRJ_LIB_SUFFIX
 

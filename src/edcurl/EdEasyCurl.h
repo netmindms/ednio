@@ -33,7 +33,7 @@ enum {
 
 class EdMultiCurl;
 
-class EdCurl : public EdObject, public EdTimer::ITimerCb
+class EdEasyCurl : public EdObject, public EdTimer::ITimerCb
 {
 friend class EdMultiCurl;
 
@@ -48,21 +48,21 @@ public:
 */
 	class ICurlResult {
 	public:
-		virtual void IOnCurlResult(EdCurl* pcurl, int status)=0;
+		virtual void IOnCurlResult(EdEasyCurl* pcurl, int status)=0;
 	};
 	class ICurlHeader {
 	public:
-		virtual void IOnCurlHeader(EdCurl* pcurl)=0;
+		virtual void IOnCurlHeader(EdEasyCurl* pcurl)=0;
 	};
 	class ICurlBody {
 	public:
-		virtual void IOnCurlBody(EdCurl* pcurl, void* ptr, int size)=0;
+		virtual void IOnCurlBody(EdEasyCurl* pcurl, void* ptr, int size)=0;
 	};
 
 
 public:
-	EdCurl();
-	virtual ~EdCurl();
+	EdEasyCurl();
+	virtual ~EdEasyCurl();
 	void open(EdMultiCurl* pm);
 	void setUrl(const char* url);
 	int request(const char* url, int cnn_timeout_sec=30);

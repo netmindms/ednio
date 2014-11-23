@@ -23,7 +23,7 @@
 #include "edssl/EdSSLSocket.h"
 #endif
 #if USE_CURL
-#include "edcurl/EdCurl.h"
+#include "edcurl/EdEasyCurl.h"
 #include "edcurl/EdMultiCurl.h"
 #endif
 #include "http/EdHttp.h"

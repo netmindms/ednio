@@ -1,3 +1,4 @@
+
 /*
  * EdCurl.cpp
  *
@@ -9,7 +10,7 @@
 
 #include <string.h>
 
-#include "EdCurl.h"
+#include "EdEasyCurl.h"
 #include "EdMultiCurl.h"
 #include "../edslog.h"
 #include <algorithm>
@@ -19,7 +20,7 @@ using namespace std;
 namespace edft
 {
 
-EdCurl::EdCurl()
+EdEasyCurl::EdEasyCurl()
 {
 	mCurl = NULL;
 	mEdMultiCurl = NULL;
@@ -33,12 +34,12 @@ EdCurl::EdCurl()
 	mStatus = EDCURL_IDLE;
 }
 
-EdCurl::~EdCurl()
+EdEasyCurl::~EdEasyCurl()
 {
 	close();
 }
 
-void EdCurl::open(EdMultiCurl* pm)
+void EdEasyCurl::open(EdMultiCurl* pm)
 {
 	mCurl = curl_easy_init();
 	setCurlCallback();
@@ -52,28 +53,28 @@ void EdCurl::open(EdMultiCurl* pm)
 	mRespTimer->setOnListener(this);
 }
 
-int EdCurl::request(const char* url, int cnn_timeout_sec)
+int EdEasyCurl::request(const char* url, int cnn_timeout_sec)
 {
 	setUrl(url);
 	return request(cnn_timeout_sec);
 }
 
-size_t EdCurl::header_cb(void* buffer, size_t size, size_t nmemb, void* userp)
+size_t EdEasyCurl::header_cb(void* buffer, size_t size, size_t nmemb, void* userp)
 {
-	EdCurl *pcurl = (EdCurl*) userp;
+	EdEasyCurl *pcurl = (EdEasyCurl*) userp;
 	return pcurl->dgheader_cb((char*) buffer, size, nmemb, userp);
 }
 
-size_t EdCurl::body_cb(void* ptr, size_t size, size_t nmemb, void* user)
+size_t EdEasyCurl::body_cb(void* ptr, size_t size, size_t nmemb, void* user)
 {
-	EdCurl* pcurl = (EdCurl*) user;
+	EdEasyCurl* pcurl = (EdEasyCurl*) user;
 	size_t len = size * nmemb;
 	dbgd("curl body callback, size=%d, curl=%p", len, (void* )pcurl);
 	pcurl->OnCurlBody(ptr, len);
 	return len;
 }
 
-void EdCurl::close()
+void EdEasyCurl::close()
 {
 	if(mCurl == NULL)
 		return;
@@ -92,7 +93,7 @@ void EdCurl::close()
 	}
 }
 
-void EdCurl::reset()
+void EdEasyCurl::reset()
 {
 	if (mStatus != EDCURL_IDLE)
 	{
@@ -116,17 +117,17 @@ void EdCurl::reset()
  }
  */
 
-CURL* EdCurl::getCurl()
+CURL* EdEasyCurl::getCurl()
 {
 	return mCurl;
 }
 
-CURLM* EdCurl::getMultiCurl()
+CURLM* EdEasyCurl::getMultiCurl()
 {
 	return mEdMultiCurl->getMultiCurl();
 }
 
-void EdCurl::OnCurlHeader()
+void EdEasyCurl::OnCurlHeader()
 {
 	if (mOnHeader != NULL)
 		mOnHeader->IOnCurlHeader(this);
@@ -138,14 +139,14 @@ void EdCurl::OnCurlHeader()
 //	dbgd("   resp code=%s", convCodeToStr(codes, code));
 }
 
-void EdCurl::OnCurlEnd(int errcode)
+void EdEasyCurl::OnCurlEnd(int errcode)
 {
 	dbgd("OnCurlEnd...");
 	if (mOnResult != NULL)
 		mOnResult->IOnCurlResult(this, errcode);
 }
 
-void EdCurl::OnCurlBody(void* buf, int len)
+void EdEasyCurl::OnCurlBody(void* buf, int len)
 {
 	if (mOnBody != NULL)
 	{
@@ -153,12 +154,12 @@ void EdCurl::OnCurlBody(void* buf, int len)
 	}
 }
 
-void EdCurl::setUrl(const char* url)
+void EdEasyCurl::setUrl(const char* url)
 {
 	curl_easy_setopt(mCurl, CURLOPT_URL, url);
 }
 
-int EdCurl::request(int cnn_timeout_sec)
+int EdEasyCurl::request(int cnn_timeout_sec)
 {
 	dbgd("request edcurl=%p, handle=%p", this, mCurl);
 	if (mStatus != EDCURL_IDLE)
@@ -174,7 +175,7 @@ int EdCurl::request(int cnn_timeout_sec)
 	return 0;
 }
 
-const char* EdCurl::getHeader(const char* name)
+const char* EdEasyCurl::getHeader(const char* name)
 {
 	string n(name);
 	std::transform(n.begin(), n.end(), n.begin(), ::toupper);
@@ -186,31 +187,31 @@ const char* EdCurl::getHeader(const char* name)
 		return NULL;
 }
 
-int EdCurl::getResponseCode()
+int EdEasyCurl::getResponseCode()
 {
 	long code;
 	curl_easy_getinfo(mCurl, CURLINFO_RESPONSE_CODE, &code);
 	return (int) code;
 }
 
-void EdCurl::setUser(void* user)
+void EdEasyCurl::setUser(void* user)
 {
 	mUser = user;
 }
 
-void* EdCurl::getUser()
+void* EdEasyCurl::getUser()
 {
 	return mUser;
 }
 
-void EdCurl::procCurlDone(int result)
+void EdEasyCurl::procCurlDone(int result)
 {
 	dbgd("curl result msg=%d", result);
 	mRespTimer->kill();
 	OnCurlEnd(result);
 }
 
-char* EdCurl::convCodeToStr(char* buf, int code)
+char* EdEasyCurl::convCodeToStr(char* buf, int code)
 {
 	int i, s, m;
 	for (i = 0, s = code; i < 3; i++)
@@ -223,7 +224,7 @@ char* EdCurl::convCodeToStr(char* buf, int code)
 	return buf;
 }
 
-size_t EdCurl::dgheader_cb(char* buffer, size_t size, size_t nmemb, void* userp)
+size_t EdEasyCurl::dgheader_cb(char* buffer, size_t size, size_t nmemb, void* userp)
 {
 	dbgv("header: size=%d, n=%d", size, nmemb);
 	size_t len = size * nmemb;
@@ -274,7 +275,7 @@ size_t EdCurl::dgheader_cb(char* buffer, size_t size, size_t nmemb, void* userp)
 	parser_end: return len;
 }
 
-void EdCurl::IOnTimerEvent(EdTimer* ptimer)
+void EdEasyCurl::IOnTimerEvent(EdTimer* ptimer)
 {
 	if (ptimer == mRespTimer)
 	{
@@ -289,14 +290,14 @@ void EdCurl::IOnTimerEvent(EdTimer* ptimer)
 	}
 }
 
-void EdCurl::setOnCurlListener(ICurlResult* iresult, ICurlBody* ibody, ICurlHeader* iheader)
+void EdEasyCurl::setOnCurlListener(ICurlResult* iresult, ICurlBody* ibody, ICurlHeader* iheader)
 {
 	mOnResult = iresult;
 	mOnBody = ibody;
 	mOnHeader = iheader;
 }
 
-void EdCurl::setCurlCallback()
+void EdEasyCurl::setCurlCallback()
 {
 	curl_easy_setopt(mCurl, CURLOPT_PRIVATE, this);
 	curl_easy_setopt(mCurl, CURLOPT_HEADERFUNCTION, header_cb);
@@ -307,7 +308,7 @@ void EdCurl::setCurlCallback()
 }
 
 
-long EdCurl::getContentLength()
+long EdEasyCurl::getContentLength()
 {
 	const char* ptr = getHeader("Content-Length");
 	if(ptr != NULL)

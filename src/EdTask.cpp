@@ -28,7 +28,7 @@
 #include "EdTask.h"
 #include "edslog.h"
 #include "EdEvent.h"
-#include "edcurl/EdCurl.h"
+#include "edcurl/EdEasyCurl.h"
 #include "EdEventFd.h"
 
 namespace edft

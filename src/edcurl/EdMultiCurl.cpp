@@ -13,7 +13,7 @@
 #include <string.h>
 
 #include "EdMultiCurl.h"
-#include "EdCurl.h"
+#include "EdEasyCurl.h"
 
 #include "../edslog.h"
 
@@ -87,7 +87,7 @@ void EdMultiCurl::check_multi_info()
 		dbgv("check curl msg ptr=%p, msg=%d, curl=%p, cnt=%d", msg, msg->msg, msg->easy_handle, msgcount);
 		if (msg->msg == CURLMSG_DONE)
 		{
-			EdCurl *pcurl = NULL;
+			EdEasyCurl *pcurl = NULL;
 			curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, (char* )&pcurl);
 			int curlcode = msg->data.result;
 
@@ -101,7 +101,7 @@ void EdMultiCurl::check_multi_info()
 	}
 }
 
-void EdMultiCurl::startSingleCurl(EdCurl* pcurl)
+void EdMultiCurl::startSingleCurl(EdEasyCurl* pcurl)
 {
 	curl_multi_add_handle(mCurlm, pcurl->mCurl);
 	int run_handles;
@@ -135,7 +135,7 @@ void EdMultiCurl::procEventErr(int fd)
 
 int EdMultiCurl::dgCurlSockCb(CURL* e, curl_socket_t s, int what, void* cbp, void* sockp)
 {
-	EdCurl *pcurl = NULL;
+	EdEasyCurl *pcurl = NULL;
 	curl_easy_getinfo(e, CURLINFO_PRIVATE, (char* )&pcurl);
 
 	EdCurlSocket* cs = (EdCurlSocket*) sockp;
