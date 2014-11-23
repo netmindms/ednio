@@ -1,3 +1,4 @@
 #define USE_LIBEVENT %(USE_LIBEVENT)d
 #define USE_SSL %(USE_SSL)d
 #define USE_CURL %(USE_CURL)d
+#define USE_MARIADB %(USE_MARIADB)d

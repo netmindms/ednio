@@ -23,6 +23,9 @@ if TopEnv['ssl'] == 'true':
 
 if TopEnv['curl'] == 'true':
 	subobj += SConscript('edcurl/SConscript')
+	
+if TopEnv['mariadb'] == 'true':
+	subobj += SConscript('mariadb/SConscript')	
 
 subobj += SConscript('http/SConscript')
 	

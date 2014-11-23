@@ -29,6 +29,11 @@ def gen_configh(target, source, env):
 	else:
 		defs['USE_CURL'] = 0
 
+	if TopEnv['mariadb'] == 'true':
+		defs['USE_MARIADB'] = 1
+	else:
+		defs['USE_MARIADB'] = 0
+
 	infile = file(curdir+'/src/ednio_config.h.in', 'r')
 	cbuf = infile.read() % defs 
 	cfgfile = file(str(target[0]), 'w')
@@ -105,7 +110,7 @@ builder = Builder(action = "ln -s ${SOURCE.file} ${TARGET.file}", chdir=True)
 TopEnv.Append(BUILDERS = {"Symlink" : builder} )
 mylib_link = TopEnv.Symlink("./out/libednio.so", target_ednio)
 TopEnv.Alias('ednio', [target_ednio, mylib_link] )
-TopEnv.AddPostAction(mylib_link, action="@echo '=== Build Complete ==='")
+#TopEnv.AddPostAction(mylib_link, action="@echo '=== Build Complete ==='")
 
 
 # install
@@ -123,6 +128,6 @@ TopEnv.Append(BUILDERS = {"Symlink" : install_symbuilder} )
 target_install_link = TopEnv.Symlink( TopEnv['libdir']+'/libednio.so' , target_ednio)
 TopEnv.Alias('install', target_install_link)
 #TopEnv.AddPostAction(target_install_link, action="@echo ' === Install Complete ===' ")	
-TopEnv.AddPostAction("install", action="@echo ' === Install Complete ===' ")
+#TopEnv.AddPostAction("install", action="@echo ' === Install Complete ===' ")
 
 Default('ednio')

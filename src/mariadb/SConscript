@@ -1,0 +1,16 @@
+import os
+Import('TopEnv')
+
+
+
+curdir = Dir('.').srcnode().abspath
+
+
+incpath = ' -I/usr/local/mysql/include/mysql'
+TopEnv.Append(CPPFLAGS=incpath)
+TopEnv.Append(LIBPATH=['/usr/local/mysql/lib'])
+TopEnv['LIBS'] += ['mysqlclient']
+
+curobj = TopEnv.Object(Glob('*.cpp')) + TopEnv.Object(Glob('*.cc'))
+
+Return('curobj')
