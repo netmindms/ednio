@@ -6,37 +6,11 @@
 // Description : Hello World in C++, Ansi-style
 //============================================================================
 
-#include <sys/types.h>
-
 #include "ednio/EdNio.h"
+#include "applog.h"
+
 using namespace std;
 using namespace edft;
-
-void levlog(int lev, const char *tagid, int line, const char *fmtstr, ...)
-{
-	struct timeval tm;
-	va_list ap;
-
-	gettimeofday(&tm, NULL);
-	struct tm* ptr_time = localtime(&tm.tv_sec);
-
-	char buf[2048];
-
-	int splen = 2 * lev;
-	char spbuf[splen + 1];
-	memset(spbuf, ' ', splen);
-	spbuf[splen] = 0;
-
-	va_start(ap, fmtstr);
-	vsnprintf(buf, 4096 - 1, fmtstr, ap);
-	va_end(ap);
-
-	printf("%02d:%02d:%02d.%02d [%s]:%-5d %s%s\n", ptr_time->tm_hour, ptr_time->tm_min, ptr_time->tm_sec, (int) (tm.tv_usec / 10000), tagid, line, spbuf, buf);
-}
-
-#define logs(...) {levlog(1, "SUB  ", __LINE__, __VA_ARGS__); }
-
-
 
 class ServerTask: public EdTask, public EdSocket::ISocketCb
 {
@@ -50,14 +24,14 @@ private:
 			mChildSock = NULL;
 			mSock = NULL;
 
-			dbgd("server task init ...");
+			logs("server task init ...");
 			mSock = new EdSocket;
 			mSock->setOnListener(this);
 			mSock->listenSock(9090);
 		}
 		else if (pmsg->msgid == EDM_CLOSE)
 		{
-			dbgd("server task close ...");
+			logs("server task close ...");
 			if (mChildSock != NULL)
 			{
 				mChildSock->close();
@@ -79,7 +53,7 @@ private:
 		{
 			if (event == SOCK_EVENT_INCOMING_ACCEPT)
 			{
-				dbgd("  incoming connection ...");
+				logs("  incoming connection ...");
 				if (mChildSock == NULL)
 				{
 					mChildSock = new EdSocket;
@@ -88,8 +62,8 @@ private:
 				}
 				else
 				{
-					dbgd("### connection already exists...");
-					dbgd("### this server only one connection...");
+					logs("### connection already exists...");
+					logs("### this server only one connection...");
 					psock->rejectSock();
 				}
 			}
@@ -98,7 +72,7 @@ private:
 		{
 			if (event == SOCK_EVENT_DISCONNECTED)
 			{
-				dbgd("client disconnected ...");
+				logs("client disconnected ...");
 				mChildSock->close();
 				delete mChildSock;
 				mChildSock = NULL;
@@ -110,9 +84,9 @@ private:
 				int rcnt = psock->recv(buf, sizeof(buf));
 				if (rcnt > 0)
 				{
-					dbgd("read buf, read cnt = %d", rcnt);
+					logs("read buf, read cnt = %d", rcnt);
 					buf[rcnt] = 0;
-					dbgd("    receibed str = %s", buf);
+					logs("    receibed str = %s", buf);
 				}
 			}
 		}
@@ -127,14 +101,14 @@ private:
 	{
 		if (pmsg->msgid == EDM_INIT)
 		{
-			dbgd("task init ...");
+			logs("task init ...");
 			mSock = new EdSocket;
 			mSock->setOnListener(this);
 			mSock->connect("127.0.0.1", 9090);
 		}
 		else if (pmsg->msgid == EDM_CLOSE)
 		{
-			dbgd("task closed ...");
+			logs("task closed ...");
 			mSock->close();
 			delete mSock;
 		}
@@ -150,18 +124,18 @@ private:
 
 	void IOnSocketEvent(EdSocket *psock, int event)
 	{
-		dbgd("on socket event, event=%d", event);
+		logs("on socket event, event=%d", event);
 		if (event == SOCK_EVENT_CONNECTED)
 		{
-			dbgd("  connected...");
+			logs("  connected...");
 			const char *str = "This is a client hello message ...\n";
 			psock->send(str, strlen(str));
 			setTimer(1, 3000);
-			dbgd("disconnect after 3 sec ");
+			logs("disconnect after 3 sec ");
 		}
 		else if (event == SOCK_EVENT_DISCONNECTED)
 		{
-			dbgd("  disconnected...");
+			logs("  disconnected...");
 			psock->close();
 			postExit();
 		}

@@ -9,12 +9,12 @@
 #define DBGTAG "atask"
 #define DBG_LEVEL DBG_DEBUG
 
+#include <sys/time.h>
 #include "ednio/EdNio.h"
+#include "applog.h"
+
 using namespace std;
-
-
 using namespace edft;
-
 enum { UM_POST_MSG = EDM_USER+1, UM_SEND_MSG,};
 
 class MainTask : public EdTask
@@ -24,19 +24,19 @@ private:
 	{
 		if(pmsg->msgid == EDM_INIT)
 		{
-			dbgd("task init ...");
+			logs("task init ...");
 		}
 		else if(pmsg->msgid == EDM_CLOSE)
 		{
-			dbgd("task closed ...");
+			logs("task closed ...");
 		}
 		else if(pmsg->msgid == UM_POST_MSG)
 		{
-			dbgd("test post message received, p1=%d, p2=%d", pmsg->p1, pmsg->p2);
+			logs("test post message received, p1=%d, p2=%d", pmsg->p1, pmsg->p2);
 		}
 		else if(pmsg->msgid == UM_SEND_MSG)
 		{
-			dbgd("test send message received, p1=%d, p2=%d", pmsg->p1, pmsg->p2);
+			logs("test send message received, p1=%d, p2=%d", pmsg->p1, pmsg->p2);
 		}
 		return 0;
 	}

@@ -2,11 +2,13 @@
 #define DBGTAG "atask"
 #define DBG_LEVEL DBG_DEBUG
 
+#include <sys/time.h>
 #include "ednio/EdNio.h"
+
+#include "applog.h"
 
 using namespace std;
 using namespace edft;
-
 
 #define TIMER_ID1 1
 #define TIMER_ID2 2
@@ -18,7 +20,7 @@ private:
 	{
 		if(pmsg->msgid == EDM_INIT)
 		{
-			dbgd("task init ...");
+			logs("task init ...");
 
 			setTimer(TIMER_ID1, 1000);
 			setTimer(TIMER_ID2, 5000);
@@ -27,11 +29,11 @@ private:
 		{
 			killTimer(TIMER_ID1);
 			killTimer(TIMER_ID2);
-			dbgd("task closed ...");
+			logs("task closed ...");
 		}
 		else if(pmsg->msgid == EDM_TIMER)
 		{
-			dbgd("timer expired, timer id=%d", pmsg->p1);
+			logs("timer expired, timer id=%d", pmsg->p1);
 			if(pmsg->p1 == TIMER_ID2)
 			{
 				killTimer(TIMER_ID2);

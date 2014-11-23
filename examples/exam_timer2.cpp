@@ -8,13 +8,11 @@
 #define DBGTAG "atask"
 #define DBG_LEVEL DBG_DEBUG
 
+#include "applog.h"
 #include "ednio/EdNio.h"
+
 using namespace std;
-
-
 using namespace edft;
-
-
 
 class MainTask : public EdTask, public EdTimer::ITimerCb
 {
