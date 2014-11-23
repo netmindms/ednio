@@ -43,6 +43,7 @@ private:
 };
 
 int main() {
+	EdNioInit();
 	MainTask task;
 	task.run();
 	task.postMsg(UM_POST_MSG, 100, 200);

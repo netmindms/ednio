@@ -662,7 +662,7 @@ void testcurl(int mode)
 		TS_NORMAL = EDM_USER + 1, TS_TIMEOUT, TS_NOTFOUND, TS_REUSE, TS_LOAD, LOAD_RESULT,
 	};
 	class CurlTest;
-	class LoadCurl: public EdCurl
+	class LoadCurl: public EdEasyCurl
 	{
 	public:
 		int curlid;
@@ -704,14 +704,14 @@ void testcurl(int mode)
 
 	};
 
-	class CurlTest: public TestTask, public EdCurl::ICurlResult, public EdCurl::ICurlBody
+	class CurlTest: public TestTask, public EdEasyCurl::ICurlResult, public EdEasyCurl::ICurlBody
 	{
 
 		EdMultiCurl *mMainCurl;
-		EdCurl *mLocalCurl;
-		EdCurl mAbnormalCurl;
-		EdCurl *mCurlNotFound;
-		EdCurl *mReuseCurl;
+		EdEasyCurl *mLocalCurl;
+		EdEasyCurl mAbnormalCurl;
+		EdEasyCurl *mCurlNotFound;
+		EdEasyCurl *mReuseCurl;
 		LoadCurl *mLoadCurl[1000];
 		int mLoadEndCnt;
 
@@ -758,7 +758,7 @@ void testcurl(int mode)
 			{
 				logs("== Start normal curl test.........");
 				mRecvDataSize = 0;
-				mLocalCurl = new EdCurl;
+				mLocalCurl = new EdEasyCurl;
 				mLocalCurl->setOnCurlListener(this, this);
 				mLocalCurl->open(mMainCurl);
 				mLocalCurl->request("http://localhost");
@@ -767,7 +767,7 @@ void testcurl(int mode)
 			else if (pmsg->msgid == TS_NOTFOUND)
 			{
 				logs("== Start notfound curl test.........");
-				mCurlNotFound = new EdCurl;
+				mCurlNotFound = new EdEasyCurl;
 				mCurlNotFound->setOnCurlListener(this);
 				mCurlNotFound->setUser((void*) "[curl-notfound]");
 				mCurlNotFound->open(mMainCurl);
@@ -789,7 +789,7 @@ void testcurl(int mode)
 			{
 				logs("== Start reuse curl test....");
 				mReuseCnt = 0;
-				mReuseCurl = new EdCurl;
+				mReuseCurl = new EdEasyCurl;
 				mReuseCurl->setOnCurlListener(this);
 				mReuseCurl->open(mMainCurl);
 				mReuseCurl->request("http://localhost");
@@ -823,7 +823,7 @@ void testcurl(int mode)
 			return 0;
 		}
 
-		virtual void IOnCurlResult(EdCurl* pcurl, int status)
+		virtual void IOnCurlResult(EdEasyCurl* pcurl, int status)
 		{
 
 			logs("curl status = %d, curl=%x", status, pcurl);
@@ -912,12 +912,12 @@ void testcurl(int mode)
 			}
 		}
 
-		virtual void IOnCurlHeader(EdCurl* pcurl)
+		virtual void IOnCurlHeader(EdEasyCurl* pcurl)
 		{
 
 		}
 
-		virtual void IOnCurlBody(EdCurl* pcurl, void* ptr, int size)
+		virtual void IOnCurlBody(EdEasyCurl* pcurl, void* ptr, int size)
 		{
 			if (pcurl == mLocalCurl)
 			{
@@ -1206,23 +1206,23 @@ void testHttpBase(int mode)
 				rdcnt = 0;
 				count = 0;
 
-				rdcnt = mReader.Read(buf + count, 3);
+				rdcnt = mReader.IReadBodyData(buf + count, 3);
 				assert(rdcnt == 3);
 				count += rdcnt;
 
-				rdcnt = mReader.Read(buf + count, 3);
+				rdcnt = mReader.IReadBodyData(buf + count, 3);
 				assert(rdcnt == 3);
 				count += rdcnt;
 
-				rdcnt = mReader.Read(buf + count, 3);
+				rdcnt = mReader.IReadBodyData(buf + count, 3);
 				assert(rdcnt == 3);
 				count += rdcnt;
 
-				rdcnt = mReader.Read(buf + count, 3);
+				rdcnt = mReader.IReadBodyData(buf + count, 3);
 				assert(rdcnt == 1);
 				count += rdcnt;
 
-				rdcnt = mReader.Read(buf + count, 3);
+				rdcnt = mReader.IReadBodyData(buf + count, 3);
 				assert(rdcnt == -1);
 
 				if (memcmp(data, buf, strlen(data)))
@@ -2101,11 +2101,11 @@ void testHttpPipeLine(int mode)
 		}
 	};
 
-	class TestPileLine: public TestTask, public EdCurl::ICurlResult
+	class TestPileLine: public TestTask, public EdEasyCurl::ICurlResult
 	{
 		EdHttpServer* server;
 		EdMultiCurl* mainCurl;
-		EdCurl *curl1, *curl2;
+		EdEasyCurl *curl1, *curl2;
 
 		int OnEventProc(EdMsg* pmsg)
 		{
@@ -2136,14 +2136,14 @@ void testHttpPipeLine(int mode)
 				mainCurl = new EdMultiCurl;
 				mainCurl->open();
 				//mainCurl->setPipelineing(1);
-				curl1 = new EdCurl;
+				curl1 = new EdEasyCurl;
 				curl1->setOnCurlListener(this);
 				curl1->open(mainCurl);
 
 				curl1->request("http://127.0.0.1:9090/userinfo");
 				//curl1->request("http://127.0.0.1:9090/addr");
 
-//				curl2 = new EdCurl;
+//				curl2 = new EdEasyCurl;
 //				curl2->setOnCurlListener(this);
 //				curl2->open(mainCurl);
 //				curl2->request("http://127.0.0.1:9090/addr");
@@ -2151,7 +2151,7 @@ void testHttpPipeLine(int mode)
 			return 0;
 		}
 
-		void IOnCurlResult(EdCurl* pcurl, int result)
+		void IOnCurlResult(EdEasyCurl* pcurl, int result)
 		{
 			if (pcurl == curl1)
 			{

@@ -32,12 +32,12 @@ void EdHttpFileReader::close()
 	mFile.closeFile();
 }
 
-long EdHttpFileReader::getSize()
+long EdHttpFileReader::IGetBodySize()
 {
 	return mSize;
 }
 
-long EdHttpFileReader::Read(void* buf, long len)
+long EdHttpFileReader::IReadBodyData(void* buf, long len)
 {
 	return mFile.readFile(buf, len);
 }

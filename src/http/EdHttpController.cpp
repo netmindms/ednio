@@ -74,7 +74,7 @@ void EdHttpController::setRespBodyReader(EdHttpReader* reader, const char* type)
 	if (mBodyReader == NULL)
 	{
 		mBodyReader = reader;
-		int clen = mBodyReader->getSize();
+		int clen = mBodyReader->IGetBodySize();
 		char buf[20];
 		sprintf(buf, "%d", clen);
 		mRespMsg.addHdr(HTTPHDR_CONTENT_LEN, buf);
@@ -205,7 +205,7 @@ void EdHttpController::getSendPacket(packet_buf_t* pinfo)
 		int remain = pktbufsize - pinfo->len;
 		if (remain > 0)
 		{
-			int rcnt = mBodyReader->Read((u8*) pinfo->buf + pinfo->len, remain);
+			int rcnt = mBodyReader->IReadBodyData((u8*) pinfo->buf + pinfo->len, remain);
 			if (rcnt > 0)
 			{
 				pinfo->len += rcnt;

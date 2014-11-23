@@ -23,8 +23,8 @@ public:
 	virtual ~EdHttpFileReader();
 	int open(const char *path);
 	void close();
-	virtual long getSize();
-	virtual long Read(void *buf, long len);
+	virtual long IGetBodySize();
+	virtual long IReadBodyData(void *buf, long len);
 
 private:
 	EdFile mFile;

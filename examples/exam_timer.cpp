@@ -46,6 +46,7 @@ private:
 };
 
 int main() {
+	EdNioInit();
 	MainTask task;
 	task.run();
 	task.wait();

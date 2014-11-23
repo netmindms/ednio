@@ -40,7 +40,7 @@ EdHttpStringReader::~EdHttpStringReader()
 	}
 }
 
-long EdHttpStringReader::Read(void* buf, long len)
+long EdHttpStringReader::IReadBodyData(void* buf, long len)
 {
 	if (mReadIdx < mSize)
 	{
@@ -55,7 +55,7 @@ long EdHttpStringReader::Read(void* buf, long len)
 	}
 }
 
-long EdHttpStringReader::getSize()
+long EdHttpStringReader::IGetBodySize()
 {
 	return mSize;
 }

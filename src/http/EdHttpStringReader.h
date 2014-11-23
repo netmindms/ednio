@@ -21,8 +21,8 @@ class EdHttpStringReader : public EdHttpReader
 public:
 	EdHttpStringReader();
 	virtual ~EdHttpStringReader();
-	virtual long Read(void *buf, long len);
-	virtual long getSize();
+	virtual long IReadBodyData(void *buf, long len);
+	virtual long IGetBodySize();
 	void setString(string *s);
 	void setString(const char* ptr);
 	void takeString(string *s);

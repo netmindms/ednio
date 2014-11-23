@@ -16,8 +16,8 @@ namespace edft
 class EdHttpReader
 {
 public:
-	virtual long getSize()=0;
-	virtual long Read(void *buf, long len)=0;
+	virtual long IGetBodySize()=0;
+	virtual long IReadBodyData(void *buf, long len)=0;
 };
 
 } /* namespace edft */

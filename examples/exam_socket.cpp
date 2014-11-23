@@ -144,6 +144,7 @@ private:
 
 int main()
 {
+	EdNioInit();
 	ClientTask client;
 	ServerTask server;
 	server.run();

@@ -316,7 +316,11 @@ long EdEasyCurl::getContentLength()
 		return atol(ptr);
 	}
 	else
-		return 0;
+	{
+		// In transferring as chunked encoding method, Content-Length doesn't exist.
+		// So, if there is no Content_Length, return negative
+		return -1;
+	}
 }
 
 } /* namespace edft */
