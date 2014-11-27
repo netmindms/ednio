@@ -5,8 +5,8 @@
  *      Author: netmind
  */
 
-#ifndef SRC_EDCURL_EDCUR_H_
-#define SRC_EDCURL_EDCUR_H_
+#ifndef SRC_EDCURL_EDCURL_H_
+#define SRC_EDCURL_EDCURL_H_
 
 #include "EdEasyCurl.h"
 #include "EdMultiCurl.h"
@@ -14,4 +14,4 @@
 
 
 
-#endif /* SRC_EDCURL_EDCUR_H_ */
+#endif /* SRC_EDCURL_EDCURL_H_ */

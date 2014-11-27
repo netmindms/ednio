@@ -54,7 +54,12 @@ public:
 	string getReqUrl();
 
 protected:
+	/**
+	 *
+	 */
 	void setHttpResult(const char *code);
+	int sendHttpResp(const char* code);
+
 private:
 	bool checkExpect();
 	void checkHeaders();

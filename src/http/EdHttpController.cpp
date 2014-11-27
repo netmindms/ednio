@@ -35,7 +35,8 @@ namespace edft
 
 EdHttpController::EdHttpController()
 {
-	CLEAR_ALL_MEMBERS();
+	CLEAR_ALL_MEMBERS()
+	;
 }
 
 EdHttpController::~EdHttpController()
@@ -56,8 +57,10 @@ void EdHttpController::setHttpResult(const char* code)
 {
 	if (mIsFinalResponsed == false)
 	{
-		if(mBodyReader != NULL) mIsBodyTxComplete = false;
-		else mIsBodyTxComplete = true;
+		if (mBodyReader != NULL)
+			mIsBodyTxComplete = false;
+		else
+			mIsBodyTxComplete = true;
 
 		memcpy(mStatusCode, code, 4);
 		encodeResp();
@@ -66,6 +69,27 @@ void EdHttpController::setHttpResult(const char* code)
 	else
 	{
 		dbge("### Fail: result already set.");
+	}
+}
+
+int EdHttpController::sendHttpResp(const char* code)
+{
+	if (mIsFinalResponsed == false)
+	{
+		if (mBodyReader != NULL)
+			mIsBodyTxComplete = false;
+		else
+			mIsBodyTxComplete = true;
+
+		memcpy(mStatusCode, code, 4);
+		encodeResp();
+		mCnn->reqTx(this);
+		return 0;
+	}
+	else
+	{
+		dbge("### Fail: result already set.");
+		return -1;
 	}
 }
 
@@ -137,7 +161,7 @@ void EdHttpController::encodeResp()
 	resp->addHdr(HTTPHDR_DATE, tmp);
 	resp->addHdr(HTTPHDR_SERVER, "ESEV/0.2.0");
 
-	if(mBodyReader == NULL)
+	if (mBodyReader == NULL)
 	{
 		resp->addHdr(HTTPHDR_CONTENT_LEN, "0");
 	}
@@ -163,7 +187,8 @@ void EdHttpController::close()
 	}
 	CHECK_DELETE_OBJ(mReqCtype);
 
-	CLEAR_ALL_MEMBERS();
+	CLEAR_ALL_MEMBERS()
+	;
 
 }
 
@@ -174,7 +199,8 @@ void EdHttpController::getSendPacket(packet_buf_t* pinfo)
 	pinfo->len = 0;
 	pinfo->buf = NULL;
 
-	if(mIsContinueResponse == true) {
+	if (mIsContinueResponse == true)
+	{
 #define CONTINUE_MSG "HTTP/1.1 100 Continue\r\n\r\n"
 		pinfo->buf = strdup(CONTINUE_MSG);
 		pinfo->len = strlen(CONTINUE_MSG);
@@ -182,7 +208,6 @@ void EdHttpController::getSendPacket(packet_buf_t* pinfo)
 		dbgd("  get packet for 100 continue...");
 		return;
 	}
-
 
 	if (mHeaderEncStr.size() > 0)
 	{
@@ -261,11 +286,10 @@ string EdHttpController::getReqUrl()
 	return mReqMsg.getUrl();
 }
 
-
 bool EdHttpController::checkExpect()
 {
 	const string ps = mReqMsg.getHdrString("Expect");
-	if(!ps.compare("100-continue"))
+	if (!ps.compare("100-continue"))
 	{
 		dbgd("Expect header exists", ps.c_str());
 		mIsContinueResponse = true;
@@ -274,33 +298,33 @@ bool EdHttpController::checkExpect()
 	return mIsContinueResponse;
 }
 
-
 void EdHttpController::checkHeaders()
 {
 	const char *type = mReqMsg.getHdr("Content-Type");
-	if(type!=NULL)
+	if (type != NULL)
 	{
 		mReqCtype = new EdHdrContentType;
 		mReqCtype->parse(type, strlen(type));
-		if( !memcmp(mReqCtype->getType(), "multipart", sizeof("multipart")-1) ) {
+		if (!memcmp(mReqCtype->getType(), "multipart", sizeof("multipart") - 1))
+		{
 			mIsMultipartBody = true;
 			dbgd("body data is multipart");
 		}
 	}
 
-
 }
-
 
 const char* EdHttpController::getBoundary()
 {
-	if(mIsMultipartBody==true) {
+	if (mIsMultipartBody == true)
+	{
 		return mReqCtype->getParam("boundary");
-	} else {
+	}
+	else
+	{
 		return NULL;
 	}
 }
-
 
 void EdHttpController::OnHttpDataNew(EdHttpContent* pct)
 {
@@ -317,7 +341,6 @@ void EdHttpController::OnHttpDataRecvComplete(EdHttpContent* pct)
 void EdHttpController::OnHttpRequestMsg()
 {
 }
-
 
 const int EdHttpController::getReqMethod()
 {

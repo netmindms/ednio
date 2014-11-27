@@ -32,6 +32,16 @@ typedef struct {
 	int cnn_time_out;
 } http_server_cfg_t;
 
+
+/**
+ * @author netmind
+ * @class EdHttpTask
+ * @brief Process http protocol and events.
+ * @remark EdHttpTask is a task which processes http request/response and the protocols.\n
+ * This provides the events of http protocol to http url controller.
+ * In General, this is used as inheriting rather than using itself directly.
+ *
+ */
 class EdHttpTask: public EdTask
 {
 	friend class EdHttpCnn;
@@ -72,6 +82,7 @@ public:
 		mAllocMap[url] = info;
 
 	};
+
 
 
 private:

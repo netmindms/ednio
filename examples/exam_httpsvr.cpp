@@ -11,9 +11,9 @@
 using namespace edft;
 using namespace std;
 
-class MyController: public EdHttpController, public EdHttpReader {
+class MyController: public EdHttpController {
 	string mMsg = "This is a http body message";
-
+	EdHttpStringReader *mBodyReader;
 	virtual void OnHttpCtrlInit() {
 		logs("http control init...");
 
@@ -23,11 +23,14 @@ class MyController: public EdHttpController, public EdHttpReader {
 		string str = getReqUrl();
 		logs("method=%d, url=%s", method, str.c_str());
 
-		setRespBodyReader(this, "text/plain");
-		setHttpResult("200");
+		logs("set body data : %s", mMsg.c_str());
+		mBodyReader = new EdHttpStringReader;
+		mBodyReader->setString(&mMsg);
+		setRespBodyReader(mBodyReader, "text/html");
+		sendHttpResp("200");
 	}
 	virtual void OnHttpComplete(int result) {
-
+		delete mBodyReader;
 	}
 	virtual void OnHttpDataNew(EdHttpContent *pct) {
 
@@ -42,14 +45,6 @@ class MyController: public EdHttpController, public EdHttpReader {
 
 	}
 
-	virtual long IGetBodySize() {
-		return mMsg.size();
-	}
-
-	virtual long IReadBodyData(void* buf, long len) {
-		memcpy(buf, mMsg.c_str(), mMsg.size());
-		return mMsg.size();
-	}
 
 };
 
