@@ -6,7 +6,7 @@
  */
 
 #define DBGTAG "HTTSK"
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 
 #include "../ednio_config.h"
 
@@ -55,6 +55,7 @@ int EdHttpTask::OnEventProc(EdMsg* pmsg)
 		EdHttpCnn* pcnn = mCnns.allocObj();
 		dbgd("alloc cnn object ...");
 		pcnn->initCnn(pmsg->p1, 0, this, pmsg->p2);
+		mCnns.push_back(pcnn);
 	}
 
 	return 0;
@@ -84,7 +85,7 @@ void EdHttpTask::freeController(EdHttpController* pctrl)
 
 void EdHttpTask::release()
 {
-	dbgd("stopping service task, cur connection count=%d", mCnns.size());
+	dbgd("stopping service tasks, current connection count=%d", mCnns.size());
 	EdHttpCnn* pcnn;
 	for (;;)
 	{
@@ -92,7 +93,8 @@ void EdHttpTask::release()
 		if (pcnn == NULL)
 			break;
 		pcnn->close();
-		delete pcnn;
+		//delete pcnn;
+		mCnns.freeObj(pcnn);
 	}
 
 	dbgd("free url map...cnt=%d", mAllocMap.size());
