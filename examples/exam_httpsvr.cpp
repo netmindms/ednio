@@ -11,14 +11,17 @@
 using namespace edft;
 using namespace std;
 
-class MyController: public EdHttpController {
+class MyController: public EdHttpController
+{
 	string mMsg = "This is a http body message";
 	EdHttpStringReader *mBodyReader;
-	virtual void OnHttpCtrlInit() {
+	virtual void OnHttpCtrlInit()
+	{
 		logs("http control init...");
 
 	}
-	virtual void OnHttpRequestHeader() {
+	virtual void OnHttpRequestHeader()
+	{
 		int method = getReqMethod();
 		string str = getReqUrl();
 		logs("method=%d, url=%s", method, str.c_str());
@@ -29,37 +32,46 @@ class MyController: public EdHttpController {
 		setRespBodyReader(mBodyReader, "text/html");
 		sendHttpResp("200");
 	}
-	virtual void OnHttpComplete(int result) {
+	virtual void OnHttpComplete(int result)
+	{
 		delete mBodyReader;
 	}
-	virtual void OnHttpDataNew(EdHttpContent *pct) {
+	virtual void OnHttpDataNew(EdHttpContent *pct)
+	{
 
 	}
-	virtual void OnHttpDataContinue(EdHttpContent *pct, const void *buf, int len) {
+	virtual void OnHttpDataContinue(EdHttpContent *pct, const void *buf, int len)
+	{
 
 	}
-	virtual void OnHttpDataRecvComplete(EdHttpContent *pct) {
+	virtual void OnHttpDataRecvComplete(EdHttpContent *pct)
+	{
 
 	}
-	virtual void OnHttpRequestMsg() {
+	virtual void OnHttpRequestMsg()
+	{
 
 	}
-
 
 };
 
-class MyHttpTask: public EdHttpTask {
-	void OnInitHttp() {
+class MyHttpTask: public EdHttpTask
+{
+	void OnInitHttp()
+	{
 		logs("http task init...");
 		regController<MyController>("/test", NULL);
 	}
 };
 
-class MainTask: public EdTask {
+class MainTask: public EdTask
+{
 	EdHttpServer *mServer;
 
-	int OnEventProc(EdMsg* pmsg) {
-		if (pmsg->msgid == EDM_INIT) {
+	int OnEventProc(EdMsg* pmsg)
+	{
+		if (pmsg->msgid == EDM_INIT)
+		{
 			logs("task init ...");
 			mServer = new EdHttpServer();
 			EdHttpSettings settings = EdHttpServer::getDefaultSettings();
@@ -68,7 +80,9 @@ class MainTask: public EdTask {
 			settings.ssl_port = 0;
 			mServer->startService<MyHttpTask>(&settings);
 
-		} else if (pmsg->msgid == EDM_CLOSE) {
+		}
+		else if (pmsg->msgid == EDM_CLOSE)
+		{
 			logs("task close ...");
 			mServer->stopService();
 		}
@@ -76,13 +90,16 @@ class MainTask: public EdTask {
 	}
 };
 
-int main() {
+int main()
+{
 	EdNioInit();
 	MainTask* task = new MainTask();
 	task->run();
-	for(;;) {
+	for (;;)
+	{
 		int c = getchar();
-		if(c == 'q') {
+		if (c == 'q')
+		{
 			task->terminate();
 			break;
 		}

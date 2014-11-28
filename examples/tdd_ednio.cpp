@@ -1284,6 +1284,8 @@ void testHttpSever(int mode)
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
+				logs("free ssl ...");
+				EdSSLContext::freeDefaultEdSSL();
 			}
 			return ret;
 		}
@@ -1439,6 +1441,8 @@ void testHttpSever(int mode)
 				server->stopService();
 				delete server;
 				server = NULL;
+
+				EdSSLContext::freeDefaultEdSSL();
 			}
 			else if (pmsg->msgid == TS_NORMAL)
 			{
