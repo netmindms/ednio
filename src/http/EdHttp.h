@@ -26,7 +26,7 @@
 #include "EdHdrDate.h"
 #include "EdHttpDefMultiPartCtrl.h"
 #include "EdHttpUploadCtrl.h"
-
+#include "EdUrlParser.h"
 
 void es_get_httpDate(char* buf);
 const char* es_get_http_desp(char* code);

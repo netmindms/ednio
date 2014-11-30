@@ -32,6 +32,9 @@ typedef struct {
 	int cnn_time_out;
 } http_server_cfg_t;
 
+typedef struct {
+
+} url_map_info_t;
 
 /**
  * @author netmind
@@ -62,6 +65,7 @@ public:
 	typedef EdHttpController* (*__alloc_controller)();
 	struct urlmapinfo_t {
 		__alloc_controller alloc;
+		string path;
 		union {
 		void* userObj;
 		u64 ldata;
@@ -83,12 +87,34 @@ public:
 
 	};
 
+	template<typename T>
+		void regControllerPath(const char* url, void *user) {
+
+			class __defalloc {
+			public:
+				static T* alloc() { return new T; }
+				static bool pathcomp(urlmapinfo_t* &left, urlmapinfo_t* &right) {
+					if(left->path.size() > right->path.size()) {
+						return true;
+					} else {
+						return false;
+					}
+				}
+			};
+			struct urlmapinfo_t *info = new urlmapinfo_t;
+			info->path = url;
+			info->alloc = (__alloc_controller)__defalloc::alloc;;
+			info->userObj = user;
+			mUrlPathMap.push_back(info);
+			mUrlPathMap.sort(__defalloc::pathcomp);
+		};
+
 
 
 private:
 	http_server_cfg_t mConfig;
 	EdObjList<EdHttpCnn> mCnns;
-	unordered_map<string, EdHttpController*> mUrlMap;
+	list<urlmapinfo_t*> mUrlPathMap;
 	unordered_map<string, urlmapinfo_t*> mAllocMap;
 	EdHttpController*allocController(const char *url);
 	void freeController(EdHttpController* pctrl);

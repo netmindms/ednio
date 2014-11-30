@@ -65,17 +65,36 @@ int EdHttpTask::OnEventProc(EdMsg* pmsg)
 
 EdHttpController* EdHttpTask::allocController(const char* url)
 {
+	EdHttpController * pcont=NULL;
 	try
 	{
 		urlmapinfo_t *info = mAllocMap.at(url);
-		EdHttpController* ptr = info->alloc();
-		ptr->mUserData = info->userObj;
-		return ptr;
+		pcont = info->alloc();
+		pcont->mUserData = info->userObj;
+		return pcont;
 	} catch (out_of_range &e)
 	{
-		EdHttpController* ptr = new EdNotFoundHttpController;
-		return ptr;
+		dbgd("static url matching: not found");
 	}
+
+	if(pcont == NULL)
+	{
+		int ulen = strlen(url);
+		for(auto itr=mUrlPathMap.begin();itr != mUrlPathMap.end(); itr++)
+		{
+			urlmapinfo_t *info = *itr;
+			if(info->path.size() <= ulen) {
+				if( info->path.compare(0, info->path.size(), url, 0, info->path.size()) == 0 ) {
+					pcont = info->alloc();
+					pcont->mUserData = info->userObj;
+					return pcont;
+				}
+			}
+		}
+	}
+
+	pcont = new EdNotFoundHttpController;
+	return pcont;
 }
 
 void EdHttpTask::freeController(EdHttpController* pctrl)

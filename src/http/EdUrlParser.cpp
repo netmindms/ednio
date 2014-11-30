@@ -276,4 +276,10 @@ int __kv_callback_vec(void* list, string k, string v) {
 	return vec->size();
 }
 
+
+string EdUrlParser::getRelativePath(string url, string prefix)
+{
+	return url.substr(prefix.size());
+}
+
 }
