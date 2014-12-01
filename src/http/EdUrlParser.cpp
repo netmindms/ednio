@@ -284,5 +284,3 @@ string EdUrlParser::getRelativePath(string path, string prefix)
 	else
 		return "";
 }
-
-}

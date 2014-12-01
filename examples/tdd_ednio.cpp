@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <vector>
+#include <list>
 
 #include "EdNio.h"
 #include "mariadb/EdMdb.h"
@@ -1261,6 +1262,8 @@ void testHttpSever(int mode)
 	class FileCtrl;
 	class UpFileCtrl;
 	class MultipartCtrl;
+	class UrlImagePathCtrl;
+	class UrlPngPathCtrl;
 
 	class MyHttpTask: public EdHttpTask
 	{
@@ -1282,6 +1285,9 @@ void testHttpSever(int mode)
 				regController<FileCtrl>("/getfile", NULL);
 				regController<UpFileCtrl>("/upfile", NULL);
 				regController<MultipartCtrl>("/multi", NULL);
+
+				regControllerPath<UrlImagePathCtrl>("/image", NULL);
+				regControllerPath<UrlPngPathCtrl>("/image/png", NULL);
 			}
 			else if (pmsg->msgid == EDM_CLOSE)
 			{
@@ -1417,6 +1423,37 @@ void testHttpSever(int mode)
 		void OnHttpComplete(int result)
 		{
 			logs("mp complete, result=%d", result);
+		}
+	};
+
+	class UrlImagePathCtrl: public EdHttpController
+	{
+		void OnHttpCtrlInit()
+		{
+			logs("url image ctrl init...");
+		}
+		void OnHttpRequestHeader()
+		{
+			string url = getReqUrl();
+			logs("url is: %s", url.c_str());
+
+			sendHttpResp("200");
+		}
+	};
+
+	class UrlPngPathCtrl: public EdHttpController
+	{
+		void OnHttpCtrlInit()
+		{
+			logs("url png path ctrl init...");
+		}
+		void OnHttpRequestHeader()
+		{
+			string url = getReqUrl();
+			logs("url is: %s", url.c_str());
+			string ctrlpat = EdUrlParser::getRelativePath("/image/png", "/image");
+			logs("relative path: %s", ctrlpat.c_str());
+			sendHttpResp("200");
 		}
 	};
 
