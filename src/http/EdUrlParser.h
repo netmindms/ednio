@@ -8,6 +8,7 @@
 #ifndef EDURLPARSER_H_
 #define EDURLPARSER_H_
 
+#include <memory>
 #include <unordered_map>
 #include <tuple>
 #include <vector>
@@ -29,7 +30,7 @@ private:
 	EdUrlParser();
 public:
 	virtual ~EdUrlParser();
-	static EdUrlParser* parseUrl(string urlstr);
+	static unique_ptr<EdUrlParser> parseUrl(string urlstr);
 	static int parsePath(vector<string> *pdirlist, string pathstr);
 	static string urlDecode(string str);
 	static char toChar(const char* hex);
@@ -38,7 +39,7 @@ public:
 	static size_t parseKeyValueMap(unordered_map<string, string> *kvmap, string str, bool strict=true);
 	static size_t parseKeyValueList(vector< query_kv_t > *kvmap, string rawstr, bool strict=true);
 	static size_t parseKeyValue(string rawstr, __kv_callback kvcb, void* obj, bool strict);
-
+	static string getRelativePath(string path, string prefix);
 private:
 	void parse();
 

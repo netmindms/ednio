@@ -179,8 +179,8 @@ void EdUrlParser::parse() {
 	__PARSE_END: return;
 }
 
-EdUrlParser* EdUrlParser::parseUrl(string urlstr) {
-	EdUrlParser *url = new EdUrlParser;
+unique_ptr<EdUrlParser> EdUrlParser::parseUrl(string urlstr) {
+	unique_ptr<EdUrlParser> url( new EdUrlParser );
 	url->mRawUrl = urlstr;
 	url->parse();
 	return url;
@@ -274,6 +274,15 @@ int __kv_callback_vec(void* list, string k, string v) {
 	query_kv_t t ={k, v};
 	vec->push_back(t);
 	return vec->size();
+}
+
+
+string EdUrlParser::getRelativePath(string path, string prefix)
+{
+	if(prefix.size() <= path.size())
+		return path.substr(prefix.size());
+	else
+		return "";
 }
 
 }

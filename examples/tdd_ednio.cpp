@@ -9,6 +9,7 @@
 #define DBGTAG "main0"
 #define DBG_LEVEL DBG_DEBUG
 
+#include <iostream>
 #include <sys/types.h>
 #include <dirent.h>
 #include <vector>
@@ -2600,6 +2601,7 @@ void testMariadb(int mode)
 int main()
 {
 	EdNioInit();
+	return 0;
 	init_test();
 	for (int i = 0; i < 1; i++)
 	{
