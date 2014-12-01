@@ -87,6 +87,7 @@ EdHttpController* EdHttpTask::allocController(const char* url)
 				if( info->path.compare(0, info->path.size(), url, 0, info->path.size()) == 0 ) {
 					pcont = info->alloc();
 					pcont->mUserData = info->userObj;
+					dbgd("path matching found...");
 					return pcont;
 				}
 			}

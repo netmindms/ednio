@@ -124,7 +124,7 @@ void EdUrlParser::parse() {
 	len = mRawUrl.size();
 	WALK_SP(pos, len, str); // remove preceding spaces.
 	if (str[pos] == '/') {
-		goto __PARSE_HOST;
+		goto __PARSE_PATH;
 	}
 
 	// start protocol scheme
@@ -283,4 +283,6 @@ string EdUrlParser::getRelativePath(string path, string prefix)
 		return path.substr(prefix.size());
 	else
 		return "";
+}
+
 }
