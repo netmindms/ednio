@@ -7,11 +7,15 @@
 
 #ifndef EDFILE_H_
 #define EDFILE_H_
+
+#include <utility>
+#include <string>
 #include "EdFile.h"
 #include <stdarg.h>
 #include <fcntl.h>
 #include "EdType.h"
 
+using namespace std;
 
 namespace edft
 {
@@ -45,6 +49,7 @@ public:
 	int getFd(void);
 	void closeFile(void);
 	static long getSize(const char* path);
+	static pair<string, string> splitFileName(string &fname);
 
 private:
 	int mFd;

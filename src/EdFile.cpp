@@ -103,4 +103,20 @@ long EdFile::getSize(const char *path)
 		return -1;
 }
 
+
+pair<string, string> EdFile::splitFileName(string& fname)
+{
+	size_t idx = fname.find_last_of('.');
+	if(idx != string::npos) {
+		pair<string, string> rv;
+		rv.second = fname.substr(idx+1);
+		rv.first = fname.substr(0, idx);
+		return rv;
+	} else {
+		pair<string, string> rv;
+		rv.first = fname;
+		return rv;
+	}
+}
+
 } /* namespace edft */
