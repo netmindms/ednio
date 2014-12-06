@@ -122,6 +122,12 @@ void EdHttpTask::release()
 	{
 		delete (itr->second);
 	}
+
+	dbgd("free url path map, cnt=%d", mUrlPathMap.size());
+	for(auto itr=mUrlPathMap.begin(); itr != mUrlPathMap.end(); itr++)
+	{
+		delete (*itr);
+	}
 }
 
 void EdHttpTask::removeConnection(EdHttpCnn* pcnn)
