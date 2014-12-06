@@ -8,7 +8,7 @@
 #include "../ednio_config.h"
 
 #define DBGTAG "HTCTR"
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 
 #include <string.h>
 #include "../EdType.h"
@@ -211,6 +211,7 @@ void EdHttpController::getSendPacket(packet_buf_t* pinfo)
 
 	if (mHeaderEncStr.size() > 0)
 	{
+		dbgd("header string pass, str=%s", mHeaderEncStr.c_str());
 		pinfo->len = mHeaderEncStr.size();
 		pktbufsize = max(SEND_BUF_SIZE, pinfo->len);
 		pinfo->buf = malloc(pktbufsize);

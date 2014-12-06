@@ -129,6 +129,7 @@ void EdHttpTask::removeConnection(EdHttpCnn* pcnn)
 	dbgd("remove connection, cnn=%x", pcnn);
 	mCnns.remove(pcnn);
 	mCnns.freeObj(pcnn);
+	dbgd("    resultant cnn count=%d", mCnns.size());
 }
 
 
