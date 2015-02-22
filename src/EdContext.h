@@ -31,10 +31,10 @@
 #define OBJECT_MSG(P1, P2) ((void*)( P1 | ((uint64_t)P2<<32)))
 #define OBJECT_MSG_P1(OBJ) ( (uint32_t)((uint64_t)OBJ) )
 #define OBJECT_MSG_P2(OBJ)   ( (uint32_t)((uint64_t)OBJ >> 32) )
-enum { MODE_EDEV=0, MODE_LIBEVENT=1, };
 
 namespace edft {
 
+enum { MODE_EDEV=0, MODE_LIBEVENT=1, };
 
 
 struct EdContext;

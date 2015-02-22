@@ -28,7 +28,6 @@
 #include "EdTask.h"
 #include "edslog.h"
 #include "EdEvent.h"
-#include "edcurl/EdEasyCurl.h"
 #include "EdEventFd.h"
 
 namespace edft
@@ -66,18 +65,28 @@ void* EdTask::task_thread(void* arg)
 
 int EdTask::run(int mode)
 {
-	initMsg();
-	mRunMode = mode;
-	pthread_create(&mTid, NULL, task_thread, this);
-	return sendMsg(EDM_INIT);
+	return run(mode, 0, 0);
 }
 
 int EdTask::runMain(int mode)
 {
+	return runMain(mode, 0, 0);
+}
+
+int EdTask::run(int mode, u32 p1, u32 p2)
+{
+	initMsg();
+	mRunMode = mode;
+	pthread_create(&mTid, NULL, task_thread, this);
+	return sendMsg(EDM_INIT, p1, p2);
+}
+
+int EdTask::runMain(int mode, u32 p1, u32 p2)
+{
 	initMsg();
 	mRunMode = mode;
 	mTid = pthread_self();
-	postMsg(EDM_INIT);
+	postMsg(EDM_INIT, p1, p2);
 	task_thread((void*) this);
 	return 0;
 }
@@ -768,6 +777,8 @@ void EdTask::setSendMsgResult(EdMsg* pmsg, int code)
 
 void EdTask::cleanUpEventResource()
 {
+// TODO
+#if 0
 	edevt_t* pevt;
 	for (pevt = mDummyEvtList.pop_front(); pevt;)
 	{
@@ -775,6 +786,7 @@ void EdTask::cleanUpEventResource()
 		freeEvent(pevt);
 		pevt = mDummyEvtList.pop_front();
 	}
+#endif
 }
 
 void EdTask::reserveFree(EdObject* obj)

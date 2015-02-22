@@ -10,6 +10,7 @@
 #include "ednio_config.h"
 
 #include <string>
+#include <functional>
 #include <errno.h>
 #include <sys/un.h>
 #include <net/if.h>
@@ -142,9 +143,9 @@ public:
 	int getStatus(){return mStatus;};
 	void getPeerAddr(char *ipaddr, u16 *port);
 
-	virtual void OnEventRead(void);
-	virtual void OnEventWrite(void);
-	virtual void OnEventHangup(void);
+	virtual void OnEventRead(void) final override;
+	virtual void OnEventWrite(void)final override;
+	virtual void OnEventHangup(void) final override;
 
 	/**
 	 * @brief Called when read event is activated
@@ -185,6 +186,8 @@ public:
 	 * @param cb
 	 */
 	void setOnListener(ISocketCb *cb);
+	void setOnListener( function<void (EdSocket* psock, int event)> dg);
+
 	ISocketCb* getCallback();
 	void setNoTimewait();
 private:
@@ -199,6 +202,8 @@ private:
 	int mRaiseDisconnect;
 	bool mIsListen;
 	bool mIsBinded;
+	std::function<void (EdSocket* posck, int event) > mdgCallback;
+
 public:
 	ISocketCb *mSockCallback;
 };

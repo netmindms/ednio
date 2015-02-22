@@ -106,6 +106,9 @@ public:
 	 */
 	int runMain(int mode = 0);
 
+	int run(int mode, u32 p1, u32 p2);
+	int runMain(int mode, u32 p1, u32 p2);
+
 
 	/**
 	 * @brief A task has other task terminated.

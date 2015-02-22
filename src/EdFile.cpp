@@ -53,14 +53,14 @@ u64 EdFile::seek(u64 offset, u64 ref)
 	return lseek(mFd, ref, offset);
 }
 
-int EdFile::openFile(const char* path, int flags, u32 mode)
+int EdFile::openFile(const string &path, int flags, u32 mode)
 {
 	if (mode == 0)
 	{
 		if (flags & O_CREAT)
 			mode = (S_IWUSR | S_IRUSR);
 	}
-	mFd = open(path, flags, mode);
+	mFd = open(path.c_str(), flags, mode);
 	return mFd;
 }
 
@@ -93,10 +93,10 @@ int EdFile::writeStrFormat(const char* fmt, ...)
 	return writeFile((u8*) buf, size);
 }
 
-long EdFile::getSize(const char *path)
+long EdFile::getSize(const string &path)
 {
 	struct stat st;
-	int ret = stat(path, &st);
+	int ret = stat(path.c_str(), &st);
 	if(!ret)
 		return st.st_size;
 	else
@@ -106,14 +106,13 @@ long EdFile::getSize(const char *path)
 
 pair<string, string> EdFile::splitFileName(string& fname)
 {
+	pair<string, string> rv;
 	size_t idx = fname.find_last_of('.');
 	if(idx != string::npos) {
-		pair<string, string> rv;
 		rv.second = fname.substr(idx+1);
 		rv.first = fname.substr(0, idx);
 		return rv;
 	} else {
-		pair<string, string> rv;
 		rv.first = fname;
 		return rv;
 	}

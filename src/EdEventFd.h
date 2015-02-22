@@ -9,7 +9,10 @@
 #define EDEVENTFD_H_
 #include "ednio_config.h"
 
+#include <functional>
 #include "EdEvent.h"
+
+using namespace std;
 
 namespace edft
 {
@@ -21,6 +24,10 @@ public:
 	public:
 		virtual void IOnEventFd(EdEventFd *pefd, int cnt)=0;
 	};
+private:
+	IEventFd* mOnListener;
+	function<void (EdEventFd* efd, int cnt) > mOnLisCb;
+
 public:
 	EdEventFd();
 	virtual ~EdEventFd();
@@ -32,9 +39,7 @@ public:
 
 	int raise();
 	void setOnListener(IEventFd* cb);
-
-private:
-	IEventFd* mOnListener;
+	void setOnListener(decltype(mOnLisCb) lis);
 };
 
 } /* namespace edft */

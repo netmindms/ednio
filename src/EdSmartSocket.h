@@ -10,6 +10,8 @@
 
 #include "ednio_config.h"
 
+#include <vector>
+
 #if USE_SSL
 #include <openssl/evp.h>
 #include <openssl/ossl_typ.h>
@@ -18,6 +20,8 @@
 #endif
 
 #include "EdSocket.h"
+
+using namespace std;
 
 namespace edft
 {
@@ -51,13 +55,18 @@ public:
 	EdSmartSocket();
 	virtual ~EdSmartSocket();
 
-	void OnRead();
-	void OnWrite();
-	void OnConnected();
-	void OnDisconnected();
-	void OnSSLConnected();
-	void OnSSLDisconnected();
-	void OnSSLRead();
+	void OnRead() final override ;
+	void OnWrite() final override ;
+	void OnConnected() final override ;
+	void OnDisconnected() final override;
+	// TODO: alpn support -	string getSelectedAlpnProto();
+
+	virtual void OnSSLConnected();
+	virtual void OnSSLDisconnected();
+	virtual void OnSSLRead();
+	// TODO: alpn support - virtual void OnAlpnSelect(int* selecton_idx, const vector<string> &protos);
+
+
 	/*
 	 virtual void OnNetConnected();
 	 virtual void OnNetDisconnected();
@@ -97,10 +106,18 @@ public:
 	void setOnNetListener(INet* lis);
 	bool isWritable();
 	void reserveWrite();
+	// TODO: alpn	void setAlpnProtocols(const vector<string> &protocols);
 
 private:
 	void procNormalOnWrite();
-
+	#if 0 // alpn support
+	static int sm_ssl_alpn_cb(SSL *ssl,
+						   const unsigned char **out,
+						   unsigned char *outlen,
+						   const unsigned char *in,
+						   unsigned int inlen,
+						   void *arg);
+	#endif						   
 	INet* mOnLis;
 	int mMode; // 0: Normal mode, 1: ssl mode
 	void* mPendingBuf;
@@ -133,8 +150,10 @@ private:
 	SSL_CTX *mSSLCtx;
 	EdSSLContext *mEdSSLCtx;
 	bool mSessionConencted;
-	bool mIsSSLServer;
+	bool mIsServer;
 	int mSSLWantEvent;
+	// TODO: alpn support
+	//string mAlpnSelectProto;
 
 #endif
 

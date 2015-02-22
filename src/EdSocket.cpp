@@ -19,6 +19,11 @@ namespace edft
 EdSocket::EdSocket()
 {
 	mSockCallback = NULL;
+	mdgCallback = [this](EdSocket* psock, int event){
+		if(psock->mSockCallback != nullptr) {
+			psock->mSockCallback->IOnSocketEvent(psock, event);
+		}
+	};
 	clearInternal();
 }
 
@@ -300,33 +305,38 @@ int EdSocket::sendto(const char* destaddr, const void* buf, int len)
 
 void EdSocket::OnRead(void)
 {
-	if (mSockCallback)
-		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_READ);
+//	if (mSockCallback)
+//		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_READ);
+	mdgCallback(this, SOCK_EVENT_READ);
 }
 
 void EdSocket::OnDisconnected(void)
 {
 	dbgv("### ondis essocket esevent=%p, cb=%p", this, mSockCallback);
-	if (mSockCallback)
-		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_DISCONNECTED);
+//	if (mSockCallback)
+//		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_DISCONNECTED);
+	mdgCallback(this, SOCK_EVENT_DISCONNECTED);
 }
 
 void EdSocket::OnWrite(void)
 {
-	if (mSockCallback)
-		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_WRITE);
+//	if (mSockCallback)
+//		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_WRITE);
+	mdgCallback(this, SOCK_EVENT_WRITE);
 }
 
 void EdSocket::OnConnected(void)
 {
-	if (mSockCallback)
-		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_CONNECTED);
+//	if (mSockCallback)
+//		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_CONNECTED);
+	mdgCallback(this, SOCK_EVENT_CONNECTED);
 }
 
 void EdSocket::OnIncomingConnection(void)
 {
-	if (mSockCallback)
-		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_INCOMING_ACCEPT);
+//	if (mSockCallback)
+//		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_INCOMING_ACCEPT);
+	mdgCallback(this, SOCK_EVENT_INCOMING_ACCEPT);
 }
 
 void EdSocket::OnEventRead()
@@ -459,6 +469,12 @@ void EdSocket::setOnListener(ISocketCb* cb)
 	dbgv("setcb, cb=%p, msockcallback=%p", cb, mSockCallback);
 }
 
+void EdSocket::setOnListener(function<void(EdSocket* psock, int event)> dg)
+{
+	mdgCallback = dg;
+}
+
+
 EdSocket::ISocketCb* EdSocket::getCallback()
 {
 	return mSockCallback;
@@ -473,6 +489,7 @@ void EdSocket::clearInternal()
 	mType = SOCK_TYPE_TCP;
 	mIsBinded = false;
 }
+
 
 void EdSocket::postReserveDisconnect()
 {

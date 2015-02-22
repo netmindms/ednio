@@ -19,6 +19,12 @@ EdTimer::EdTimer()
 	mHitCount = 0;
 	miCallback = NULL;
 	mUser = NULL;
+	mOnLis = [this](EdTimer* ptimer){
+		if(miCallback)
+		{
+			miCallback->IOnTimerEvent(this);
+		};
+	};
 }
 
 EdTimer::~EdTimer()
@@ -66,10 +72,11 @@ void EdTimer::kill(void)
 
 void EdTimer::OnTimer()
 {
-	if (miCallback)
-	{
-		miCallback->IOnTimerEvent(this);
-	}
+//	if (miCallback)
+//	{
+//		miCallback->IOnTimerEvent(this);
+//	}
+	mOnLis(this);
 }
 
 void EdTimer::reset(void)
@@ -93,6 +100,11 @@ void EdTimer::pause(void)
 void EdTimer::resume(void)
 {
 	timerfd_settime(getFd(), 0, &mTimerSpec, NULL);
+}
+
+void EdTimer::setOnListener(decltype(mOnLis) lis)
+{
+	mOnLis = lis;
 }
 
 void EdTimer::OnEventRead(void)

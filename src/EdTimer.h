@@ -9,11 +9,16 @@
 #define EDTIMER_H_
 #include "ednio_config.h"
 
+#include <functional>
+#include <memory>
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/timerfd.h>
 #include "EdType.h"
 #include "EdEvent.h"
+
+using namespace std;
+
 namespace edft {
 
 class EdTimer : public EdEvent
@@ -28,13 +33,13 @@ public:
 	};
 
 private:
-
 	ITimerCb* miCallback;
-
+	function<void (EdTimer* ptimer)> mOnLis;
 
 private:
 	uint64_t mHitCount;
 	struct itimerspec mTimerSpec;
+
 public:
 	/**
 	 * @brief Start timer with specified interval mtime.
@@ -60,6 +65,8 @@ public:
 	 * @param itimer ITimerCb interface instance.
 	 */
 	void setOnListener(ITimerCb *itimer);
+
+	void setOnListener(decltype(mOnLis) lis);
 
 	/**
 	 * @brief Test whether timer is running.
@@ -90,7 +97,7 @@ public:
 	 * You can use interface callback instead of overriding this function to know timer expiration.
 	 */
 	virtual void OnTimer(void);
-	virtual void OnEventRead(void);
+	virtual void OnEventRead(void) override;
 
 };
 

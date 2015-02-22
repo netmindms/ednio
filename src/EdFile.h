@@ -37,7 +37,7 @@ public:
 	EdFile();
 	virtual ~EdFile();
 
-	int openFile(const char* path, int flags=OPEN_READ, u32 mode=0);
+	int openFile(const string &path, int flags=OPEN_READ, u32 mode=0);
 
 	int readFile(void* buf, int size);
 	int writeFile(const void* buf, int size);
@@ -48,7 +48,7 @@ public:
 	u64 seek(u64 offset, u64 ref);
 	int getFd(void);
 	void closeFile(void);
-	static long getSize(const char* path);
+	static long getSize(const string &path);
 	static pair<string, string> splitFileName(string &fname);
 
 private:

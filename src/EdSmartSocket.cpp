@@ -8,11 +8,17 @@
 #define DBG_LEVEL DBG_WARN
 #define DBGTAG "SMSCK"
 
+#include "ednio_config.h"
+
+#include <iostream>
 #include "edslog.h"
 #include "EdNio.h"
 #include "EdSmartSocket.h"
-
+#include <openssl/evp.h>
 #include <openssl/err.h>
+#include <openssl/ssl.h>
+
+using namespace std;
 
 namespace edft
 {
@@ -29,7 +35,7 @@ EdSmartSocket::EdSmartSocket()
 	mSSLCtx = NULL;
 	mSSL = NULL;
 	mSessionConencted = false;
-	mIsSSLServer = false;
+	mIsServer = false;
 	mSSLWantEvent = 0;
 #endif
 }
@@ -435,13 +441,13 @@ void EdSmartSocket::changeSSLSockEvent(int err, bool bwrite)
 	if (err == SSL_ERROR_WANT_WRITE)
 	{
 		mSSLWantEvent = EVT_WRITE;
-		changeEvent(EVT_WRITE);
+		changeEvent(EVT_WRITE|EVT_HANGUP);
 		dbgd("ssl want write event.......");
 	}
 	else if (err == SSL_ERROR_WANT_READ)
 	{
 		mSSLWantEvent = EVT_READ;
-		changeEvent(EVT_READ);
+		changeEvent(EVT_READ|EVT_HANGUP);
 		dbgd("ssl want read event.......");
 	}
 	else if (err == SSL_ERROR_ZERO_RETURN)
@@ -490,7 +496,7 @@ void EdSmartSocket::procSSLErrCloseNeedEnd()
 void EdSmartSocket::procSSLConnect(void)
 {
 	int cret;
-	if (mIsSSLServer == false)
+	if (mIsServer == false)
 		cret = SSL_connect(mSSL);
 	else
 		cret = SSL_accept(mSSL);
@@ -612,15 +618,53 @@ void EdSmartSocket::procSSLOnWrite()
 	}
 }
 
+#if 0 // TODO: alpn support
+int EdSmartSocket::sm_ssl_alpn_cb(SSL *ssl,
+					   const unsigned char **out,
+					   unsigned char *outlen,
+					   const unsigned char *in,
+					   unsigned int inlen,
+					   void *arg)
+{
+
+	vector<string> client_protos;
+	string ps;
+	for(u8 i=0;i<inlen;) {
+		u8 len = in[i++];
+		ps.assign((char*)in+i, len);
+		dbgd("client alpn proto: %s", ps.c_str());
+		client_protos.push_back(move(ps));
+		i += len;
+	}
+	auto smsck = (EdSmartSocket*)arg;
+	int idx=-1;
+	smsck->OnAlpnSelect(&idx, client_protos);
+	if(idx>=0)
+	{
+		smsck->mAlpnSelectProto = move(client_protos[idx]);
+		dbgd("determined alpn protocol=%s", smsck->mAlpnSelectProto.c_str());
+		*out = (u8*)smsck->mAlpnSelectProto.c_str();
+		*outlen = smsck->mAlpnSelectProto.size();
+		return SSL_TLSEXT_ERR_OK;
+	}
+	else
+	{
+		return SSL_TLSEXT_ERR_NOACK;
+	}
+	return SSL_TLSEXT_ERR_NOACK;
+}
+#endif
+
 void EdSmartSocket::openSSLChildSock(int fd, EdSSLContext* pctx)
 {
 	openChildSock(fd);
-	mIsSSLServer = true;
+	mIsServer = true;
 	if (pctx == NULL)
 	{
 		//mSSLCtx = EdTask::getCurrentTask()->getSSLContext();
 		mEdSSLCtx = EdSSLContext::getDefaultEdSSL();
 		mSSLCtx = mEdSSLCtx->getContext();
+		// TODO: SSL_CTX_set_alpn_select_cb(mSSLCtx, sm_ssl_alpn_cb, (void*)this);
 	}
 	else
 	{
@@ -648,10 +692,34 @@ int EdSmartSocket::openSSLClientSock(EdSSLContext* pctx)
 		mSSLCtx = mEdSSLCtx->getContext();
 	}
 
-	mIsSSLServer = false;
+	mIsServer = false;
 	return fd;
 }
 #endif
 
+
+#if 0 // TODO: alpn support
+void EdSmartSocket::OnAlpnSelect(int* selecton_idx, const vector<string>& protos)
+{
+	*selecton_idx = 1;
+}
+
+
+string EdSmartSocket::getSelectedAlpnProto()
+{
+	const unsigned char *client_proto;
+	unsigned int client_proto_len=0;
+	SSL_get0_alpn_selected(mSSL, &client_proto, &client_proto_len);
+	if(client_proto_len>0)
+	{
+		string ret;
+		ret.assign((char*)client_proto, client_proto_len);
+		dbgd(" selected alpn protocol: %s", ret.c_str());
+		return ret;
+	}
+	else
+		return "";
+}
+#endif
 
 } /* namespace edft */

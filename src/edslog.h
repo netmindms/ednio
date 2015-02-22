@@ -20,7 +20,7 @@ void edlog(const char *tagstr, int lineno, const char *fmtstr, ...);
 #endif
 
 
-#ifndef _DEBUG_NONE
+#ifndef NDEBUG
 #define edprt(...) edlog(DBGTAG, __LINE__, __VA_ARGS__)
 #else
 #define edprt(...)

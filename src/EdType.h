@@ -9,9 +9,11 @@
 #define EDTYPE_H_
 #include "ednio_config.h"
 
+#include <memory>
 #include <stdint.h>
 
-namespace edft {
+namespace edft
+{
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -31,11 +33,37 @@ typedef int64_t i64;
 #define CHECK_DELETE_OBJ(PTR) { if(PTR != NULL) { delete PTR;PTR=NULL;} }
 #define CHECK_FREE_MEM(PTR) { if(PTR != NULL) { free(PTR);PTR=NULL;} }
 
-typedef struct {
+typedef struct
+{
 	void* buf;
 	int size;
 	bool takeBuffer;
 } EdBufferInfo;
+
+typedef struct
+{
+	u8 frameIndi;
+	union
+	{
+		struct
+		{
+			u16 version;
+			u16 type;
+		};
+		u32 sid;
+	};
+	u8 flag;
+	u32 len;
+} spdy_frame_hdr_t;
+
+
+struct charmalloc_deallocator {
+	void operator()(char* ptr) const {
+		free(ptr);
+	}
+};
+
+typedef std::unique_ptr<char, charmalloc_deallocator> upmChar;
 
 }
 
