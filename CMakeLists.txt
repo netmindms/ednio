@@ -18,7 +18,9 @@ configure_file (
 )
 
 include_directories("${PROJECT_BINARY_DIR}")
-set(CMAKE_BUILD_TYPE Release)
+if(NOT CMAKE_BUILD_TYPE )
+	set(CMAKE_BUILD_TYPE Release)
+endif()	
 #set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++0x -O3 -Wall -fmessage-length=0 " )
 set(CMAKE_CXX_FLAGS "-std=c++0x -pthread " )
