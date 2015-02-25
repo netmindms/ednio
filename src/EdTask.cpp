@@ -740,7 +740,7 @@ void EdTask::esClose(EdContext* pctx)
 	if (pctx->evt_alloc_cnt > 0)
 	{
 		dbge("### Error: event leak....");
-		assert(0);
+		//assert(0);
 	}
 
 	if (pctx->timer_alloc_cnt > 0)
@@ -777,8 +777,6 @@ void EdTask::setSendMsgResult(EdMsg* pmsg, int code)
 
 void EdTask::cleanUpEventResource()
 {
-// TODO
-#if 0
 	edevt_t* pevt;
 	for (pevt = mDummyEvtList.pop_front(); pevt;)
 	{
@@ -786,7 +784,6 @@ void EdTask::cleanUpEventResource()
 		freeEvent(pevt);
 		pevt = mDummyEvtList.pop_front();
 	}
-#endif
 }
 
 void EdTask::reserveFree(EdObject* obj)
