@@ -48,12 +48,17 @@ typedef enum
 	SOCK_EVENT_INCOMING_ACCEPT = 1 << 4,
 } EDSOCK_EVENT_E;
 
+
+class EdSocket;
+
+typedef function<void (EdSocket &sock, int event)> SocketListener;
+
 class EdSocket: public EdEvent
 {
-public:
-	class ISocketCb {
-		public: virtual void IOnSocketEvent(EdSocket *psock, int event)=0;
-	};
+//public:
+//	class ISocketCb {
+//		public: virtual void IOnSocketEvent(EdSocket *psock, int event)=0;
+//	};
 public:
 	EdSocket();
 	virtual ~EdSocket();
@@ -128,7 +133,7 @@ public:
 	 * @param pchild
 	 * @param cb
 	 */
-	int acceptSock(EdSocket* pchild, ISocketCb *cb=NULL);
+	int acceptSock(EdSocket* pchild, SocketListener lis=nullptr);
 
 	/**
 	 * @brief Reject incoming connection on listening socket.
@@ -185,10 +190,8 @@ public:
 	 * @brief Set socket interface callback.
 	 * @param cb
 	 */
-	void setOnListener(ISocketCb *cb);
-	void setOnListener( function<void (EdSocket* psock, int event)> dg);
+	void setOnListener( SocketListener dg);
 
-	ISocketCb* getCallback();
 	void setNoTimewait();
 private:
 	void clearInternal();
@@ -202,10 +205,8 @@ private:
 	int mRaiseDisconnect;
 	bool mIsListen;
 	bool mIsBinded;
-	std::function<void (EdSocket* posck, int event) > mdgCallback;
+	SocketListener mOnLis;
 
-public:
-	ISocketCb *mSockCallback;
 };
 
 } /* namespace edft */

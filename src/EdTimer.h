@@ -21,20 +21,17 @@ using namespace std;
 
 namespace edft {
 
+class EdTimer;
+
+typedef function<void (EdTimer &ptimer)> TimerListener;
 class EdTimer : public EdEvent
 {
 public:
 	EdTimer();
 	virtual ~EdTimer();
-	class ITimerCb
-	{
-	public:
-		virtual void IOnTimerEvent(EdTimer* ptimer)=0;
-	};
 
 private:
-	ITimerCb* miCallback;
-	function<void (EdTimer* ptimer)> mOnLis;
+	TimerListener mOnLis;
 
 private:
 	uint64_t mHitCount;
@@ -64,9 +61,7 @@ public:
 	 * @brief Set timer callback interface called when is expired.
 	 * @param itimer ITimerCb interface instance.
 	 */
-	void setOnListener(ITimerCb *itimer);
-
-	void setOnListener(decltype(mOnLis) lis);
+	void setOnListener(TimerListener lis);
 
 	/**
 	 * @brief Test whether timer is running.

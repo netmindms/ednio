@@ -17,14 +17,8 @@ namespace edft
 EdTimer::EdTimer()
 {
 	mHitCount = 0;
-	miCallback = NULL;
 	mUser = NULL;
-	mOnLis = [this](EdTimer* ptimer){
-		if(miCallback)
-		{
-			miCallback->IOnTimerEvent(this);
-		};
-	};
+	mOnLis = nullptr;
 }
 
 EdTimer::~EdTimer()
@@ -32,11 +26,6 @@ EdTimer::~EdTimer()
 	kill();
 }
 
-void EdTimer::setOnListener(ITimerCb* itimer)
-{
-	dbgd("setcallback, cb = %p", itimer);
-	miCallback = itimer;
-}
 
 void EdTimer::setUsec(u64 usec, u64 first_usec)
 {
@@ -72,11 +61,8 @@ void EdTimer::kill(void)
 
 void EdTimer::OnTimer()
 {
-//	if (miCallback)
-//	{
-//		miCallback->IOnTimerEvent(this);
-//	}
-	mOnLis(this);
+	if(mOnLis != nullptr)
+		mOnLis(*this);
 }
 
 void EdTimer::reset(void)
@@ -102,7 +88,7 @@ void EdTimer::resume(void)
 	timerfd_settime(getFd(), 0, &mTimerSpec, NULL);
 }
 
-void EdTimer::setOnListener(decltype(mOnLis) lis)
+void EdTimer::setOnListener(TimerListener lis)
 {
 	mOnLis = lis;
 }

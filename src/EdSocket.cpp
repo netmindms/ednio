@@ -18,12 +18,7 @@ namespace edft
 
 EdSocket::EdSocket()
 {
-	mSockCallback = NULL;
-	mdgCallback = [this](EdSocket* psock, int event){
-		if(psock->mSockCallback != nullptr) {
-			psock->mSockCallback->IOnSocketEvent(psock, event);
-		}
-	};
+	mOnLis = nullptr;
 	clearInternal();
 }
 
@@ -49,14 +44,14 @@ void EdSocket::openChildSock(int fd)
 	registerEvent(EVT_READ | EVT_HANGUP);
 }
 
-int EdSocket::acceptSock(EdSocket* pchild, ISocketCb *cb)
+int EdSocket::acceptSock(EdSocket* pchild, SocketListener lis)
 {
 	int fd = accept();
 	if (fd < 0)
 		return fd;
 	pchild->openChildSock(fd);
-	if (cb)
-		pchild->setOnListener(cb);
+	if (lis != nullptr)
+		pchild->setOnListener(lis);
 	return fd;
 }
 
@@ -305,38 +300,32 @@ int EdSocket::sendto(const char* destaddr, const void* buf, int len)
 
 void EdSocket::OnRead(void)
 {
-//	if (mSockCallback)
-//		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_READ);
-	mdgCallback(this, SOCK_EVENT_READ);
+	if(mOnLis != nullptr)
+		mOnLis(*this, SOCK_EVENT_READ);
 }
 
 void EdSocket::OnDisconnected(void)
 {
-	dbgv("### ondis essocket esevent=%p, cb=%p", this, mSockCallback);
-//	if (mSockCallback)
-//		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_DISCONNECTED);
-	mdgCallback(this, SOCK_EVENT_DISCONNECTED);
+	if(mOnLis != nullptr)
+		mOnLis(*this, SOCK_EVENT_DISCONNECTED);
 }
 
 void EdSocket::OnWrite(void)
 {
-//	if (mSockCallback)
-//		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_WRITE);
-	mdgCallback(this, SOCK_EVENT_WRITE);
+	if(mOnLis != nullptr)
+		mOnLis(*this, SOCK_EVENT_WRITE);
 }
 
 void EdSocket::OnConnected(void)
 {
-//	if (mSockCallback)
-//		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_CONNECTED);
-	mdgCallback(this, SOCK_EVENT_CONNECTED);
+	if(mOnLis != nullptr)
+		mOnLis(*this, SOCK_EVENT_CONNECTED);
 }
 
 void EdSocket::OnIncomingConnection(void)
 {
-//	if (mSockCallback)
-//		mSockCallback->IOnSocketEvent(this, SOCK_EVENT_INCOMING_ACCEPT);
-	mdgCallback(this, SOCK_EVENT_INCOMING_ACCEPT);
+	if(mOnLis != nullptr)
+		mOnLis(*this, SOCK_EVENT_INCOMING_ACCEPT);
 }
 
 void EdSocket::OnEventRead()
@@ -463,22 +452,11 @@ void EdSocket::getPeerAddr(char* ipaddr, u16* port)
 	*port = ntohs(addr.sin_port);
 }
 
-void EdSocket::setOnListener(ISocketCb* cb)
+void EdSocket::setOnListener(SocketListener dg)
 {
-	mSockCallback = cb;
-	dbgv("setcb, cb=%p, msockcallback=%p", cb, mSockCallback);
+	mOnLis = dg;
 }
 
-void EdSocket::setOnListener(function<void(EdSocket* psock, int event)> dg)
-{
-	mdgCallback = dg;
-}
-
-
-EdSocket::ISocketCb* EdSocket::getCallback()
-{
-	return mSockCallback;
-}
 
 void EdSocket::clearInternal()
 {

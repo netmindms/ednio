@@ -7,11 +7,8 @@
 
 #include "ednio_config.h"
 
-
 #define DBGTAG "bffrd"
 #define DBG_LEVEL DBG_DEBUG
-
-
 
 #include "edslog.h"
 #include "EdBuffredFileReader.h"
@@ -31,27 +28,28 @@ EdBuffredFileReader::~EdBuffredFileReader()
 {
 }
 
-void EdBuffredFileReader::IOnEventFd(EdEventFd* pefd, int cnt)
-{
-	dbgd("on load job ...");
-	mIsScheduled = false;
-	int ret = loadData();
-	if(mBufList.size() < mQSize && ret > 0) {
-		pefd->raise();
-		mIsScheduled = true;
-	}
-}
 
 int EdBuffredFileReader::open(const char* path, int block_unit, int qsize)
 {
 	int ret = mFile.openFile(path);
-	if(ret<0) {
+	if (ret < 0)
+	{
 		return -1;
 	}
-	mBlockSize = block_unit *4*1024;
+	mBlockSize = block_unit * 4 * 1024;
 	mQSize = qsize;
 
-	mJobEvent.setOnListener(this);
+	mJobEvent.setOnListener([this](EdEventFd &event, int cnt)
+	{
+		dbgd("on load job ...");
+		mIsScheduled = false;
+		int ret = loadData();
+		if(mBufList.size() < mQSize && ret > 0)
+		{
+			event.raise();
+			mIsScheduled = true;
+		}
+	});
 	mJobEvent.open();
 	return 0;
 
@@ -63,11 +61,15 @@ void EdBuffredFileReader::close()
 	mFile.closeFile();
 
 	EdBufferInfo* pinfo;
-	for(;;) {
+	for (;;)
+	{
 		pinfo = mBufList.pop_front();
-		if(pinfo != NULL) {
+		if (pinfo != NULL)
+		{
 			free(pinfo->buf);
-		} else {
+		}
+		else
+		{
 			break;
 		}
 	}
@@ -75,25 +77,30 @@ void EdBuffredFileReader::close()
 
 void EdBuffredFileReader::getData(EdBufferInfo* pbufinfo)
 {
-	if(mBufList.size()==0) {
+	if (mBufList.size() == 0)
+	{
 		dbgd("no buffer, start loading...");
 		loadData();
 	}
 
 	EdBufferInfo* pbf = mBufList.pop_front();
-	if(pbf != NULL) {
+	if (pbf != NULL)
+	{
 		pbufinfo->buf = pbf->buf;
 		pbufinfo->size = pbf->size;
 		pbufinfo->takeBuffer = true;
 		mBufList.freeObj(pbf);
 
-	} else {
+	}
+	else
+	{
 		pbufinfo->buf = NULL;
 		pbufinfo->size = 0;
 		pbufinfo->takeBuffer = false;
 	}
 
-	if(mBufList.size()<=mQSize && mEof == false) {
+	if (mBufList.size() <= mQSize && mEof == false)
+	{
 		mJobEvent.raise();
 	}
 }
@@ -104,11 +111,14 @@ int EdBuffredFileReader::loadData()
 	EdBufferInfo* pbf = mBufList.allocObj();
 	pbf->buf = malloc(mBlockSize);
 	int rcnt = mFile.readFile(pbf->buf, mBlockSize);
-	if(rcnt>0) {
+	if (rcnt > 0)
+	{
 		pbf->size = rcnt;
 		mBufList.push_back(pbf);
 		return rcnt;
-	} else {
+	}
+	else
+	{
 		free(pbf->buf);
 		mBufList.freeObj(pbf);
 		mEof = true;

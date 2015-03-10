@@ -20,13 +20,12 @@ namespace edft
 {
 
 
-class EdBuffredFileReader: public EdEventFd::IEventFd
+class EdBuffredFileReader
 {
 
 public:
 	EdBuffredFileReader();
 	virtual ~EdBuffredFileReader();
-	virtual void IOnEventFd(EdEventFd *pefd, int cnt);
 	int open(const char* path, int block_unit, int qsize);
 	void close();
 	void getData(EdBufferInfo *pinfo);

@@ -120,6 +120,7 @@ void* EdTask::esev_thread(void* arg)
 
 }
 
+
 int EdTask::postEdMsg(u16 msgid, u64 data)
 {
 
@@ -422,7 +423,7 @@ void EdTask::msgevent_cb(edevt_t* pevt, int fd, int events)
 	EdTask* ptask = (EdTask*) pevt->user;
 	int rcnt = read(fd, &cnt, sizeof(cnt));
 	dbgv("eventfd cnt=%d", cnt);
-	if (rcnt == 8)
+	if(rcnt == 8)
 	{
 		ptask->dispatchMsgs(cnt);
 	}
@@ -448,7 +449,7 @@ void EdTask::libeventMsg_cb(evutil_socket_t fd, short shortInt, void*user)
 	EdTask* ptask = (EdTask*) user;
 	u64 cnt;
 	int rcnt = read(ptask->mMsgFd, &cnt, sizeof(cnt));
-	if (rcnt == 8)
+	if(rcnt == 8)
 	{
 		ptask->dispatchMsgs(cnt);
 	}
@@ -473,6 +474,7 @@ int EdTask::esOpen(void* user)
 {
 	memset(&mCtx, 0, sizeof(EdContext));
 	mCtx.mode = mRunMode;
+
 
 	if (mCtx.mode == MODE_EDEV)
 	{
@@ -733,6 +735,7 @@ void EdTask::esClose(EdContext* pctx)
 		pctx->epfd = -1;
 	}
 
+
 	// check free resource
 	if (pctx->evt_alloc_cnt > 0)
 	{
@@ -831,6 +834,7 @@ EdTask* EdTask::getCurrentTask()
 {
 	return _tEdTask;
 }
+
 
 int EdTask::getRunMode()
 {

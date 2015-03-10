@@ -11,6 +11,7 @@
 #include "ednio_config.h"
 
 #include <vector>
+#include <functional>
 
 #if USE_SSL
 #include <openssl/evp.h>
@@ -28,7 +29,7 @@ namespace edft
 
 enum
 {
-	NETEV_DISCONNECTED, NETEV_CONNECTED, NETEV_READ, NETEV_WRITE,
+	NETEV_DISCONNECTED, NETEV_CONNECTED, NETEV_READABLE, NETEV_WRITABLE,
 };
 
 enum
@@ -41,24 +42,37 @@ enum
 	SOCKET_NORMAL = 0, SOCKET_SSL = 1,
 };
 
-class EdSmartSocket: public EdSocket
-{
-public:
+class EdSmartSocket;
 
-	class INet
+typedef function<void (EdSmartSocket&, int event)> SmartSocketLis;
+
+class EdSmartSocket
+{
+private:
+	class RawSocket: public EdSocket
 	{
-	public:
-		virtual void IOnNet(EdSmartSocket *psock, int event)=0;
+		friend class EdSmartSocket;
+	private:
+		RawSocket(EdSmartSocket* smt) {
+			mSmartSock = smt;
+		};
+		void OnRead() final override;
+		void OnWrite() final override;
+		void OnConnected() final override;
+		void OnDisconnected() final override;
+		EdSmartSocket* mSmartSock;
 	};
+	void fireRead();
+	void fireWrite();
+	void fireConnected();
+	void fireDisconnected();
 
 public:
 	EdSmartSocket();
 	virtual ~EdSmartSocket();
 
-	void OnRead() final override ;
-	void OnWrite() final override ;
-	void OnConnected() final override ;
-	void OnDisconnected() final override;
+
+
 	// TODO: alpn support -	string getSelectedAlpnProto();
 
 	virtual void OnSSLConnected();
@@ -66,15 +80,16 @@ public:
 	virtual void OnSSLRead();
 	// TODO: alpn support - virtual void OnAlpnSelect(int* selecton_idx, const vector<string> &protos);
 
-
 	/*
 	 virtual void OnNetConnected();
 	 virtual void OnNetDisconnected();
 	 virtual void OnNetRead();
 	 virtual void OnNetSendComplete();
 	 */
-	int socketOpen(int mode = 0);
-	int socketOpenChild(int fd, int mode = 0);
+	int openClient(int mode = 0);
+	int openChild(int fd, int mode = 0);
+
+	int connect(const string &addr, int port);
 
 	/**
 	 * @brief Read data from ssl connection
@@ -98,31 +113,30 @@ public:
 	/**
 	 * @brief Close ssl connection.
 	 */
-	void socketClose();
+	void close();
 	/**
 	 * @brief Set ssl event callback.
 	 */
-	//void setOnSSLListener(ISSLSocketCb *cb);
-	void setOnNetListener(INet* lis);
+	void setOnListener(SmartSocketLis lis);
 	bool isWritable();
 	void reserveWrite();
 	// TODO: alpn	void setAlpnProtocols(const vector<string> &protocols);
 
 private:
 	void procNormalOnWrite();
-	#if 0 // alpn support
+#if 0 // alpn support
 	static int sm_ssl_alpn_cb(SSL *ssl,
-						   const unsigned char **out,
-						   unsigned char *outlen,
-						   const unsigned char *in,
-						   unsigned int inlen,
-						   void *arg);
-	#endif						   
-	INet* mOnLis;
+			const unsigned char **out,
+			unsigned char *outlen,
+			const unsigned char *in,
+			unsigned int inlen,
+			void *arg);
+#endif
 	int mMode; // 0: Normal mode, 1: ssl mode
 	void* mPendingBuf;
 	int mPendingWriteCnt;
 	int mPendingSize;
+	RawSocket mSock;
 
 #if USE_SSL
 public:
@@ -154,6 +168,7 @@ private:
 	int mSSLWantEvent;
 	// TODO: alpn support
 	//string mAlpnSelectProto;
+	SmartSocketLis mOnLis;
 
 #endif
 

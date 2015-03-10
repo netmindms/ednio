@@ -23,9 +23,8 @@ using namespace std;
 namespace edft
 {
 
-EdSmartSocket::EdSmartSocket()
+EdSmartSocket::EdSmartSocket() : mSock(this)
 {
-	mOnLis = NULL;
 	mMode = 0;
 	mPendingBuf = NULL;
 	mPendingSize = 0;
@@ -42,16 +41,16 @@ EdSmartSocket::EdSmartSocket()
 
 EdSmartSocket::~EdSmartSocket()
 {
-	socketClose();
+	close();
 }
 
-int EdSmartSocket::socketOpen(int mode)
+int EdSmartSocket::openClient(int mode)
 {
 	int ret;
 	mMode = mode;
 	if (mMode == SOCKET_NORMAL)
 	{
-		ret = openSock(SOCK_TYPE_TCP);
+		ret = mSock.openSock(SOCK_TYPE_TCP);
 	}
 	else
 	{
@@ -64,14 +63,14 @@ int EdSmartSocket::socketOpen(int mode)
 	return ret;
 }
 
-void EdSmartSocket::OnRead()
+void EdSmartSocket::fireRead()
 {
 	dbgv("OnRead...");
 	if (mMode == SOCKET_NORMAL)
 	{
-		if (mOnLis != NULL)
+		if(mOnLis != NULL)
 		{
-			mOnLis->IOnNet(this, NETEV_READ);
+			mOnLis(*this, NETEV_READABLE);
 		}
 	}
 	else
@@ -82,7 +81,7 @@ void EdSmartSocket::OnRead()
 	}
 }
 
-void EdSmartSocket::OnWrite()
+void EdSmartSocket::fireWrite()
 {
 	dbgd("OnWrite");
 	if (mMode == SOCKET_NORMAL)
@@ -97,14 +96,14 @@ void EdSmartSocket::OnWrite()
 	}
 }
 
-void EdSmartSocket::OnConnected()
+void EdSmartSocket::fireConnected()
 {
 	dbgd("socket connected...");
 	if (mMode == SOCKET_NORMAL)
 	{
-		if (mOnLis != NULL)
+		if(mOnLis != nullptr)
 		{
-			mOnLis->IOnNet(this, NETEV_CONNECTED);
+			mOnLis(*this, NETEV_CONNECTED);
 		}
 	}
 	else
@@ -115,9 +114,9 @@ void EdSmartSocket::OnConnected()
 	}
 }
 
-void EdSmartSocket::OnDisconnected()
+void EdSmartSocket::fireDisconnected()
 {
-	dbgd("socket disconnected..., fd=%d", getFd());
+	dbgd("socket disconnected..., fd=%d", mSock.getFd());
 #if USE_SSL
 	bool sscnn = mSessionConencted;
 #endif
@@ -127,24 +126,25 @@ void EdSmartSocket::OnDisconnected()
 	{
 		if (mMode == SOCKET_NORMAL)
 		{
-			mOnLis->IOnNet(this, NETEV_DISCONNECTED);
+			mOnLis(*this, NETEV_DISCONNECTED);
 		}
+
 #if USE_SSL
 		else if (sscnn == true)
 		{
-			mOnLis->IOnNet(this, NETEV_DISCONNECTED);
+			mOnLis(*this, NETEV_DISCONNECTED);
 		}
 #endif
+
 	}
 }
 
 
 
-void EdSmartSocket::setOnNetListener(INet* lis)
+void EdSmartSocket::setOnListener(SmartSocketLis lis)
 {
 	mOnLis = lis;
 }
-
 
 
 int EdSmartSocket::recvPacket(void* buf, int bufsize)
@@ -152,7 +152,7 @@ int EdSmartSocket::recvPacket(void* buf, int bufsize)
 	int rret;
 	if (mMode == SOCKET_NORMAL)
 	{
-		rret = recv(buf, bufsize);
+		rret = mSock.recv(buf, bufsize);
 		return rret;
 	}
 	else
@@ -170,7 +170,7 @@ int EdSmartSocket::recvPacket(void* buf, int bufsize)
 			{
 				//SSL_shutdown(mSSL);
 				//postReserveDisconnect();
-				mTask->lastSockErrorNo = EINPROGRESS;
+				mSock.getTask()->lastSockErrorNo = EINPROGRESS;
 			}
 			return -1;
 		}
@@ -181,12 +181,12 @@ int EdSmartSocket::recvPacket(void* buf, int bufsize)
 
 //			SSL_shutdown(mSSL);
 //			postReserveDisconnect();
-			mTask->lastSockErrorNo = EINPROGRESS;
+			mSock.getTask()->lastSockErrorNo = EINPROGRESS;
 			return 0;
 		}
 		else
 		{
-			mTask->lastSockErrorNo = 0;
+			mSock.getTask()->lastSockErrorNo = 0;
 			return rret;
 		}
 #else
@@ -199,19 +199,19 @@ int EdSmartSocket::recvPacket(void* buf, int bufsize)
 void EdSmartSocket::OnSSLConnected()
 {
 	if (mOnLis != NULL)
-		mOnLis->IOnNet(this, NETEV_CONNECTED);
+		mOnLis(*this, NETEV_CONNECTED);
 }
 
 void EdSmartSocket::OnSSLDisconnected()
 {
 	if (mOnLis != NULL)
-		mOnLis->IOnNet(this, NETEV_DISCONNECTED);
+		mOnLis(*this, NETEV_DISCONNECTED);
 }
 
 void EdSmartSocket::OnSSLRead()
 {
 	if (mOnLis != NULL)
-		mOnLis->IOnNet(this, NETEV_READ);
+		mOnLis(*this, NETEV_READABLE);
 }
 
 int EdSmartSocket::sendPacket(const void* buf, int bufsize, bool takebuffer)
@@ -225,7 +225,7 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize, bool takebuffer)
 
 	if (mMode == SOCKET_NORMAL)
 	{
-		wret = send(buf, bufsize);
+		wret = mSock.send(buf, bufsize);
 		bool ispending;
 
 		if (wret == bufsize)
@@ -277,7 +277,7 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize, bool takebuffer)
 				mPendingBuf = (void*) buf;
 				mPendingWriteCnt = bufsize - wret;
 			}
-			changeEvent(EVT_READ | EVT_WRITE | EVT_HANGUP);
+			mSock.changeEvent(EVT_READ | EVT_WRITE | EVT_HANGUP);
 
 			return SEND_PENDING;
 		}
@@ -332,7 +332,13 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize, bool takebuffer)
 	}
 }
 
-void EdSmartSocket::socketClose()
+int EdSmartSocket::connect(const string& addr, int port)
+{
+	return mSock.connect(addr.c_str(), port);
+}
+
+
+void EdSmartSocket::close()
 {
 #if USE_SSL
 	if (mSSL != NULL)
@@ -345,7 +351,7 @@ void EdSmartSocket::socketClose()
 		mSessionConencted = false;
 	}
 #endif
-	EdSocket::close();
+	mSock.close();
 
 	if (mPendingBuf != NULL)
 	{
@@ -357,12 +363,12 @@ void EdSmartSocket::socketClose()
 
 
 
-int EdSmartSocket::socketOpenChild(int fd, int mode)
+int EdSmartSocket::openChild(int fd, int mode)
 {
 	mMode = mode;
 	if (mode == SOCKET_NORMAL)
 	{
-		openChildSock(fd);
+		mSock.openChildSock(fd);
 	}
 	else
 	{
@@ -384,7 +390,7 @@ bool EdSmartSocket::isWritable()
 void EdSmartSocket::reserveWrite()
 {
 	dbgd("reserve write...");
-	changeEvent(EVT_WRITE | EVT_HANGUP | EVT_READ);
+	mSock.changeEvent(EVT_WRITE | EVT_HANGUP | EVT_READ);
 }
 
 void EdSmartSocket::procNormalOnWrite()
@@ -392,21 +398,21 @@ void EdSmartSocket::procNormalOnWrite()
 	if (mPendingBuf != NULL)
 	{
 		int wret;
-		wret = send((u8*) mPendingBuf + mPendingWriteCnt, mPendingSize - mPendingWriteCnt);
+		wret = mSock.send((u8*) mPendingBuf + mPendingWriteCnt, mPendingSize - mPendingWriteCnt);
 
 		if (wret > 0)
 		{
 			mPendingWriteCnt += wret;
 			if (mPendingWriteCnt == mPendingSize)
 			{
-				changeEvent(EVT_READ | EVT_HANGUP);
+				mSock.changeEvent(EVT_READ | EVT_HANGUP);
 				mPendingSize = 0;
 				mPendingWriteCnt = 0;
 				free(mPendingBuf);
 				mPendingBuf = NULL;
 				if (mOnLis != NULL)
 				{
-					mOnLis->IOnNet(this, NETEV_WRITE);
+					mOnLis(*this, NETEV_WRITABLE);
 				}
 			}
 		}
@@ -414,10 +420,10 @@ void EdSmartSocket::procNormalOnWrite()
 	else
 	{
 		dbgd("no pending buffer on write...");
-		changeEvent(EVT_READ | EVT_HANGUP);
+		mSock.changeEvent(EVT_READ | EVT_HANGUP);
 		if (mOnLis != NULL)
 		{
-			mOnLis->IOnNet(this, NETEV_WRITE);
+			mOnLis(*this, NETEV_WRITABLE);
 		}
 	}
 }
@@ -431,7 +437,7 @@ void EdSmartSocket::startHandshake()
 	if (mSSL == NULL && mSessionConencted == false)
 	{
 		mSSL = SSL_new(mSSLCtx);
-		SSL_set_fd(mSSL, getFd());
+		SSL_set_fd(mSSL, mSock.getFd());
 		procSSLConnect();
 	}
 }
@@ -441,13 +447,13 @@ void EdSmartSocket::changeSSLSockEvent(int err, bool bwrite)
 	if (err == SSL_ERROR_WANT_WRITE)
 	{
 		mSSLWantEvent = EVT_WRITE;
-		changeEvent(EVT_WRITE|EVT_HANGUP);
+		mSock.changeEvent(EVT_WRITE|EVT_HANGUP);
 		dbgd("ssl want write event.......");
 	}
 	else if (err == SSL_ERROR_WANT_READ)
 	{
 		mSSLWantEvent = EVT_READ;
-		changeEvent(EVT_READ|EVT_HANGUP);
+		mSock.changeEvent(EVT_READ|EVT_HANGUP);
 		dbgd("ssl want read event.......");
 	}
 	else if (err == SSL_ERROR_ZERO_RETURN)
@@ -484,12 +490,12 @@ SSL_CTX* EdSmartSocket::getSSLContext()
 
 void EdSmartSocket::procSSLErrCloseNeedEnd()
 {
-	mTask->lastSockErrorNo = EINPROGRESS;
+	mSock.getTask()->lastSockErrorNo = EINPROGRESS;
 	OnSSLDisconnected();
 	if (EdTask::getCurrentTask()->lastSockErrorNo != 0)
 	{
 		dbgd("*** auto closing ssl socket... ");
-		socketClose();
+		close();
 	}
 }
 
@@ -505,7 +511,7 @@ void EdSmartSocket::procSSLConnect(void)
 	if (cret == 1)
 	{
 		mSessionConencted = true;
-		mTask->lastSockErrorNo = 0;
+		mSock.getTask()->lastSockErrorNo = 0;
 		OnSSLConnected();
 	}
 	else if (cret == 0)
@@ -557,7 +563,7 @@ void EdSmartSocket::procSSLConnect(void)
 			else
 			{
 				dbgd("##### unknown ssl state, sslerr=%d", err);
-				mTask->lastSockErrorNo = 0;
+				mSock.getTask()->lastSockErrorNo = 0;
 			}
 		}
 	}
@@ -588,14 +594,14 @@ void EdSmartSocket::procSSLOnWrite()
 			mPendingWriteCnt += wret;
 			if (mPendingWriteCnt == mPendingSize)
 			{
-				changeEvent(EVT_READ | EVT_HANGUP);
+				mSock.changeEvent(EVT_READ | EVT_HANGUP);
 				mPendingSize = 0;
 				mPendingWriteCnt = 0;
 				free(mPendingBuf);
 				mPendingBuf = NULL;
 				if (mOnLis != NULL)
 				{
-					mOnLis->IOnNet(this, NETEV_WRITE);
+					mOnLis(*this, NETEV_WRITABLE);
 				}
 			}
 		}
@@ -610,10 +616,10 @@ void EdSmartSocket::procSSLOnWrite()
 	{
 		dbgd("no pending buffer on write...");
 		if (mSSLWantEvent != EVT_WRITE)
-			changeEvent(EVT_READ | EVT_HANGUP);
+			mSock.changeEvent(EVT_READ | EVT_HANGUP);
 		if (mOnLis != NULL)
 		{
-			mOnLis->IOnNet(this, NETEV_WRITE);
+			mOnLis(*this, NETEV_WRITABLE);
 		}
 	}
 }
@@ -657,7 +663,7 @@ int EdSmartSocket::sm_ssl_alpn_cb(SSL *ssl,
 
 void EdSmartSocket::openSSLChildSock(int fd, EdSSLContext* pctx)
 {
-	openChildSock(fd);
+	mSock.openChildSock(fd);
 	mIsServer = true;
 	if (pctx == NULL)
 	{
@@ -677,7 +683,7 @@ void EdSmartSocket::openSSLChildSock(int fd, EdSSLContext* pctx)
 
 int EdSmartSocket::openSSLClientSock(EdSSLContext* pctx)
 {
-	int fd = openSock(SOCK_TYPE_TCP);
+	int fd = mSock.openSock(SOCK_TYPE_TCP);
 	if (fd < 0)
 		return fd;
 	if (pctx == NULL)
@@ -722,4 +728,28 @@ string EdSmartSocket::getSelectedAlpnProto()
 }
 #endif
 
-} /* namespace edft */
+
+void EdSmartSocket::RawSocket::OnRead()
+{
+	mSmartSock->fireRead();
+}
+
+void EdSmartSocket::RawSocket::OnWrite()
+{
+	mSmartSock->fireWrite();
+}
+
+void EdSmartSocket::RawSocket::OnConnected()
+{
+	mSmartSock->fireConnected();
+}
+
+void EdSmartSocket::RawSocket::OnDisconnected()
+{
+	mSmartSock->fireDisconnected();
+}
+
+
+
+}
+/* namespace edft */

@@ -17,16 +17,13 @@ using namespace std;
 namespace edft
 {
 
+class EdEventFd;
+typedef function<void (EdEventFd &efd, int cnt) > EventFdListener;
+
 class EdEventFd : public EdEvent
 {
-public:
-	class IEventFd {
-	public:
-		virtual void IOnEventFd(EdEventFd *pefd, int cnt)=0;
-	};
 private:
-	IEventFd* mOnListener;
-	function<void (EdEventFd* efd, int cnt) > mOnLisCb;
+	EventFdListener mOnLisCb;
 
 public:
 	EdEventFd();
@@ -38,8 +35,7 @@ public:
 	void close();
 
 	int raise();
-	void setOnListener(IEventFd* cb);
-	void setOnListener(decltype(mOnLisCb) lis);
+	void setOnListener(EventFdListener lis);
 };
 
 } /* namespace edft */

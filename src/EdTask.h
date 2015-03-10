@@ -92,8 +92,6 @@ public:
 	 * @brief Run a thread with event loop and wait events.
 	 * @remark Then this method is called, EDM_INIT event message is sent and returned after the message is processed by default event procetdure.\n
 	 * @param mode If mode is 0, EdTask run with libednio specific event loop. In case of mode 1, EdTask run with libevent compatible mode.
-	 * @param p1 the parameter to give the task.
-	 * @param p2 the parameter to give the task.
 	 * @warning To enable libevent compatible mode, libednio must be built with USE_LIBEVENT definition.
 	 * @return 0 success
 	 */
@@ -103,8 +101,6 @@ public:
 	 * @brief Run a task with event loop in current thread.
 	 * @remark This method does not make an additional thread for event loop. Event looping is in calling thread.
 	 * @param mode If mode is 0, EdTask run with libednio specific event loop. In case of mode 1, EdTask run with libevent compatible mode.
-	 * @param p1 the parameter to give the task.
-	 * @param p2 the parameter to give the task.
 	 * @warning To enable libevent compatible mode, libednio must be built with USE_LIBEVENT definition.
 	 * @return 0 success
 	 */

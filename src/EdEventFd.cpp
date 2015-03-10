@@ -16,11 +16,7 @@ namespace edft
 
 EdEventFd::EdEventFd()
 {
-	mOnListener = NULL;
-	mOnLisCb = [this](EdEventFd* efd, int cnt){
-		if(mOnListener)
-			mOnListener->IOnEventFd(this, cnt);
-	};
+	mOnLisCb = nullptr;
 }
 
 EdEventFd::~EdEventFd()
@@ -77,19 +73,11 @@ int EdEventFd::raise()
 
 void EdEventFd::OnEventFd(int cnt)
 {
-//	if (mOnListener != NULL)
-//	{
-//		mOnListener->IOnEventFd(this, (int) cnt);
-//	}
-	mOnLisCb(this, cnt);
+	if(mOnLisCb != nullptr)
+		mOnLisCb(*this, cnt);
 }
 
-void EdEventFd::setOnListener(IEventFd* cb)
-{
-	mOnListener = cb;
-}
-
-void EdEventFd::setOnListener(decltype(mOnLisCb) lis)
+void EdEventFd::setOnListener(EventFdListener lis)
 {
 	mOnLisCb = lis;
 }

@@ -124,7 +124,7 @@ public:
 	void setUserInt(uint32_t data);
 
 	EdContext *getContext();
-
+	EdTask* getTask() const { return mTask; };
 	/**
 	 * @brief set a file descriptor(fd) to monitor.
 	 * @detail In here, fd can be a socket, pipe, eventfd, timerfd.

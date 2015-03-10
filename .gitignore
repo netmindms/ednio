@@ -10,3 +10,5 @@ installer.pyc
 .cproject
 src/ednio_config.h
 .settings/
+/TestUnitDebug/
+tags
