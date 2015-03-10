@@ -12,3 +12,4 @@ src/ednio_config.h
 .settings/
 /TestUnitDebug/
 tags
+test/ednio
