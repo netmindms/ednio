@@ -406,7 +406,7 @@ void EdSmartSocket::procNormalOnWrite()
 				mPendingBuf = NULL;
 				if (mOnLis != NULL)
 				{
-					mOnLis->IOnNet(this, NETEV_SENDCOMPLETE);
+					mOnLis->IOnNet(this, NETEV_WRITE);
 				}
 			}
 		}
@@ -417,7 +417,7 @@ void EdSmartSocket::procNormalOnWrite()
 		changeEvent(EVT_READ | EVT_HANGUP);
 		if (mOnLis != NULL)
 		{
-			mOnLis->IOnNet(this, NETEV_SENDCOMPLETE);
+			mOnLis->IOnNet(this, NETEV_WRITE);
 		}
 	}
 }
@@ -595,7 +595,7 @@ void EdSmartSocket::procSSLOnWrite()
 				mPendingBuf = NULL;
 				if (mOnLis != NULL)
 				{
-					mOnLis->IOnNet(this, NETEV_SENDCOMPLETE);
+					mOnLis->IOnNet(this, NETEV_WRITE);
 				}
 			}
 		}
@@ -613,7 +613,7 @@ void EdSmartSocket::procSSLOnWrite()
 			changeEvent(EVT_READ | EVT_HANGUP);
 		if (mOnLis != NULL)
 		{
-			mOnLis->IOnNet(this, NETEV_SENDCOMPLETE);
+			mOnLis->IOnNet(this, NETEV_WRITE);
 		}
 	}
 }
