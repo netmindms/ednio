@@ -13,7 +13,7 @@
 #include <ednio/EdNio.h>
 #include <ednio/edslog.h>
 
-using namespace testing;
+using namespace ::testing;
 using namespace edft;
 
 TEST(socket, smart)
