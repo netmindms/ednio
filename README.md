@@ -19,32 +19,24 @@ This provides as follwing features.
 How to build
 ------------
 
-To build the sources, you need scons build tool. 
+To build the sources, you need cmake build tool. 
 On Ubuntu, you can install it as following.
 
-	$ sudo apt-get install scons
+	$ sudo apt-get install cmake
 
-In case of other Linux, refer to scons.org of official scons home page.
+After you install cmake, do following instructions on top folder of source to build
 
-After you install scons, you just enter follwing command on top folder of source to build
-
-	$ scons
-
-Or, To include non-block, asynchronous mode wrapper API for some famous libraries, run as follwing.
-
-	$ scons configure ssl=true curl=true libevent=true
-	$ scons
+	$ mkdir mybuild
+	$ cd mybuild
+	$ cmake ..
+	$ make
 
 
 How to install
 --------------
-You may want to install this library. To do so, run 'scons install' after build.
+You may want to install this library. To do so, run 'make install' after build.
 
-	$ scons install
-
-The default destination is /usr/local/lib/ for so file and /usr/local/include/ednio/ for header files. If you change the destination, specifiy prefix option.
-
-	$ scons install prefix=/your/prefered/folder
+	$ make install
 
 
 Typical Usage
