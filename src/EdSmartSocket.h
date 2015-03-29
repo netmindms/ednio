@@ -17,6 +17,7 @@
 #include <openssl/evp.h>
 #include <openssl/ossl_typ.h>
 #include <openssl/ssl.h>
+#include <openssl/err.h>
 #include "edssl/EdSSLContext.h"
 #endif
 
@@ -88,6 +89,7 @@ public:
 	 */
 	int openClient(int mode = 0);
 	int openChild(int fd, int mode = 0);
+	int openUnixSocket(const string &addr, int type=SOCK_TYPE_UNIXSTREAM);
 
 	int connect(const string &addr, int port);
 
@@ -117,6 +119,7 @@ public:
 	/**
 	 * @brief Set ssl event callback.
 	 */
+	int getFd() const;
 	void setOnListener(SmartSocketLis lis);
 	bool isWritable();
 	void reserveWrite();
@@ -137,6 +140,7 @@ private:
 	int mPendingWriteCnt;
 	int mPendingSize;
 	RawSocket mSock;
+	SmartSocketLis mOnLis;
 
 #if USE_SSL
 public:
@@ -168,8 +172,6 @@ private:
 	int mSSLWantEvent;
 	// TODO: alpn support
 	//string mAlpnSelectProto;
-	SmartSocketLis mOnLis;
-
 #endif
 
 };

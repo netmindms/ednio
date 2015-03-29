@@ -136,7 +136,7 @@ public:
 	 * @brief Get fd to monitor.
 	 * @return fd to be monitor currently.
 	 */
-	int getFd();
+	int getFd() const;
 	void setContext(EdContext* ctx);
 	void setDefaultContext();
 };

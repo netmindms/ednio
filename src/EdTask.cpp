@@ -195,7 +195,7 @@ int EdTask::sendEdMsg(u16 msgid, u64 data)
 		pmsg->pmsg_sig = &cond;
 
 		uint64_t t = 1;
-		int result;
+		int result=0;
 		pmsg->msgid = msgid;
 
 		pmsg->data = data;
@@ -363,7 +363,7 @@ int EdTask::sendObj(u16 msgid, void* obj)
 	return sendEdMsg(msgid, (u64) obj);
 }
 
-int EdTask::OnEventProc(EdMsg* pmsg)
+int EdTask::OnEventProc(EdMsg& pmsg)
 {
 	return 0;
 }
@@ -392,7 +392,7 @@ void EdTask::dispatchMsgs(int cnt)
 			}
 			else
 			{
-				OnEventProc(pmsg);
+				OnEventProc(*pmsg);
 			}
 			if (pmsg->sync)
 			{
@@ -438,7 +438,7 @@ void EdTask::callMsgClose()
 {
 	EdMsg msg;
 	msg.msgid = EDM_CLOSE;
-	OnEventProc(&msg);
+	OnEventProc(msg);
 	freeReservedObjs();
 }
 
@@ -467,7 +467,7 @@ void EdTask::TaskTimer::OnTimer()
 	EdMsg msg;
 	msg.msgid = EDM_TIMER;
 	msg.p1 = timerId;
-	ptask->OnEventProc(&msg);
+	ptask->OnEventProc(msg);
 }
 
 int EdTask::esOpen(void* user)
@@ -770,9 +770,10 @@ EdMsg* EdTask::allocMsgObj()
 	return pmsg;
 }
 
-void EdTask::setSendMsgResult(EdMsg* pmsg, int code)
+void EdTask::setSendMsgResult(EdMsg& msg, int code)
 {
-	*pmsg->psend_result = code;
+	if(msg.sync)
+		*msg.psend_result = code;
 }
 
 void EdTask::cleanUpEventResource()

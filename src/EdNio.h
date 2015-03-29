@@ -9,7 +9,9 @@
 #define EDNIO_H_
 
 #include "ednio_config.h"
+
 #include "EdType.h"
+#include "EdConst.h"
 #include "EdContext.h"
 #include "EdTask.h"
 #include "EdSocket.h"

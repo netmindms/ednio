@@ -14,9 +14,7 @@
 #include "edslog.h"
 #include "EdNio.h"
 #include "EdSmartSocket.h"
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <openssl/ssl.h>
+
 
 using namespace std;
 
@@ -393,6 +391,28 @@ void EdSmartSocket::reserveWrite()
 	mSock.changeEvent(EVT_WRITE | EVT_HANGUP | EVT_READ);
 }
 
+int EdSmartSocket::openUnixSocket(const string &addr, int type)
+{
+	if(type == SOCK_TYPE_UNIXDGRAM || type == SOCK_TYPE_UNIXSTREAM)
+	{
+		auto fd = mSock.openSock(type);
+		if(fd >= 0)
+		{
+			auto ret = mSock.bindSock(0, addr.data());
+			if(ret<0)
+			{
+				mSock.close();
+				return -1;
+			}
+			return fd;
+		}
+	}
+	else
+	{
+		return -1;
+	}
+}
+
 void EdSmartSocket::procNormalOnWrite()
 {
 	if (mPendingBuf != NULL)
@@ -426,6 +446,11 @@ void EdSmartSocket::procNormalOnWrite()
 			mOnLis(*this, NETEV_WRITABLE);
 		}
 	}
+}
+
+int EdSmartSocket::getFd() const
+{
+	return (mSock.getFd());
 }
 
 

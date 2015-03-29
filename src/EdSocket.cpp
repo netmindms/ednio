@@ -207,7 +207,7 @@ int EdSocket::listenSock(int port, const char* ip)
 			return retval;
 	}
 
-	if (mType == SOCK_TYPE_TCP)
+	if (mType == SOCK_TYPE_TCP || mType == SOCK_TYPE_UNIXSTREAM)
 	{
 		retval = listen(mFd, 10);
 		if (!retval)

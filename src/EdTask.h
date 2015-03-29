@@ -49,6 +49,8 @@ private:
 	pthread_mutex_t *pmsg_sync_mutex;
 } EdMsg;
 
+
+typedef function<int (EdMsg& msg)> TaskEventListener;
 /**
  * @author netmind
  * @class EdTask
@@ -196,7 +198,7 @@ public:
 	int lastSockErrorNo;
 
 public:
-	virtual int OnEventProc(EdMsg* pmsg);
+	virtual int OnEventProc(EdMsg& pmsg);
 
 
 protected:
@@ -245,7 +247,7 @@ protected:
 	 * @param pmsg
 	 * @param code
 	 */
-	void setSendMsgResult(EdMsg* pmsg, int code);
+	void setSendMsgResult(EdMsg& msg, int code);
 
 private:
 	static void* esev_thread(void* arg);

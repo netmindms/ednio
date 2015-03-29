@@ -228,7 +228,7 @@ void EdEvent::setFd(int fd)
 }
 
 
-int EdEvent::getFd()
+int EdEvent::getFd() const
 {
 	return mFd;
 }
