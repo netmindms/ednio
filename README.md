@@ -68,13 +68,6 @@ Task
 To use ednio event driven APIs, you should make one EdTask at least.
 EdTask is a thread having event dispatch loop.
 It is responsible for monitoring events and triggering callback for each event.
-EdTask has its own specific event dispatching loop. But if you want, you can use libevent in place of ednio event loop. This libevent compatible mode is useful in case you should use any opensource library dependent on libevent.(For example, hiredis library)
-To make EdTask run with libevent, call EdTask::run(MODE_LIBEVENT).
-Also, You need to build sources with following build argument.
-
-	$ scons configure libevent=true
-Make sure that libevent library is installed on your system in advance as well.
-
 
 
 IPC between EdTasks
