@@ -46,7 +46,6 @@ public:
 	EdEvent();
 	EdEvent(EdContext* ctx);
 	virtual ~EdEvent();
-	public:
 
 protected:
 	EdContext *mContext;

@@ -100,8 +100,11 @@ void EdTask::terminate(void)
 {
 	if (mCtx.mode == MODE_EDEV)
 	{
-		postMsg(EDM_EXIT, 0, 0);
-		pthread_join(mTid, NULL);
+		if(mTid != 0)
+		{
+			postMsg(EDM_EXIT, 0, 0);
+			pthread_join(mTid, NULL);
+		}
 	}
 	else
 	{
@@ -110,14 +113,6 @@ void EdTask::terminate(void)
 		wait();
 #endif
 	}
-}
-
-void* EdTask::esev_thread(void* arg)
-{
-	EdTask* ptask = (EdTask*) arg;
-	ptask->threadMain();
-	return NULL;
-
 }
 
 
@@ -510,6 +505,7 @@ edevt_t* EdTask::regEdEvent(int fd, uint32_t events, EVENTCB cb, void* user)
 	pevt->evtcb = cb;
 	pevt->user = user;
 
+	event.data.u64 = 0; // for clearing valgrind notice('uninitialized value access waring') for 32bit enviroment 
 	event.data.ptr = pevt;
 	event.events = events;
 

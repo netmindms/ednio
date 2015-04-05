@@ -9,6 +9,7 @@
 #define EDTYPE_H_
 #include "ednio_config.h"
 
+#include <functional>
 #include <memory>
 #include <stdint.h>
 
@@ -64,6 +65,11 @@ struct charmalloc_deallocator {
 };
 
 typedef std::unique_ptr<char, charmalloc_deallocator> upmChar;
+
+typedef std::function<void ()> lfvv;
+typedef std::function<void (int)> lfvi;
+typedef std::function<void (int, int)> lfvii;
+typedef std::function<void (uint32_t)> lfvu;
 
 }
 

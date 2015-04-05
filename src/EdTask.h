@@ -250,7 +250,6 @@ protected:
 	void setSendMsgResult(EdMsg& msg, int code);
 
 private:
-	static void* esev_thread(void* arg);
 	static void msgevent_cb(edevt_t* pevt, int fd, int events);
 	static void* task_thread(void* arg);
 
