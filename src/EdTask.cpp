@@ -30,15 +30,18 @@
 #include "EdEvent.h"
 #include "EdEventFd.h"
 
+
+#define DEFAULT_MSQ_SIZE 1000
+
 namespace edft
 {
 
 __thread class EdTask *_tEdTask;
 
-EdTask::EdTask(int nmsgq)
+EdTask::EdTask()
 {
 	mTid = 0;
-	mMaxMsqQueSize = nmsgq;
+	mMaxMsqQueSize = 0;
 	memset(&mCtx, 0, sizeof(mCtx));
 #if USE_LIBEVENT
 	mLibMsgEvent = NULL;
@@ -65,25 +68,41 @@ void* EdTask::task_thread(void* arg)
 
 int EdTask::run(int mode)
 {
-	return run(mode, 0, 0);
+	return run(mode, 0, 0, DEFAULT_MSQ_SIZE);
 }
 
 int EdTask::runMain(int mode)
 {
-	return runMain(mode, 0, 0);
+	return runMain(mode, 0, 0, DEFAULT_MSQ_SIZE);
 }
 
-int EdTask::run(int mode, u32 p1, u32 p2)
+int EdTask::run(int mode, u32 p1, u32 p2, int msgqnum)
 {
+	mMaxMsqQueSize = msgqnum;
 	initMsg();
+	if (mMsgFd <= 0)
+	{
+		dbge("### event msg fd error, fd=%d", mMsgFd);
+		return -1;
+	}
 	mRunMode = mode;
-	pthread_create(&mTid, NULL, task_thread, this);
+	auto ret = pthread_create(&mTid, NULL, task_thread, this);
+	if (ret)
+	{
+		return ret;
+	}
 	return sendMsg(EDM_INIT, p1, p2);
 }
 
-int EdTask::runMain(int mode, u32 p1, u32 p2)
+int EdTask::runMain(int mode, u32 p1, u32 p2, int msgqnum)
 {
+	mMaxMsqQueSize = msgqnum;
 	initMsg();
+	if (mMsgFd <= 0)
+	{
+		dbge("### event msg fd error, fd=%d", mMsgFd);
+		return -1;
+	}
 	mRunMode = mode;
 	mTid = pthread_self();
 	postMsg(EDM_INIT, p1, p2);
@@ -100,7 +119,7 @@ void EdTask::terminate(void)
 {
 	if (mCtx.mode == MODE_EDEV)
 	{
-		if(mTid != 0)
+		if (mTid != 0)
 		{
 			postMsg(EDM_EXIT, 0, 0);
 			pthread_join(mTid, NULL);
@@ -114,7 +133,6 @@ void EdTask::terminate(void)
 #endif
 	}
 }
-
 
 int EdTask::postEdMsg(u16 msgid, u64 data)
 {
@@ -190,7 +208,7 @@ int EdTask::sendEdMsg(u16 msgid, u64 data)
 		pmsg->pmsg_sig = &cond;
 
 		uint64_t t = 1;
-		int result=0;
+		int result = 0;
 		pmsg->msgid = msgid;
 
 		pmsg->data = data;
@@ -247,12 +265,14 @@ void EdTask::postCloseTask(void)
 
 void EdTask::initMsg()
 {
+#if 0
 	for (int i = 0; i < mMaxMsqQueSize; i++)
 	{
 		EdMsg* pmsg = mEmptyMsgs.allocObj();
 		mEmptyMsgs.push_back(pmsg);
 	}
 	dbgd("msg que size=%d", mEmptyMsgs.size());
+#endif
 	dbgd("    msg que num=%d", mMaxMsqQueSize);
 	mMsgFd = eventfd(0, EFD_NONBLOCK);
 }
@@ -358,9 +378,12 @@ int EdTask::sendObj(u16 msgid, void* obj)
 	return sendEdMsg(msgid, (u64) obj);
 }
 
-int EdTask::OnEventProc(EdMsg& pmsg)
+int EdTask::OnEventProc(EdMsg& msg)
 {
-	return 0;
+	if (mLis)
+		return mLis(msg);
+	else
+		return 0;
 }
 
 void EdTask::dispatchMsgs(int cnt)
@@ -418,7 +441,7 @@ void EdTask::msgevent_cb(edevt_t* pevt, int fd, int events)
 	EdTask* ptask = (EdTask*) pevt->user;
 	int rcnt = read(fd, &cnt, sizeof(cnt));
 	dbgv("eventfd cnt=%d", cnt);
-	if(rcnt == 8)
+	if (rcnt == 8)
 	{
 		ptask->dispatchMsgs(cnt);
 	}
@@ -469,7 +492,6 @@ int EdTask::esOpen(void* user)
 {
 	memset(&mCtx, 0, sizeof(EdContext));
 	mCtx.mode = mRunMode;
-
 
 	if (mCtx.mode == MODE_EDEV)
 	{
@@ -731,7 +753,6 @@ void EdTask::esClose(EdContext* pctx)
 		pctx->epfd = -1;
 	}
 
-
 	// check free resource
 	if (pctx->evt_alloc_cnt > 0)
 	{
@@ -763,12 +784,17 @@ EdMsg* EdTask::allocMsgObj()
 {
 	EdMsg *pmsg;
 	pmsg = mEmptyMsgs.pop_front();
+	if(pmsg==nullptr) {
+		if(mEmptyMsgs.size() + mQuedMsgs.size() < mMaxMsqQueSize) {
+			pmsg = mEmptyMsgs.allocObj();
+		}
+	}
 	return pmsg;
 }
 
 void EdTask::setSendMsgResult(EdMsg& msg, int code)
 {
-	if(msg.sync)
+	if (msg.sync)
 		*msg.psend_result = code;
 }
 
@@ -832,10 +858,14 @@ EdTask* EdTask::getCurrentTask()
 	return _tEdTask;
 }
 
-
 int EdTask::getRunMode()
 {
 	return mRunMode;
+}
+
+void EdTask::setOnListener(function<int(EdMsg&)> lis)
+{
+	mLis = lis;
 }
 
 } // namespace edft

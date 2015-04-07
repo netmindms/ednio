@@ -21,13 +21,13 @@ TEST(basic, task)
 {
 	class MyTask : public EdTask
 	{
-		int OnEventProc(EdMsg* pmsg) override
+		int OnEventProc(EdMsg& msg) override
 		{
-			if(pmsg->msgid == EDM_INIT)
+			if(msg.msgid == EDM_INIT)
 			{
 				postExit();
 			}
-			else if(pmsg->msgid == EDM_CLOSE)
+			else if(msg.msgid == EDM_CLOSE)
 			{
 
 			}
@@ -54,9 +54,9 @@ TEST(basic, timer)
 	class MyTask : public EdTask
 	{
 		EdTimer mTimer;
-		int OnEventProc(EdMsg* pmsg) override
+		int OnEventProc(EdMsg& msg) override
 		{
-			if(pmsg->msgid == EDM_INIT)
+			if(msg.msgid == EDM_INIT)
 			{
 				mTimer.setOnListener([this](EdTimer& timer){
 					etp = system_clock::now();
@@ -67,7 +67,7 @@ TEST(basic, timer)
 				stp = system_clock::now();
 				mTimer.set(wtime);
 			}
-			else if(pmsg->msgid == EDM_CLOSE)
+			else if(msg.msgid == EDM_CLOSE)
 			{
 				auto dur = duration_cast<milliseconds>(etp-stp);
 				dbgd("timer expired, dur=%d", dur.count());

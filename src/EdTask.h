@@ -9,6 +9,7 @@
 
 #include "ednio_config.h"
 
+#include <functional>
 #include <pthread.h>
 #include <list>
 #include <unordered_map>
@@ -64,7 +65,7 @@ class EdTask
 {
 friend class EdEvent;
 public:
-	EdTask(int nmsgs = 1000);
+	EdTask();
 	virtual ~EdTask();
 
 private:
@@ -79,15 +80,21 @@ private:
 	};
 
 	int mMaxMsqQueSize;
-	std::unordered_map<u32, TaskTimer*> mTimerMap;
-
+	unordered_map<u32, TaskTimer*> mTimerMap;
 	int mRunMode;
-
 	EdMutex mMsgMutex;
 	EdObjList<EdMsg> mEmptyMsgs;
 	EdObjList<EdMsg> mQuedMsgs;
-
+	pthread_t mTid;
+	EdContext mCtx;
+	int mMsgFd;
+	edevt_t *mEdMsgEvt;
+	EdObjList<edevt_t> mEvtList;
+	EdObjList<edevt_t> mDummyEvtList;
+	list<EdObject*> mReserveFreeList;
+	function<int(EdMsg&)> mLis;
 	EdMsg* allocMsgObj();
+
 
 public:
 	/**
@@ -108,8 +115,8 @@ public:
 	 */
 	int runMain(int mode = 0);
 
-	int run(int mode, u32 p1, u32 p2);
-	int runMain(int mode, u32 p1, u32 p2);
+	int run(int mode, u32 p1, u32 p2, int msgqnum);
+	int runMain(int mode, u32 p1, u32 p2, int msgqnum);
 
 
 	/**
@@ -196,6 +203,7 @@ public:
 	void reserveFree(EdObject* obj);
 	static EdTask* getCurrentTask();
 	int lastSockErrorNo;
+	void setOnListener(function<int(EdMsg&)> lis);
 
 public:
 	virtual int OnEventProc(EdMsg& pmsg);
@@ -204,14 +212,6 @@ public:
 protected:
 	void postCloseTask(void);
 
-private:
-	pthread_t mTid;
-	EdContext mCtx;
-	int mMsgFd;
-	edevt_t *mEdMsgEvt;
-	EdObjList<edevt_t> mEvtList;
-	EdObjList<edevt_t> mDummyEvtList;
-	std::list<EdObject*> mReserveFreeList;
 
 
 private:

@@ -27,9 +27,9 @@ TEST(socket, smart)
 		string recvstr;
 		EdTimer mTimer;
 
-		int OnEventProc(EdMsg* pmsg) override
+		int OnEventProc(EdMsg& msg) override
 		{
-			if (pmsg->msgid == EDM_INIT)
+			if (msg.msgid == EDM_INIT)
 			{
 				mSvrSock.setOnListener([this](EdSocket &sock, int event)
 				{
@@ -101,7 +101,7 @@ TEST(socket, smart)
 				});
 				mTimer.set(500);
 			}
-			else if (pmsg->msgid == EDM_CLOSE)
+			else if (msg.msgid == EDM_CLOSE)
 			{
 				dbgd("task will be closed...");
 				mSock.close();

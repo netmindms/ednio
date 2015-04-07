@@ -5,12 +5,30 @@ set(EDNIO_VER_MINOR 9)
 set(EDNIO_VER_PATCH 1)
 set(EDNIO_VER ${EDNIO_VER_MAJOR}.${EDNIO_VER_MINOR}.${EDNIO_VER_PATCH} )
 
+# check compiler 
+if( NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  message(FATAL_ERROR "### Error: not supported compiler")
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.7")
+	  message(FATAL_ERROR "### Error: compiler verson is too low")
+	endif()
+endif()	
+
 # set default build option
 set(USE_SSL 0)
 option(SSL "Use SSL library" true)
 if(SSL)
   set(USE_SSL 1)
 endif(SSL)
+
+if(USE_SSL)
+  find_package(OpenSSL)
+	if(NOT OPENSSL_FOUND)
+	  message(FATAL_ERROR "### openssl not found")
+	endif()
+endif()
 
 configure_file (
   "${PROJECT_SOURCE_DIR}/src/ednio_config.h.cmakein"
