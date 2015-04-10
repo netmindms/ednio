@@ -40,7 +40,9 @@ __thread class EdTask *_tEdTask;
 
 EdTask::EdTask()
 {
+#if (!USE_STL_THREAD)
 	mTid = 0;
+#endif
 	mMaxMsqQueSize = 0;
 	memset(&mCtx, 0, sizeof(mCtx));
 #if USE_LIBEVENT
@@ -86,11 +88,15 @@ int EdTask::run(int mode, u32 p1, u32 p2, int msgqnum)
 		return -1;
 	}
 	mRunMode = mode;
+#if (USE_STL_THREAD)
+	mThread = thread(task_thread, (void*) this) ;
+#else
 	auto ret = pthread_create(&mTid, NULL, task_thread, this);
 	if (ret)
 	{
 		return ret;
 	}
+#endif
 	return sendMsg(EDM_INIT, p1, p2);
 }
 
@@ -104,7 +110,9 @@ int EdTask::runMain(int mode, u32 p1, u32 p2, int msgqnum)
 		return -1;
 	}
 	mRunMode = mode;
+#if (!USE_STL_THREAD)
 	mTid = pthread_self();
+#endif
 	postMsg(EDM_INIT, p1, p2);
 	task_thread((void*) this);
 	return 0;
@@ -112,18 +120,30 @@ int EdTask::runMain(int mode, u32 p1, u32 p2, int msgqnum)
 
 void EdTask::wait(void)
 {
+#if USE_STL_THREAD
+	mThread.join();
+#else
 	pthread_join(mTid, NULL);
+#endif
 }
 
 void EdTask::terminate(void)
 {
 	if (mCtx.mode == MODE_EDEV)
 	{
+#if USE_STL_THREAD
+		if(mThread.joinable())
+		{
+			postMsg(EDM_EXIT, 0, 0);
+			mThread.join();
+		}
+#else
 		if (mTid != 0)
 		{
 			postMsg(EDM_EXIT, 0, 0);
 			pthread_join(mTid, NULL);
 		}
+#endif
 	}
 	else
 	{
@@ -185,6 +205,97 @@ int EdTask::postObj(u16 msgid, void *obj)
 	return postEdMsg(msgid, (u64) obj);
 }
 
+#if USE_STL_THREAD
+int EdTask::sendEdMsg(u16 msgid, u64 data)
+{
+	mMsgMutex.lock();
+	if (mMsgFd < 0)
+	{
+		dbgw("### send message fail : msg fd invalid...");
+		mMsgMutex.unlock();
+		return -1;
+	}
+
+	int ret;
+	EdMsg *pmsg;
+	pmsg = allocMsgObj();
+	if (pmsg)
+	{
+#if USE_STL_THREAD
+		condition_variable cv;
+		mutex mtx;
+		pmsg->pcv = &cv;
+		pmsg->pmtx = &mtx;
+#else
+		pthread_cond_t cond;
+		pthread_mutex_t mutex;
+		pthread_mutex_init(&mutex, NULL);
+		pthread_cond_init(&cond, NULL);
+		pmsg->pmsg_sync_mutex = &mutex;
+		pmsg->pmsg_sig = &cond;
+#endif
+
+		uint64_t t = 1;
+		int result = 0;
+		pmsg->msgid = msgid;
+
+		pmsg->data = data;
+		pmsg->sync = 1;
+		pmsg->psend_result = &result;
+
+#if USE_STL_THREAD
+		unique_lock<mutex> lck(mtx);
+		mQuedMsgs.push_back(pmsg);
+#else
+		pthread_mutex_lock(&mutex);
+		mQuedMsgs.push_back(pmsg);
+#endif
+
+		mMsgMutex.unlock();
+
+		ret = write(mMsgFd, &t, sizeof(t));
+		if (ret == 8)
+		{
+			dbgd("send cond waiting....");
+#if USE_STL_THREAD
+			cv.wait(lck);
+			lck.unlock();
+#else
+			pthread_cond_wait(&cond, &mutex);
+			pthread_mutex_unlock(&mutex);
+#endif
+			ret = result;
+		}
+		else
+		{
+#if USE_STL_THREAD
+			lck.unlock();
+#else
+			pthread_mutex_unlock(&mutex);
+#endif
+			dbge("### send msg error, ret=%d", ret);
+			assert(0);
+			ret = -1;
+		}
+#if 0
+		pthread_cond_destroy (&cond);
+		pthread_mutex_destroy(&mutex);
+#endif
+
+	}
+	else
+	{
+		dbge("### Error: message queue full !!!....., eventfd=%d", mMsgFd);
+		assert(mMsgFd == 0);
+
+		mMsgMutex.unlock();
+
+		ret = -1;
+	}
+
+	return ret;
+}
+#else
 int EdTask::sendEdMsg(u16 msgid, u64 data)
 {
 	mMsgMutex.lock();
@@ -250,17 +361,13 @@ int EdTask::sendEdMsg(u16 msgid, u64 data)
 
 	return ret;
 }
+#endif
 
 int EdTask::sendMsg(u16 msgid, u32 p1, u32 p2)
 {
 
 	return sendEdMsg(msgid, (((u64) p2 << 32) | p1));
 
-}
-
-void EdTask::postCloseTask(void)
-{
-	postMsg(EDM_EXIT, 0, 0);
 }
 
 void EdTask::initMsg()
@@ -298,10 +405,17 @@ void EdTask::closeMsg()
 			{
 				if (pmsg->sync)
 				{
+#if USE_STL_THREAD
+					unique_lock<mutex> lck(*pmsg->pmtx);
+					*pmsg->psend_result = -1000;
+					pmsg->pcv->notify_one();
+					lck.unlock();
+#else
 					pthread_mutex_lock(pmsg->pmsg_sync_mutex);
 					*pmsg->psend_result = -1000;
 					pthread_cond_signal(pmsg->pmsg_sig);
 					pthread_mutex_unlock(pmsg->pmsg_sync_mutex);
+#endif
 				}
 				mEmptyMsgs.push_back(pmsg);
 			}
@@ -415,9 +529,15 @@ void EdTask::dispatchMsgs(int cnt)
 			if (pmsg->sync)
 			{
 				dbgv("== send msg recv....id=%d", pmsg->msgid);
+#if USE_STL_THREAD
+				unique_lock<mutex> lck(*pmsg->pmtx);
+				pmsg->pcv->notify_one();
+				lck.unlock();
+#else
 				pthread_mutex_lock(pmsg->pmsg_sync_mutex);
 				pthread_cond_signal(pmsg->pmsg_sig);
 				pthread_mutex_unlock(pmsg->pmsg_sync_mutex);
+#endif
 				dbgv("== send msg recv end....id=%d", pmsg->msgid);
 			}
 

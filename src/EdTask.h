@@ -10,9 +10,12 @@
 #include "ednio_config.h"
 
 #include <functional>
-#include <pthread.h>
 #include <list>
 #include <unordered_map>
+#include <condition_variable>
+#include <thread>
+#include <mutex>
+
 #include "EdType.h"
 #include "EdContext.h"
 #include "EdTimer.h"
@@ -21,6 +24,8 @@
 #include "EdEventFd.h"
 
 #define MSGLIST_ED
+
+
 
 using namespace std;
 
@@ -46,8 +51,15 @@ friend class EdTask;
 private:
 	int sync;
 	int *psend_result;
+#if USE_STL_THREAD
+	//
+	condition_variable *pcv;
+	mutex *pmtx;
+#else
 	pthread_cond_t *pmsg_sig;
 	pthread_mutex_t *pmsg_sync_mutex;
+#endif
+
 } EdMsg;
 
 
@@ -66,6 +78,7 @@ class EdTask
 friend class EdEvent;
 public:
 	EdTask();
+	EdTask(const EdTask &) =delete;
 	virtual ~EdTask();
 
 private:
@@ -85,7 +98,9 @@ private:
 	EdMutex mMsgMutex;
 	EdObjList<EdMsg> mEmptyMsgs;
 	EdObjList<EdMsg> mQuedMsgs;
+#if (!USE_STL_THREAD)
 	pthread_t mTid;
+#endif
 	EdContext mCtx;
 	int mMsgFd;
 	edevt_t *mEdMsgEvt;
@@ -93,6 +108,9 @@ private:
 	EdObjList<edevt_t> mDummyEvtList;
 	list<EdObject*> mReserveFreeList;
 	function<int(EdMsg&)> mLis;
+#if USE_STL_THREAD
+	thread mThread;
+#endif
 	EdMsg* allocMsgObj();
 
 
@@ -208,9 +226,6 @@ public:
 public:
 	virtual int OnEventProc(EdMsg& pmsg);
 
-
-protected:
-	void postCloseTask(void);
 
 
 
