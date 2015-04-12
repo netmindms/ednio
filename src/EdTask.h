@@ -26,6 +26,7 @@
 #define MSGLIST_ED
 
 
+#define USE_STL_THREAD 1
 
 using namespace std;
 
@@ -78,7 +79,7 @@ class EdTask
 friend class EdEvent;
 public:
 	EdTask();
-	EdTask(const EdTask &) =delete;
+	EdTask(const EdTask &){}; // copy constructor do nothing
 	virtual ~EdTask();
 
 private:

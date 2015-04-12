@@ -21,7 +21,6 @@ TEST(task, msg)
 {
 	static EdTask svrTask;
 
-#if 0
 	struct msgdata_t {
 		long rnum;
 		long resp;
@@ -106,12 +105,8 @@ TEST(task, msg)
 		return 0;
 	});
 
-#endif
 	svrTask.run();
 
-	vector<EdTask> tv;
-	tv.resize(1);
-#if 0
 	vector<CliTask> cliTasks;
 	cliTasks.resize(CLITASK_NUM);
 	for (auto &t : cliTasks)
@@ -136,7 +131,6 @@ TEST(task, msg)
 
 
 	ASSERT_EQ(total_cnt, CLITASK_NUM*SEND_CNT);
-#endif
 
 }
 
