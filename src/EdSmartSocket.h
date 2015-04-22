@@ -92,6 +92,7 @@ public:
 	int openUnixSocket(const string &addr, int type=SOCK_TYPE_UNIXSTREAM);
 
 	int connect(const string &addr, int port);
+	int connect(unsigned int ip, int port);
 
 	/**
 	 * @brief Read data from ssl connection
