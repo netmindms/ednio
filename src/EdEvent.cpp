@@ -156,8 +156,12 @@ void EdEvent::changeEvent(uint32_t flags)
 {
 	if (mContext->mode == MODE_EDEV)
 	{
-		// TODO: mEvt null check
-		mTask->changeEdEvent(mEvt, flags);
+		if(mEvt) {
+			mTask->changeEdEvent(mEvt, flags);
+		} else {
+			registerEvent(flags);
+		}
+
 	}
 	else
 	{
