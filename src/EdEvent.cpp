@@ -30,8 +30,14 @@ EdEvent::EdEvent(EdContext* ctx)
 EdEvent::~EdEvent()
 {
 	dbgd("dest : edevent...");
-	// TODO: check if current task is the same as task when open
-	deregisterEvent();
+	if(mEvt) {
+		if(EdTask::getCurrentTask() != mTask) {
+			dbge("### Critical Error: EdEvent object is not closed or event is not unregistered when destroying EdEvent Object.");
+			assert(0);
+		}
+		dbgd("clean up registered EdEvent in destructor...");
+		deregisterEvent();
+	}
 }
 
 void EdEvent::OnEventRead(void)
