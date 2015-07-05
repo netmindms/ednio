@@ -29,26 +29,23 @@ TEST(ipc, mq) {
 
 			ret = rq.create("/testedq", 128, 10);
 			dbgd("create fd=%d", ret);
-			auto attr = rq.dumpAttr();
-			cout << "attr: " << attr << endl;
 			rq.setOnListener([&](int event) {
 				dbgd("sink read event......");
 				if(event == EVT_READ) {
 					string s = rq.recvString();
 					cout << "recv : " << s << endl;
 					if(s=="quit") {
-//						task.postExit();
+						task.postExit();
 					}
 				}
 			});
-#if 1
 			ret = sq.open("/testedq");
 			sq.changeEvent(0);
 			dbgd("open fd=%d", ret);
 			assert(ret>0);
 			sq.send("start");
 			sq.send("---");
-#endif
+			sq.send("quit");
 		} else if(msg.msgid == EDM_CLOSE) {
 			rq.unlink();
 			rq.close();
@@ -58,5 +55,22 @@ TEST(ipc, mq) {
 	});
 	task.run();
 	task.wait();
+
+	class myc: public EdTask {
+		EdTimer timer;
+		int OnEventProc(EdMsg &msg) override {
+			if(msg.msgid == EDM_INIT) {
+				timer.set(1000);
+			}
+			return 0;
+		}
+	};
+
+//	myc *pc = new myc();
+//	pc->run();
+//	pc->terminate();
+//	delete pc;
+	EdTimer timer;
+	timer.set(1000);
 }
 
