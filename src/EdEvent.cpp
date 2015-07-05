@@ -29,8 +29,9 @@ EdEvent::EdEvent(EdContext* ctx)
 
 EdEvent::~EdEvent()
 {
-	deregisterEvent();
 	dbgd("dest : edevent...");
+	// TODO: check if current task is the same as task when open
+	deregisterEvent();
 }
 
 void EdEvent::OnEventRead(void)
@@ -155,6 +156,7 @@ void EdEvent::changeEvent(uint32_t flags)
 {
 	if (mContext->mode == MODE_EDEV)
 	{
+		// TODO: mEvt null check
 		mTask->changeEdEvent(mEvt, flags);
 	}
 	else

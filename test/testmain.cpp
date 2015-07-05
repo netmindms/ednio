@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
 {
 	cout << "Test main" << endl;
 
-	::testing::GTEST_FLAG(filter) = "task.msg";
+	::testing::GTEST_FLAG(filter) = "ipc.mq";
 
 	::testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
