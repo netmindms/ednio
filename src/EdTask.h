@@ -63,6 +63,16 @@ private:
 
 } EdMsg;
 
+class ViewMsg {
+	uint32_t handle;
+	EdMsg msg;
+};
+
+struct ViewMsgCont {
+	int msgid;
+	uint32_t view_handle;
+	ViewMsg* msg;
+};
 
 typedef function<int (EdMsg& msg)> TaskEventListener;
 /**
@@ -109,6 +119,7 @@ private:
 	EdObjList<edevt_t> mDummyEvtList;
 	list<EdObject*> mReserveFreeList;
 	function<int(EdMsg&)> mLis;
+	unordered_map<uint32_t, function<void (EdMsg&)> > mViewMap;
 #if USE_STL_THREAD
 	thread mThread;
 #endif
@@ -223,6 +234,9 @@ public:
 	static EdTask* getCurrentTask();
 	int lastSockErrorNo;
 	void setOnListener(function<int(EdMsg&)> lis);
+	uint32_t createView(function<void (EdMsg&)> lis);
+	void destroyView(uint32_t handle);
+	int postViewMsg(uint32_t handle, int msgid, unique_ptr<ViewMsg> msg);
 
 public:
 	virtual int OnEventProc(EdMsg& pmsg);

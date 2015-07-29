@@ -4,7 +4,11 @@
  *  Created on: 2014. 02. 10.
  *      Author: khkim
  */
+#include <mutex>
+
 #include "ednio_config.h"
+
+using std::unique_lock;
 
 #define DBG_LEVEL DBG_WARN
 #define DBGTAG "etask"
@@ -37,6 +41,14 @@ namespace edft
 {
 
 __thread class EdTask *_tEdTask;
+
+mutex _viewMutex;
+uint32_t newViewHandle() {
+	static uint32_t seed_handle=0;
+	unique_lock<mutex> lck(_viewMutex);
+	if(++seed_handle==0) ++seed_handle;
+	return seed_handle;
+}
 
 EdTask::EdTask()
 {
@@ -522,6 +534,14 @@ void EdTask::dispatchMsgs(int cnt)
 #endif
 				dbgd("EDM_EXIT message .... event loop will be exited....");
 			}
+			else if(pmsg->msgid == EDM_VIEW) {
+				ViewMsgCont *msgcont = (ViewMsgCont*)pmsg->obj;
+				auto itr = mViewMap.find(msgcont->view_handle);
+				if(itr != mViewMap.end()) {
+//					itr->second()
+					//TODO
+				}
+			}
 			else
 			{
 				OnEventProc(*pmsg);
@@ -986,6 +1006,31 @@ int EdTask::getRunMode()
 void EdTask::setOnListener(function<int(EdMsg&)> lis)
 {
 	mLis = lis;
+}
+
+
+uint32_t EdTask::createView(function<void (EdMsg&)> lis) {
+	auto handle = newViewHandle();
+	mViewMap[handle] = lis;
+	return handle;
+}
+
+void EdTask::destroyView(uint32_t handle) {
+	mViewMap.erase(handle);
+}
+
+
+int EdTask::postViewMsg(uint32_t handle, int msgid, unique_ptr<ViewMsg> msg) {
+	ViewMsgCont *tmsg = new ViewMsgCont;
+	tmsg->view_handle = handle;
+	tmsg->msgid = msgid;
+	tmsg->msg = msg.release();
+	int ret = postObj(EDM_VIEW, (void*)tmsg);
+	if(ret) {
+		delete (ViewMsg*)tmsg->msg;
+		delete tmsg;
+	}
+	return ret;
 }
 
 } // namespace edft
