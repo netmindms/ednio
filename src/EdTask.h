@@ -23,8 +23,6 @@
 #include "EdObjList.h"
 #include "EdEventFd.h"
 
-#define MSGLIST_ED
-
 
 #define USE_STL_THREAD 1
 
@@ -48,6 +46,7 @@ typedef struct
 		void *obj;
 		u64 data;
 	};
+	u32 taskque_handle;
 friend class EdTask;
 private:
 	int sync;
@@ -63,18 +62,17 @@ private:
 
 } EdMsg;
 
-class ViewMsg {
-	uint32_t handle;
-	EdMsg msg;
-};
 
-struct ViewMsgCont {
-	int msgid;
-	uint32_t view_handle;
-	ViewMsg* msg;
-};
 
 typedef function<int (EdMsg& msg)> TaskEventListener;
+
+struct ViewInfo {
+	u32 handle;
+	EdTask *pTask;
+	TaskEventListener lis;
+};
+
+
 /**
  * @author netmind
  * @class EdTask
@@ -119,7 +117,7 @@ private:
 	EdObjList<edevt_t> mDummyEvtList;
 	list<EdObject*> mReserveFreeList;
 	function<int(EdMsg&)> mLis;
-	unordered_map<uint32_t, function<void (EdMsg&)> > mViewMap;
+
 #if USE_STL_THREAD
 	thread mThread;
 #endif
@@ -229,14 +227,16 @@ public:
 	void cleanupAllTimer();
 
 	int getRunMode();
-
 	void reserveFree(EdObject* obj);
 	static EdTask* getCurrentTask();
 	int lastSockErrorNo;
 	void setOnListener(function<int(EdMsg&)> lis);
-	uint32_t createView(function<void (EdMsg&)> lis);
-	void destroyView(uint32_t handle);
-	int postViewMsg(uint32_t handle, int msgid, unique_ptr<ViewMsg> msg);
+	int postTaskMsgQue(u32 handle, u16 msgid, u32 p1, u32 p2);
+	int sendTaskMsgQue(u32 handle, u16 msgid, u32 p1, u32 p2);
+	int postTaskMsgObj(u32 handle, u16 msgid, void *obj);
+	int sendTaskMsgObj(u32 handle, u16 msgid, void *obj);
+	static u32 createTaskMsgQue(TaskEventListener lis);
+	static void destroyTaskMsgQue(uint32_t handle);
 
 public:
 	virtual int OnEventProc(EdMsg& pmsg);
@@ -259,12 +259,14 @@ private:
 	void threadMain();
 	void taskProc();
 	void edEventLoop(EdContext* pctx);
+#if USE_LIBEVENT
 	void libeventLoop(EdContext* pctx);
+#endif
 
 	void initMsg();
 	void closeMsg();
-	int sendEdMsg(u16 msgid, u64 data);
-	int postEdMsg(u16 msgid, u64 data);
+	int sendEdMsg(u32 handle, u16 msgid, u64 data);
+	int postEdMsg(u32 view_handle, u16 msgid, u64 data);
 	void dispatchMsgs(int cnt);
 	void callMsgClose();
 	void cleanUpEventResource();
@@ -300,6 +302,5 @@ private:
 };
 
 } // namespace edft
-
 
 #endif /* EDTASK_H_ */

@@ -34,24 +34,18 @@ using std::unique_lock;
 #include "EdEvent.h"
 #include "EdEventFd.h"
 
-
 #define DEFAULT_MSQ_SIZE 1000
 
-namespace edft
-{
+namespace edft {
 
 __thread class EdTask *_tEdTask;
 
-mutex _viewMutex;
-uint32_t newViewHandle() {
-	static uint32_t seed_handle=0;
-	unique_lock<mutex> lck(_viewMutex);
-	if(++seed_handle==0) ++seed_handle;
-	return seed_handle;
-}
+static mutex _gviewMutex;
+static unordered_map<u32, ViewInfo> gViewMap;
 
-EdTask::EdTask()
-{
+
+
+EdTask::EdTask() {
 #if (!USE_STL_THREAD)
 	mTid = 0;
 #endif
@@ -68,40 +62,34 @@ EdTask::EdTask()
 	lastSockErrorNo = 0;
 }
 
-EdTask::~EdTask()
-{
+EdTask::~EdTask() {
 	//closeMsg();
 }
 
-void* EdTask::task_thread(void* arg)
-{
+void* EdTask::task_thread(void* arg) {
 	EdTask* ptask = (EdTask*) arg;
 	ptask->taskProc();
 	return NULL;
 }
 
-int EdTask::run(int mode)
-{
+int EdTask::run(int mode) {
 	return run(mode, 0, 0, DEFAULT_MSQ_SIZE);
 }
 
-int EdTask::runMain(int mode)
-{
+int EdTask::runMain(int mode) {
 	return runMain(mode, 0, 0, DEFAULT_MSQ_SIZE);
 }
 
-int EdTask::run(int mode, u32 p1, u32 p2, int msgqnum)
-{
+int EdTask::run(int mode, u32 p1, u32 p2, int msgqnum) {
 	mMaxMsqQueSize = msgqnum;
 	initMsg();
-	if (mMsgFd <= 0)
-	{
+	if (mMsgFd <= 0) {
 		dbge("### event msg fd error, fd=%d", mMsgFd);
 		return -1;
 	}
 	mRunMode = mode;
 #if (USE_STL_THREAD)
-	mThread = thread(task_thread, (void*) this) ;
+	mThread = thread(task_thread, (void*) this);
 #else
 	auto ret = pthread_create(&mTid, NULL, task_thread, this);
 	if (ret)
@@ -112,12 +100,10 @@ int EdTask::run(int mode, u32 p1, u32 p2, int msgqnum)
 	return sendMsg(EDM_INIT, p1, p2);
 }
 
-int EdTask::runMain(int mode, u32 p1, u32 p2, int msgqnum)
-{
+int EdTask::runMain(int mode, u32 p1, u32 p2, int msgqnum) {
 	mMaxMsqQueSize = msgqnum;
 	initMsg();
-	if (mMsgFd <= 0)
-	{
+	if (mMsgFd <= 0) {
 		dbge("### event msg fd error, fd=%d", mMsgFd);
 		return -1;
 	}
@@ -130,8 +116,7 @@ int EdTask::runMain(int mode, u32 p1, u32 p2, int msgqnum)
 	return 0;
 }
 
-void EdTask::wait(void)
-{
+void EdTask::wait(void) {
 #if USE_STL_THREAD
 	mThread.join();
 #else
@@ -139,13 +124,10 @@ void EdTask::wait(void)
 #endif
 }
 
-void EdTask::terminate(void)
-{
-	if (mCtx.mode == MODE_EDEV)
-	{
+void EdTask::terminate(void) {
+	if (mCtx.mode == MODE_EDEV) {
 #if USE_STL_THREAD
-		if(mThread.joinable())
-		{
+		if (mThread.joinable()) {
 			postMsg(EDM_EXIT, 0, 0);
 			mThread.join();
 		}
@@ -157,8 +139,7 @@ void EdTask::terminate(void)
 		}
 #endif
 	}
-	else
-	{
+	else {
 #if USE_LIBEVENT
 		postExit();
 		wait();
@@ -166,12 +147,10 @@ void EdTask::terminate(void)
 	}
 }
 
-int EdTask::postEdMsg(u16 msgid, u64 data)
-{
+int EdTask::postEdMsg(u32 view_handle, u16 msgid, u64 data) {
 
 	mMsgMutex.lock();
-	if (mMsgFd < 0)
-	{
+	if (mMsgFd < 0) {
 		dbgw("### send message fail : msg fd invalid...");
 		mMsgMutex.unlock();
 		return -1;
@@ -182,18 +161,17 @@ int EdTask::postEdMsg(u16 msgid, u64 data)
 	EdMsg* pmsg;
 	pmsg = allocMsgObj();
 
-	if (pmsg)
-	{
+	if (pmsg) {
 		uint64_t t = 1;
 		pmsg->msgid = msgid;
 		pmsg->data = data;
 		pmsg->sync = 0;
+		pmsg->taskque_handle = view_handle;
 		mQuedMsgs.push_back(pmsg);
 		ret = write(mMsgFd, &t, sizeof(t));
 		ret = (ret == 8) ? 0 : -2;
 	}
-	else
-	{
+	else {
 		dbge("### Error: message queue full !!!....., eventfd=%d", mMsgFd);
 		{
 			// event_fd 가 0 인경우 즉, close_msg_proc 가 호출이 된 경우는 정상적이라 판단한다.
@@ -207,22 +185,18 @@ int EdTask::postEdMsg(u16 msgid, u64 data)
 	return ret;
 }
 
-int EdTask::postMsg(u16 msgid, u32 p1, u32 p2)
-{
-	return postEdMsg(msgid, ((u64) p2 << 32) | p1);
+int EdTask::postMsg(u16 msgid, u32 p1, u32 p2) {
+	return postEdMsg(0, msgid, ((u64) p2 << 32) | p1);
 }
 
-int EdTask::postObj(u16 msgid, void *obj)
-{
-	return postEdMsg(msgid, (u64) obj);
+int EdTask::postObj(u16 msgid, void *obj) {
+	return postEdMsg(0, msgid, (u64) obj);
 }
 
 #if USE_STL_THREAD
-int EdTask::sendEdMsg(u16 msgid, u64 data)
-{
+int EdTask::sendEdMsg(u32 handle, u16 msgid, u64 data) {
 	mMsgMutex.lock();
-	if (mMsgFd < 0)
-	{
+	if (mMsgFd < 0) {
 		dbgw("### send message fail : msg fd invalid...");
 		mMsgMutex.unlock();
 		return -1;
@@ -231,8 +205,8 @@ int EdTask::sendEdMsg(u16 msgid, u64 data)
 	int ret;
 	EdMsg *pmsg;
 	pmsg = allocMsgObj();
-	if (pmsg)
-	{
+	if (pmsg) {
+		pmsg->taskque_handle = handle;
 #if USE_STL_THREAD
 		condition_variable cv;
 		mutex mtx;
@@ -266,8 +240,7 @@ int EdTask::sendEdMsg(u16 msgid, u64 data)
 		mMsgMutex.unlock();
 
 		ret = write(mMsgFd, &t, sizeof(t));
-		if (ret == 8)
-		{
+		if (ret == 8) {
 			dbgd("send cond waiting....");
 #if USE_STL_THREAD
 			cv.wait(lck);
@@ -278,8 +251,7 @@ int EdTask::sendEdMsg(u16 msgid, u64 data)
 #endif
 			ret = result;
 		}
-		else
-		{
+		else {
 #if USE_STL_THREAD
 			lck.unlock();
 #else
@@ -295,8 +267,7 @@ int EdTask::sendEdMsg(u16 msgid, u64 data)
 #endif
 
 	}
-	else
-	{
+	else {
 		dbge("### Error: message queue full !!!....., eventfd=%d", mMsgFd);
 		assert(mMsgFd == 0);
 
@@ -375,15 +346,11 @@ int EdTask::sendEdMsg(u16 msgid, u64 data)
 }
 #endif
 
-int EdTask::sendMsg(u16 msgid, u32 p1, u32 p2)
-{
-
-	return sendEdMsg(msgid, (((u64) p2 << 32) | p1));
-
+int EdTask::sendMsg(u16 msgid, u32 p1, u32 p2) {
+	return sendEdMsg(0, msgid, (((u64) p2 << 32) | p1));
 }
 
-void EdTask::initMsg()
-{
+void EdTask::initMsg() {
 #if 0
 	for (int i = 0; i < mMaxMsqQueSize; i++)
 	{
@@ -396,27 +363,21 @@ void EdTask::initMsg()
 	mMsgFd = eventfd(0, EFD_NONBLOCK);
 }
 
-void EdTask::closeMsg()
-{
+void EdTask::closeMsg() {
 	mMsgMutex.lock();
 	dbgv("close task msg, task=%p, empty=%d, qued=%d", this, mEmptyMsgs.size(), mQuedMsgs.size());
-	if (mMsgFd >= 0)
-	{
+	if (mMsgFd >= 0) {
 		close(mMsgFd);
 		mMsgFd = -1;
 	}
 
 	EdMsg* pmsg;
-	if (mQuedMsgs.size() > 0)
-	{
+	if (mQuedMsgs.size() > 0) {
 		dbgw("#### qued msg exist......cnt=%d", mQuedMsgs.size());
-		for (;;)
-		{
+		for (;;) {
 			pmsg = mQuedMsgs.pop_front();
-			if (pmsg)
-			{
-				if (pmsg->sync)
-				{
+			if (pmsg) {
+				if (pmsg->sync) {
 #if USE_STL_THREAD
 					unique_lock<mutex> lck(*pmsg->pmtx);
 					*pmsg->psend_result = -1000;
@@ -437,12 +398,10 @@ void EdTask::closeMsg()
 
 	}
 
-	for (;;)
-	{
+	for (;;) {
 
 		pmsg = mEmptyMsgs.pop_front();
-		if (pmsg)
-		{
+		if (pmsg) {
 			EdObjList<EdMsg>::freeObj(pmsg);
 		}
 		else
@@ -451,16 +410,13 @@ void EdTask::closeMsg()
 	mMsgMutex.unlock();
 }
 
-int EdTask::setTimer(u32 id, u32 msec, u32 inittime)
-{
+int EdTask::setTimer(u32 id, u32 msec, u32 inittime) {
 	TaskTimer *pt;
-	try
-	{
+	try {
 		TaskTimer* &p = mTimerMap.at(id);
 		pt = p;
 
-	} catch (std::out_of_range &exp)
-	{
+	} catch (std::out_of_range &exp) {
 		pt = new TaskTimer(id);
 		mTimerMap[id] = pt;
 		pt->setUser((void*) this);
@@ -470,11 +426,9 @@ int EdTask::setTimer(u32 id, u32 msec, u32 inittime)
 
 }
 
-void EdTask::killTimer(u32 id)
-{
+void EdTask::killTimer(u32 id) {
 	unordered_map<u32, TaskTimer*>::iterator it = mTimerMap.find(id);
-	if (it != mTimerMap.end())
-	{
+	if (it != mTimerMap.end()) {
 		TaskTimer *p = it->second;
 		p->kill();
 		mTimerMap.erase(it);
@@ -483,13 +437,11 @@ void EdTask::killTimer(u32 id)
 	}
 }
 
-void EdTask::cleanupAllTimer()
-{
+void EdTask::cleanupAllTimer() {
 	TaskTimer *pt;
 	unordered_map<u32, TaskTimer*>::iterator it;
 
-	for (it = mTimerMap.begin(); it != mTimerMap.end(); it++)
-	{
+	for (it = mTimerMap.begin(); it != mTimerMap.end(); it++) {
 		pt = it->second;
 		dbgw("### cleanup pending timer, id=%u", pt->timerId);
 		pt->kill();
@@ -499,32 +451,26 @@ void EdTask::cleanupAllTimer()
 	mTimerMap.clear();
 }
 
-int EdTask::sendObj(u16 msgid, void* obj)
-{
-	return sendEdMsg(msgid, (u64) obj);
+int EdTask::sendObj(u16 msgid, void* obj) {
+	return sendEdMsg(0, msgid, (u64) obj);
 }
 
-int EdTask::OnEventProc(EdMsg& msg)
-{
+int EdTask::OnEventProc(EdMsg& msg) {
 	if (mLis)
 		return mLis(msg);
 	else
 		return 0;
 }
 
-void EdTask::dispatchMsgs(int cnt)
-{
+void EdTask::dispatchMsgs(int cnt) {
 	dbgv("dispatch msgs.....cnt=%d", cnt);
-	for (int i = 0; i < cnt; i++)
-	{
+	for (int i = 0; i < cnt; i++) {
 		EdMsg *pmsg;
 		mMsgMutex.lock();
 		pmsg = mQuedMsgs.pop_front();
 		mMsgMutex.unlock();
-		if (pmsg != NULL)
-		{
-			if (pmsg->msgid == EDM_EXIT)
-			{
+		if (pmsg != NULL) {
+			if (pmsg->msgid == EDM_EXIT) {
 				mCtx.exit_flag = 1;
 #if USE_LIBEVENT
 				if (mCtx.mode == MODE_LIBEVENT)
@@ -534,20 +480,27 @@ void EdTask::dispatchMsgs(int cnt)
 #endif
 				dbgd("EDM_EXIT message .... event loop will be exited....");
 			}
-			else if(pmsg->msgid == EDM_VIEW) {
-				ViewMsgCont *msgcont = (ViewMsgCont*)pmsg->obj;
-				auto itr = mViewMap.find(msgcont->view_handle);
-				if(itr != mViewMap.end()) {
-//					itr->second()
-					//TODO
+//			else if (pmsg->msgid == EDM_VIEW) {
+//				ViewMsgCont *msgcont = (ViewMsgCont*) pmsg->obj;
+//				auto itr = mViewMap.find(msgcont->view_handle);
+//				if (itr != mViewMap.end()) {
+////					itr->second()
+//					//TODO
+//				}
+//			}
+			else {
+				if (pmsg->taskque_handle == 0) {
+					OnEventProc(*pmsg);
+				}
+				else {
+					unique_lock<mutex> lck(_gviewMutex);
+					auto itr = gViewMap.find(pmsg->taskque_handle);
+					if (itr != gViewMap.end()) {
+						itr->second.lis(*pmsg);
+					}
 				}
 			}
-			else
-			{
-				OnEventProc(*pmsg);
-			}
-			if (pmsg->sync)
-			{
+			if (pmsg->sync) {
 				dbgv("== send msg recv....id=%d", pmsg->msgid);
 #if USE_STL_THREAD
 				unique_lock<mutex> lck(*pmsg->pmtx);
@@ -566,8 +519,7 @@ void EdTask::dispatchMsgs(int cnt)
 			mMsgMutex.unlock();
 
 		}
-		else
-		{
+		else {
 			dbge("### unexpected msg que error...");
 			break;
 		}
@@ -575,25 +527,21 @@ void EdTask::dispatchMsgs(int cnt)
 	}
 }
 
-void EdTask::msgevent_cb(edevt_t* pevt, int fd, int events)
-{
+void EdTask::msgevent_cb(edevt_t* pevt, int fd, int events) {
 	uint64_t cnt;
 	EdTask* ptask = (EdTask*) pevt->user;
 	int rcnt = read(fd, &cnt, sizeof(cnt));
 	dbgv("eventfd cnt=%d", cnt);
-	if (rcnt == 8)
-	{
+	if (rcnt == 8) {
 		ptask->dispatchMsgs(cnt);
 	}
 }
 
-void EdTask::postExit(void)
-{
+void EdTask::postExit(void) {
 	postMsg(EDM_EXIT);
 }
 
-void EdTask::callMsgClose()
-{
+void EdTask::callMsgClose() {
 	EdMsg msg;
 	msg.msgid = EDM_CLOSE;
 	OnEventProc(msg);
@@ -614,13 +562,11 @@ void EdTask::libeventMsg_cb(evutil_socket_t fd, short shortInt, void*user)
 }
 #endif
 
-EdTask::TaskTimer::TaskTimer(u32 id)
-{
+EdTask::TaskTimer::TaskTimer(u32 id) {
 	timerId = id;
 }
 
-void EdTask::TaskTimer::OnTimer()
-{
+void EdTask::TaskTimer::OnTimer() {
 	EdTask* ptask = (EdTask*) getUser();
 	EdMsg msg;
 	msg.msgid = EDM_TIMER;
@@ -628,16 +574,13 @@ void EdTask::TaskTimer::OnTimer()
 	ptask->OnEventProc(msg);
 }
 
-int EdTask::esOpen(void* user)
-{
+int EdTask::esOpen(void* user) {
 	memset(&mCtx, 0, sizeof(EdContext));
 	mCtx.mode = mRunMode;
 
-	if (mCtx.mode == MODE_EDEV)
-	{
+	if (mCtx.mode == MODE_EDEV) {
 		mCtx.epfd = epoll_create(10);
-		if (!mCtx.epfd)
-		{
+		if (!mCtx.epfd) {
 			dbge("### epoll open error...");
 			assert(0);
 		}
@@ -653,8 +596,7 @@ int EdTask::esOpen(void* user)
 	return mCtx.epfd;
 }
 
-edevt_t* EdTask::regEdEvent(int fd, uint32_t events, EVENTCB cb, void* user)
-{
+edevt_t* EdTask::regEdEvent(int fd, uint32_t events, EVENTCB cb, void* user) {
 
 	struct epoll_event event;
 	dbgd("esEventReg, fd=%d", fd);
@@ -676,8 +618,7 @@ edevt_t* EdTask::regEdEvent(int fd, uint32_t events, EVENTCB cb, void* user)
 	dbgd("    evt=%p, esevent=%p, events=%0x", pevt, pevt->user, events);
 
 	int ret = epoll_ctl(mCtx.epfd, EPOLL_CTL_ADD, fd, &event);
-	if (ret)
-	{
+	if (ret) {
 		dbge("### epoll_ctl error...ret=%d", ret);
 		freeEvent(pevt);
 		return NULL;
@@ -691,11 +632,9 @@ edevt_t* EdTask::regEdEvent(int fd, uint32_t events, EVENTCB cb, void* user)
 	return pevt;
 }
 
-edevt_t* EdTask::allocEvent(EdContext* psys)
-{
+edevt_t* EdTask::allocEvent(EdContext* psys) {
 	edevt_t *pevt = mEvtList.allocObj();
-	if (pevt)
-	{
+	if (pevt) {
 		memset(pevt, 0, sizeof(edevt_t));
 		pevt->pEdCtx = psys;
 		psys->evt_alloc_cnt++;
@@ -704,26 +643,22 @@ edevt_t* EdTask::allocEvent(EdContext* psys)
 	return pevt;
 }
 
-void EdTask::freeEvent(edevt_t* pevt)
-{
+void EdTask::freeEvent(edevt_t* pevt) {
 	pevt->pEdCtx->evt_alloc_cnt--;
 	mEvtList.freeObj(pevt);
 }
 
-int EdTask::esMain(EdContext* psys)
-{
+int EdTask::esMain(EdContext* psys) {
 	int i;
 	int nfds;
 	struct epoll_event events[MAX_GET_EVENTS];
 
 	dbgv("es main......");
-	for (; psys->exit_flag == 0;)
-	{
+	for (; psys->exit_flag == 0;) {
 		nfds = epoll_wait(psys->epfd, events, MAX_GET_EVENTS, -1);
 		dbgv("nfds = %d ", nfds);
 		struct epoll_event *epv;
-		for (i = 0; i < nfds; i++)
-		{
+		for (i = 0; i < nfds; i++) {
 			epv = events + i;
 			edevt_t* pevt = (edevt_t*) epv->data.ptr;
 			dbgv("event data.ptr=%p, pevtuser=%p, event=%0x", pevt, pevt->user, epv->events);
@@ -749,7 +684,8 @@ int EdTask::esMain(EdContext* psys)
 			// check if event is dereg.
 			cleanUpEventResource();
 		}
-		freeReservedObjs();
+		// TODO: confirm remote this call
+		//freeReservedObjs();
 	}
 	psys->opened = 0;
 	usleep(1);
@@ -757,15 +693,13 @@ int EdTask::esMain(EdContext* psys)
 	return 0;
 }
 
-void EdTask::taskProc()
-{
+void EdTask::taskProc() {
 	dbgd("start thread main, run mode=%d", mRunMode);
 	_tEdTask = this;
 	EdContext* pctx = &mCtx;
 	_tEdContext = pctx;
 	esOpen(this);
-	if (mRunMode == MODE_EDEV)
-	{
+	if (mRunMode == MODE_EDEV) {
 		edEventLoop(pctx);
 	}
 #if USE_LIBEVENT
@@ -780,8 +714,7 @@ void EdTask::taskProc()
 	_tEdContext = NULL;
 }
 
-void EdTask::edEventLoop(EdContext* pctx)
-{
+void EdTask::edEventLoop(EdContext* pctx) {
 	mEdMsgEvt = regEdEvent(mMsgFd, EVT_READ, msgevent_cb, this);
 	// main event loop
 	esMain(pctx);
@@ -789,11 +722,9 @@ void EdTask::edEventLoop(EdContext* pctx)
 
 	deregEdEvent(mEdMsgEvt);
 	cleanUpEventResource();
-	if (mEvtList.size() > 0)
-	{
+	if (mEvtList.size() > 0) {
 		dbge("##### There are still active events..count=%d, Missing closing events???", mEvtList.size());
-		for (edevt_t* pevt = mEvtList.pop_front(); pevt;)
-		{
+		for (edevt_t* pevt = mEvtList.pop_front(); pevt;) {
 			dbge("  missed fd: %d", pevt->fd);
 			pevt = mEvtList.pop_front();
 		}
@@ -828,8 +759,7 @@ void EdTask::libeventLoop(EdContext* pctx)
 }
 #endif
 
-void EdTask::threadMain()
-{
+void EdTask::threadMain() {
 	dbgd("start thread miain......");
 	_tEdTask = this;
 	EdContext* pctx = &mCtx;
@@ -851,11 +781,9 @@ void EdTask::threadMain()
 	dbgd("After EDM_CLOSE, free remaining event resource, size=%d", mDummyEvtList.size());
 	cleanUpEventResource();
 
-	if (mEvtList.size() > 0)
-	{
+	if (mEvtList.size() > 0) {
 		dbge("##### There are still active events..count=%d, Missing closing events???", mEvtList.size());
-		for (edevt_t* pevt = mEvtList.pop_front(); pevt;)
-		{
+		for (edevt_t* pevt = mEvtList.pop_front(); pevt;) {
 			dbge("  missed fd: %d", pevt->fd);
 			pevt = mEvtList.pop_front();
 		}
@@ -867,8 +795,7 @@ void EdTask::threadMain()
 	_tEdContext = NULL;
 }
 
-void EdTask::deregEdEvent(edevt_t* pevt)
-{
+void EdTask::deregEdEvent(edevt_t* pevt) {
 	EdContext* pctx = &mCtx;
 	dbgd("esEventDereg fd=%d", pevt->fd);
 
@@ -884,24 +811,20 @@ void EdTask::deregEdEvent(edevt_t* pevt)
 
 }
 
-void EdTask::esClose(EdContext* pctx)
-{
-	if (pctx->mode == MODE_EDEV)
-	{
+void EdTask::esClose(EdContext* pctx) {
+	if (pctx->mode == MODE_EDEV) {
 		if (pctx->epfd > 0)
 			close(pctx->epfd);
 		pctx->epfd = -1;
 	}
 
 	// check free resource
-	if (pctx->evt_alloc_cnt > 0)
-	{
+	if (pctx->evt_alloc_cnt > 0) {
 		dbge("### Error: event leak....");
 		//assert(0);
 	}
 
-	if (pctx->timer_alloc_cnt > 0)
-	{
+	if (pctx->timer_alloc_cnt > 0) {
 		dbge("### Error: timer leak....");
 		assert(0);
 	}
@@ -909,8 +832,7 @@ void EdTask::esClose(EdContext* pctx)
 	pctx->opened = 0;
 }
 
-int EdTask::changeEdEvent(edevt_t* pevt, uint32_t event)
-{
+int EdTask::changeEdEvent(edevt_t* pevt, uint32_t event) {
 	int ret;
 	struct epoll_event ev;
 	ev.events = event;
@@ -920,40 +842,34 @@ int EdTask::changeEdEvent(edevt_t* pevt, uint32_t event)
 	return ret;
 }
 
-EdMsg* EdTask::allocMsgObj()
-{
+EdMsg* EdTask::allocMsgObj() {
 	EdMsg *pmsg;
 	pmsg = mEmptyMsgs.pop_front();
-	if(pmsg==nullptr) {
-		if(mEmptyMsgs.size() + mQuedMsgs.size() < mMaxMsqQueSize) {
+	if (pmsg == nullptr) {
+		if (mEmptyMsgs.size() + mQuedMsgs.size() < mMaxMsqQueSize) {
 			pmsg = mEmptyMsgs.allocObj();
 		}
 	}
 	return pmsg;
 }
 
-void EdTask::setSendMsgResult(EdMsg& msg, int code)
-{
+void EdTask::setSendMsgResult(EdMsg& msg, int code) {
 	if (msg.sync)
 		*msg.psend_result = code;
 }
 
-void EdTask::cleanUpEventResource()
-{
+void EdTask::cleanUpEventResource() {
 	edevt_t* pevt;
-	for (pevt = mDummyEvtList.pop_front(); pevt;)
-	{
+	for (pevt = mDummyEvtList.pop_front(); pevt;) {
 		dbgd("free event resource=%p", pevt);
 		freeEvent(pevt);
 		pevt = mDummyEvtList.pop_front();
 	}
 }
 
-void EdTask::reserveFree(EdObject* obj)
-{
+void EdTask::reserveFree(EdObject* obj) {
 	dbgd("reserve free obj=%x", obj);
-	if (obj->mIsFree == false)
-	{
+	if (obj->mIsFree == false) {
 		obj->mIsFree = true;
 		mReserveFreeList.push_back(obj);
 #if USE_LIBEVENT
@@ -965,21 +881,17 @@ void EdTask::reserveFree(EdObject* obj)
 	}
 }
 
-void EdTask::freeReservedObjs()
-{
+void EdTask::freeReservedObjs() {
 	EdObject* obj;
-	do
-	{
+	do {
 		dbgd("  remain free=%d", mReserveFreeList.size());
-		if (mReserveFreeList.empty() == false)
-		{
+		if (mReserveFreeList.empty() == false) {
 			obj = mReserveFreeList.front();
 			mReserveFreeList.pop_front();
 			delete obj;
 			dbgd("## delete p=%x", obj);
 		}
-		else
-		{
+		else {
 			break;
 		}
 	} while (true);
@@ -993,44 +905,52 @@ void EdTask::FreeEvent::OnEventFd(int cnt)
 }
 #endif
 
-EdTask* EdTask::getCurrentTask()
-{
+EdTask* EdTask::getCurrentTask() {
 	return _tEdTask;
 }
 
-int EdTask::getRunMode()
-{
+int EdTask::getRunMode() {
 	return mRunMode;
 }
 
-void EdTask::setOnListener(function<int(EdMsg&)> lis)
-{
+void EdTask::setOnListener(function<int(EdMsg&)> lis) {
 	mLis = lis;
 }
 
 
-uint32_t EdTask::createView(function<void (EdMsg&)> lis) {
-	auto handle = newViewHandle();
-	mViewMap[handle] = lis;
-	return handle;
+u32 EdTask::createTaskMsgQue(TaskEventListener lis) {
+	static uint32_t seed_handle = 0;
+	unique_lock<mutex> lck(_gviewMutex);
+	if (++seed_handle == 0)
+		++seed_handle;
+	auto &view = gViewMap[seed_handle];
+	view.pTask = EdTask::getCurrentTask();
+	view.lis = lis;
+	view.handle = seed_handle;
+	return seed_handle;
 }
 
-void EdTask::destroyView(uint32_t handle) {
-	mViewMap.erase(handle);
+void EdTask::destroyTaskMsgQue(uint32_t handle) {
+	unique_lock<mutex> lck(_gviewMutex);
+	gViewMap.erase(handle);
+}
+
+int EdTask::postTaskMsgQue(uint32_t handle, u16 msgid, u32 p1, u32 p2) {
+	return postEdMsg(handle, msgid, ((u64) p2 << 32) | p1);
 }
 
 
-int EdTask::postViewMsg(uint32_t handle, int msgid, unique_ptr<ViewMsg> msg) {
-	ViewMsgCont *tmsg = new ViewMsgCont;
-	tmsg->view_handle = handle;
-	tmsg->msgid = msgid;
-	tmsg->msg = msg.release();
-	int ret = postObj(EDM_VIEW, (void*)tmsg);
-	if(ret) {
-		delete (ViewMsg*)tmsg->msg;
-		delete tmsg;
-	}
-	return ret;
+int EdTask::sendTaskMsgQue(u32 handle, u16 msgid, u32 p1, u32 p2) {
+	return sendEdMsg(handle, msgid, ((u64) p2 << 32) | p1);
+}
+
+
+int EdTask::postTaskMsgObj(u32 handle, u16 msgid, void* obj) {
+	return postEdMsg(handle, msgid, (u64)obj);
+}
+
+int EdTask::sendTaskMsgObj(u32 handle, u16 msgid, void* obj) {
+	return sendEdMsg(handle, msgid, (u64)obj);
 }
 
 } // namespace edft

@@ -20,6 +20,7 @@
 #include "EdTimer.h"
 #include "EdTime.h"
 #include "EdSmartSocket.h"
+#include "EdTaskMsgQue.h"
 #if USE_SSL
 #include "edssl/EdSSLContext.h"
 #include "edssl/EdSSLSocket.h"
