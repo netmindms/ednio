@@ -89,3 +89,35 @@ TEST(basic, timer)
 	FDCHK_E()
 }
 
+TEST(timer, perf)
+{
+	EdTask task;
+	EdTimer timer;
+	int hitcount=0;
+	task.setOnListener([&](EdMsg& msg){
+		if(msg.msgid == EDM_INIT) {
+			timer.setOnListener([&](EdTimer &timer){
+				usleep(10*1000);
+				hitcount++;
+			});
+			timer.set(33);
+			task.setTimer(1, 10000);
+			cout << "start timer for 10 sec" << endl;
+		}
+		else if(msg.msgid == EDM_CLOSE) {
+
+		}
+		else if(msg.msgid == EDM_TIMER) {
+			task.killTimer(1);
+			timer.kill();
+			cout << "timer end" << endl;
+			cout << "hitcount: " << hitcount << endl;
+			if(hitcount>313 && hitcount<293)
+				assert(0);
+			task.postExit();
+		}
+		return 0;
+	});
+	task.runMain();
+}
+

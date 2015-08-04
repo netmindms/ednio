@@ -12,7 +12,7 @@ TEST(task, taskmsgque)
 
 	EdTask task;
 	EdTaskMsgQue mq;
-	uint32_t handle1, handle2;
+	uint32_t handle1, handle2, handle3;
 	task.setOnListener([&](EdMsg &msg){
 		if(msg.msgid == EDM_INIT) {
 			cout << "task init..." << endl;
@@ -31,14 +31,15 @@ TEST(task, taskmsgque)
 			});
 			task.postTaskMsgQue(handle1, UM_MSG1, 0, 0);
 
-			mq.open([&](EdMsg& msg){
+			handle3 = mq.open([&](EdMsg& msg){
 				if(msg.msgid == UM_MSG2) {
 					cout << "task message queue: message received..." << endl;
 					task.postExit();
 				}
 				return 0;
 			});
-			mq.postMsg(UM_MSG2, 0, 0);
+//			mq.postMsg(UM_MSG2, 0, 0);
+			task.postTaskMsgQue(handle3, UM_MSG2, 0, 0);
 		}
 		else if(msg.msgid == EDM_CLOSE){
 			task.destroyTaskMsgQue(handle1);
