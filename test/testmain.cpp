@@ -15,10 +15,9 @@ using namespace edft;
 
 int main(int argc, char* argv[])
 {
-	cout << "Test main" << endl;
-
-	::testing::GTEST_FLAG(filter) = "timer.perf";
+//	::testing::GTEST_FLAG(filter) = "timer.perf";
 //	::testing::GTEST_FLAG(filter) = "ipc.mq";
+	::testing::GTEST_FLAG(filter) = "msg.*";
 
 	::testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();

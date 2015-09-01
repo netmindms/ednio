@@ -43,8 +43,6 @@ __thread class EdTask *_tEdTask;
 static mutex _gviewMutex;
 static unordered_map<u32, ViewInfo> gViewMap;
 
-
-
 EdTask::EdTask() {
 #if (!USE_STL_THREAD)
 	mTid = 0;
@@ -147,7 +145,7 @@ void EdTask::terminate(void) {
 	}
 }
 
-int EdTask::postEdMsg(u32 view_handle, u16 msgid, u64 data) {
+int EdTask::postEdMsg(u32 view_handle, u16 msgid, EdMsg &tmsg, int type) {
 
 	mMsgMutex.lock();
 	if (mMsgFd < 0) {
@@ -164,7 +162,12 @@ int EdTask::postEdMsg(u32 view_handle, u16 msgid, u64 data) {
 	if (pmsg) {
 		uint64_t t = 1;
 		pmsg->msgid = msgid;
-		pmsg->data = data;
+		if (type == 0) {
+			pmsg->data = tmsg.data;
+		}
+		else {
+			pmsg->msgobj = move(tmsg.msgobj);
+		}
 		pmsg->sync = 0;
 		pmsg->taskque_handle = view_handle;
 		mQuedMsgs.push_back(pmsg);
@@ -186,15 +189,26 @@ int EdTask::postEdMsg(u32 view_handle, u16 msgid, u64 data) {
 }
 
 int EdTask::postMsg(u16 msgid, u32 p1, u32 p2) {
-	return postEdMsg(0, msgid, ((u64) p2 << 32) | p1);
+	EdMsg tmsg;
+	tmsg.p1 = p1;
+	tmsg.p2 = p2;
+	return postEdMsg(0, msgid, tmsg, 0);
 }
 
 int EdTask::postObj(u16 msgid, void *obj) {
-	return postEdMsg(0, msgid, (u64) obj);
+	EdMsg tmsg;
+	tmsg.obj = obj;
+	return postEdMsg(0, msgid, tmsg, 0);
+}
+
+int EdTask::postObj(u16 msgid, upEdMsgObj obj) {
+	EdMsg tmsg;
+	tmsg.msgobj = move(obj);
+	return postEdMsg(0, msgid, tmsg, 1);
 }
 
 #if USE_STL_THREAD
-int EdTask::sendEdMsg(u32 handle, u16 msgid, u64 data) {
+int EdTask::sendEdMsg(u32 handle, u16 msgid, EdMsg &tmsg, int type) {
 	mMsgMutex.lock();
 	if (mMsgFd < 0) {
 		dbgw("### send message fail : msg fd invalid...");
@@ -224,8 +238,10 @@ int EdTask::sendEdMsg(u32 handle, u16 msgid, u64 data) {
 		uint64_t t = 1;
 		int result = 0;
 		pmsg->msgid = msgid;
-
-		pmsg->data = data;
+		if (type == 0)
+			pmsg->data = tmsg.data;
+		else
+			pmsg->msgobj = move(tmsg.msgobj);
 		pmsg->sync = 1;
 		pmsg->psend_result = &result;
 
@@ -305,7 +321,8 @@ int EdTask::sendEdMsg(u16 msgid, u64 data)
 		int result = 0;
 		pmsg->msgid = msgid;
 
-		pmsg->data = data;
+		if(type==0) pmsg->data = tmsg.data;
+		else pmsg->msgobj = move(tmsg.msgobj);
 		pmsg->sync = 1;
 		pmsg->psend_result = &result;
 
@@ -347,7 +364,10 @@ int EdTask::sendEdMsg(u16 msgid, u64 data)
 #endif
 
 int EdTask::sendMsg(u16 msgid, u32 p1, u32 p2) {
-	return sendEdMsg(0, msgid, (((u64) p2 << 32) | p1));
+	EdMsg tmsg;
+	tmsg.p1 = p1;
+	tmsg.p2 = p2;
+	return sendEdMsg(0, msgid, tmsg, 0);
 }
 
 void EdTask::initMsg() {
@@ -452,7 +472,15 @@ void EdTask::cleanupAllTimer() {
 }
 
 int EdTask::sendObj(u16 msgid, void* obj) {
-	return sendEdMsg(0, msgid, (u64) obj);
+	EdMsg tmsg;
+	tmsg.obj = obj;
+	return sendEdMsg(0, msgid, tmsg, 0);
+}
+
+int EdTask::sendObj(u16 msgid, upEdMsgObj obj) {
+	EdMsg tmsg;
+	tmsg.msgobj = move(obj);
+	return sendEdMsg(0, msgid, tmsg, 1);
 }
 
 int EdTask::OnEventProc(EdMsg& msg) {
@@ -493,7 +521,7 @@ void EdTask::dispatchMsgs(int cnt) {
 					OnEventProc(*pmsg);
 				}
 				else {
-					unique_lock<mutex> lck(_gviewMutex);
+					lock_guard<mutex> lck(_gviewMutex);
 					auto itr = gViewMap.find(pmsg->taskque_handle);
 					if (itr != gViewMap.end()) {
 						itr->second.lis(*pmsg);
@@ -917,10 +945,9 @@ void EdTask::setOnListener(function<int(EdMsg&)> lis) {
 	mLis = lis;
 }
 
-
 u32 EdTask::createTaskMsgQue(TaskEventListener lis) {
 	static uint32_t seed_handle = 0;
-	unique_lock<mutex> lck(_gviewMutex);
+	lock_guard<mutex> lck(_gviewMutex);
 	if (++seed_handle == 0)
 		++seed_handle;
 	auto &view = gViewMap[seed_handle];
@@ -931,26 +958,33 @@ u32 EdTask::createTaskMsgQue(TaskEventListener lis) {
 }
 
 void EdTask::destroyTaskMsgQue(uint32_t handle) {
-	unique_lock<mutex> lck(_gviewMutex);
+	lock_guard<mutex> lck(_gviewMutex);
 	gViewMap.erase(handle);
 }
 
 int EdTask::postTaskMsgQue(uint32_t handle, u16 msgid, u32 p1, u32 p2) {
-	return postEdMsg(handle, msgid, ((u64) p2 << 32) | p1);
+	EdMsg tmsg;
+	tmsg.p1 = p1, tmsg.p2 = p2;
+	return postEdMsg(handle, msgid, tmsg, 0);
 }
-
 
 int EdTask::sendTaskMsgQue(u32 handle, u16 msgid, u32 p1, u32 p2) {
-	return sendEdMsg(handle, msgid, ((u64) p2 << 32) | p1);
+	EdMsg tmsg;
+	tmsg.p1 = p1, tmsg.p2 = p2;
+	return sendEdMsg(handle, msgid, tmsg, 0);
 }
 
-
 int EdTask::postTaskMsgObj(u32 handle, u16 msgid, void* obj) {
-	return postEdMsg(handle, msgid, (u64)obj);
+	EdMsg tmsg;
+	tmsg.obj = obj;
+	return postEdMsg(handle, msgid, tmsg, 0);
 }
 
 int EdTask::sendTaskMsgObj(u32 handle, u16 msgid, void* obj) {
-	return sendEdMsg(handle, msgid, (u64)obj);
+	EdMsg tmsg;
+	tmsg.obj = obj;
+	return sendEdMsg(handle, msgid, tmsg, 0);
 }
 
 } // namespace edft
+

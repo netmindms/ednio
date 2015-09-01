@@ -17,7 +17,7 @@ using namespace std;
 #define CLITASK_NUM 10L
 #define SEND_CNT (1000000L/CLITASK_NUM)
 
-TEST(task, msg)
+TEST(msg, basic)
 {
 	static EdTask svrTask;
 
@@ -134,7 +134,38 @@ TEST(task, msg)
 
 }
 
+TEST(msg, msgobj) {
+	EdTask task;
+	string msg_name;
 
+	class MyMsg: public EdMsgObj {
+	public:
+		string name;
+	};
+
+	task.setOnListener([&](EdMsg &msg){
+		if(msg.msgid==EDM_INIT) {
+
+		}
+		else if(msg.msgid==EDM_USER) {
+			auto msgobj = FETCH_MSGOBJ(MyMsg, msg);
+			msg_name = move(msgobj->name);
+		}
+		else if(msg.msgid==EDM_USER+1) {
+			string* pstr = (string*)msg.obj;
+			*pstr = msg_name;
+		}
+		return 0;
+	});
+	task.run();
+	unique_ptr<MyMsg> msgobj( new MyMsg );
+	msgobj->name = "james";
+	task.postObj(EDM_USER, move(msgobj));
+	string recv_name;
+	task.sendObj(EDM_USER+1, &recv_name);
+	ASSERT_EQ(recv_name, "james");
+	task.terminate();
+}
 
 
 

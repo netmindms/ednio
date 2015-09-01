@@ -22,6 +22,7 @@
 #include "EdMutex.h"
 #include "EdObjList.h"
 #include "EdEventFd.h"
+#include "EdMsgObj.h"
 
 
 #define USE_STL_THREAD 1
@@ -46,6 +47,7 @@ typedef struct
 		void *obj;
 		u64 data;
 	};
+	upEdMsgObj msgobj;
 	u32 taskque_handle;
 friend class EdTask;
 private:
@@ -62,6 +64,7 @@ private:
 
 } EdMsg;
 
+#define FETCH_MSGOBJ(T, MSG) unique_ptr<T>((T*)MSG.msgobj.release())
 
 
 typedef function<int (EdMsg& msg)> TaskEventListener;
@@ -194,6 +197,7 @@ public:
 	 * @return
 	 */
 	int postObj(u16 msgid, void *obj);
+	int postObj(u16 msgid, upEdMsgObj obj);
 
 	/**
 	 * @brief Send a message to this task with object pointer.
@@ -203,6 +207,7 @@ public:
 	 * @return If fail, return a value<0 or the value specified by setSendMsgResult().
 	 */
 	int sendObj(u16 msgid, void *obj);
+	int sendObj(u16 msgid, upEdMsgObj obj);
 
 	EdContext* getEdContext(void)
 	{
@@ -231,6 +236,8 @@ public:
 	static EdTask* getCurrentTask();
 	int lastSockErrorNo;
 	void setOnListener(function<int(EdMsg&)> lis);
+
+	// task messag queue
 	int postTaskMsgQue(u32 handle, u16 msgid, u32 p1, u32 p2);
 	int sendTaskMsgQue(u32 handle, u16 msgid, u32 p1, u32 p2);
 	int postTaskMsgObj(u32 handle, u16 msgid, void *obj);
@@ -240,9 +247,6 @@ public:
 
 public:
 	virtual int OnEventProc(EdMsg& pmsg);
-
-
-
 
 private:
 	edevt_t* regEdEvent(int fd, uint32_t events, EVENTCB cb, void* user);
@@ -265,8 +269,8 @@ private:
 
 	void initMsg();
 	void closeMsg();
-	int sendEdMsg(u32 handle, u16 msgid, u64 data);
-	int postEdMsg(u32 view_handle, u16 msgid, u64 data);
+	int sendEdMsg(u32 handle, u16 msgid, EdMsg &tmsg, int type);
+	int postEdMsg(u32 view_handle, u16 msgid, EdMsg &tmsg, int type);
 	void dispatchMsgs(int cnt);
 	void callMsgClose();
 	void cleanUpEventResource();
