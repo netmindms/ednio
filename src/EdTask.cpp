@@ -38,7 +38,7 @@ using std::unique_lock;
 
 namespace edft {
 
-__thread class EdTask *_tEdTask;
+__thread class EdTask *_tEdTask=nullptr;
 
 static mutex _gviewMutex;
 static unordered_map<u32, ViewInfo> gViewMap;

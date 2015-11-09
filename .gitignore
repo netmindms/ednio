@@ -14,3 +14,4 @@ src/ednio_config.h
 tags
 test/ednio
 /Release/
+.metadata

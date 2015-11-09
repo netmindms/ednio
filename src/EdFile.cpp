@@ -58,7 +58,7 @@ int EdFile::openFile(const string &path, int flags, u32 mode)
 	if (mode == 0)
 	{
 		if (flags & O_CREAT)
-			mode = (S_IWUSR | S_IRUSR);
+			mode = (S_IWUSR | S_IRUSR | S_IRGRP | S_IWGRP | S_IROTH);
 	}
 	mFd = open(path.c_str(), flags, mode);
 	return mFd;
