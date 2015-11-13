@@ -84,6 +84,7 @@ public:
 
 	int sendto(const char* destaddr, unsigned int addrlen, const void* buf, int len);
 	int sendto(const char* destaddr, const void* buf, int len);
+	int sendto(uint32_t ip, int port, const void* buf, int len);
 
 	/**
 	 * @brief Connect to peer socket.

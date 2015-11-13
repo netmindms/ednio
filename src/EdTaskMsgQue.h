@@ -21,6 +21,7 @@ public:
 	int sendMsg(u16 msgid, u32 p1, u32 p2);
 	int postObj(u16 msgid, void* obj);
 	int sendObj(u16 msgid, void* obj);
+	uint32_t getHandle() { return mHandle; }
 private:
 	uint32_t mHandle;
 	EdTask *mTask;

@@ -55,22 +55,5 @@ TEST(ipc, mq) {
 	});
 	task.run();
 	task.wait();
-
-	class myc: public EdTask {
-		EdTimer timer;
-		int OnEventProc(EdMsg &msg) override {
-			if(msg.msgid == EDM_INIT) {
-				timer.set(1000);
-			}
-			return 0;
-		}
-	};
-
-//	myc *pc = new myc();
-//	pc->run();
-//	pc->terminate();
-//	delete pc;
-	EdTimer timer;
-	timer.set(1000);
 }
 

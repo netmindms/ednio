@@ -120,7 +120,7 @@ void EdSmartSocket::setOnListener(SmartSocketLis lis) {
 	mOnLis = lis;
 }
 
-int EdSmartSocket::recvPacket(void* buf, int bufsize) {
+int EdSmartSocket::recvPacket(void* buf, int bufsize) { // TODO: return count type consider
 	int rret;
 	if (mMode == SOCKET_NORMAL) {
 		rret = mSock.recv(buf, bufsize);
@@ -336,6 +336,9 @@ int EdSmartSocket::openUnixSocket(const string &addr, int type) {
 				mSock.close();
 				return -1;
 			}
+			return fd;
+		}
+		else {
 			return fd;
 		}
 	}

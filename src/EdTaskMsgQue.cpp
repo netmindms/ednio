@@ -37,18 +37,22 @@ void EdTaskMsgQue::close() {
 
 
 int EdTaskMsgQue::postMsg(u16 msgid, u32 p1, u32 p2) {
+	assert(mHandle!=0);
 	return mTask->postTaskMsgQue(mHandle, msgid, p1, p2);
 }
 
 int EdTaskMsgQue::sendMsg(u16 msgid, u32 p1, u32 p2) {
+	assert(mHandle!=0);
 	return mTask->sendTaskMsgQue(mHandle, msgid, p1, p2);
 }
 
 int EdTaskMsgQue::postObj(u16 msgid, void* obj) {
+	assert(mHandle!=0);
 	return mTask->postTaskMsgObj(mHandle, msgid, obj);
 }
 
 int EdTaskMsgQue::sendObj(u16 msgid, void* obj) {
+	assert(mHandle!=0);
 	return mTask->sendTaskMsgObj(mHandle, msgid, obj);
 }
 

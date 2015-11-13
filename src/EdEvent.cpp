@@ -89,6 +89,7 @@ void EdEvent::registerEvent(uint32_t flag)
 
 void EdEvent::deregisterEvent(void)
 {
+	assert(mTask == EdTask::getCurrentTask());
 	if (mIsReg == false)
 	{
 		return;

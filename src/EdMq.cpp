@@ -8,6 +8,7 @@
 #define DBG_LEVEL DBG_DEBUG
 #define DBGTAG "MSGQU"
 
+#include <string.h>
 #include <errno.h>
 #include <sstream>
 #include <streambuf>
@@ -61,7 +62,7 @@ int EdMq::open(const char* name, int oflag, mode_t mode, struct mq_attr* attr) {
 	mQueueName = name;
 	setFd(mMqd);
 	uint32_t eflag=0;
-	uint32_t rw = oflag & 0x03;
+//	uint32_t rw = oflag & 0x03;
 	if(oflag & O_CREAT) {
 		// In case of creating, consider the role as msg sing.
 		// so, let the queue watch read event
@@ -163,7 +164,7 @@ string EdMq::dumpAttr() {
 	if(ret)
 		return "";
 	char buf[500];
-	sprintf(buf, "flags: %0x\n"
+	sprintf(buf, "flags: %0lx\n"
 				"maxmsg: %ld\n"
 				"msgsize: %ld\n"
 				"curmsggs: %ld\n",

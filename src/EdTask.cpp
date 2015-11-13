@@ -116,7 +116,8 @@ int EdTask::runMain(int mode, u32 p1, u32 p2, int msgqnum) {
 
 void EdTask::wait(void) {
 #if USE_STL_THREAD
-	mThread.join();
+	if(mThread.joinable())
+		mThread.join();
 #else
 	pthread_join(mTid, NULL);
 #endif
@@ -521,11 +522,16 @@ void EdTask::dispatchMsgs(int cnt) {
 					OnEventProc(*pmsg);
 				}
 				else {
-					lock_guard<mutex> lck(_gviewMutex);
+					ViewInfo *pinfo;
+					_gviewMutex.lock();
 					auto itr = gViewMap.find(pmsg->taskque_handle);
 					if (itr != gViewMap.end()) {
-						itr->second.lis(*pmsg);
+						pinfo = &itr->second;
+					} else {
+						pinfo = nullptr;
 					}
+					_gviewMutex.unlock();
+					if(pinfo) pinfo->lis(*pmsg);
 				}
 			}
 			if (pmsg->sync) {
@@ -689,7 +695,8 @@ int EdTask::esMain(EdContext* psys) {
 		for (i = 0; i < nfds; i++) {
 			epv = events + i;
 			edevt_t* pevt = (edevt_t*) epv->data.ptr;
-			dbgv("event data.ptr=%p, pevtuser=%p, event=%0x", pevt, pevt->user, epv->events);
+			assert(pevt);
+			dbgv("event data.ptr=%p, pevtuser=%p, event=%0x, fd=%d", pevt, pevt->user, epv->events, pevt->fd);
 
 			if (pevt->isReg == false)
 				goto __release_event__;
@@ -709,9 +716,11 @@ int EdTask::esMain(EdContext* psys) {
 				goto __release_event__;
 
 			__release_event__:
+				;
 			// check if event is dereg.
-			cleanUpEventResource();
+//			cleanUpEventResource(); // TODO:
 		}
+		cleanUpEventResource(); // TODO: move to here
 		// TODO: confirm remote this call
 		//freeReservedObjs();
 	}

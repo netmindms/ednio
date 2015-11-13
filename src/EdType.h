@@ -9,6 +9,7 @@
 #define EDTYPE_H_
 #include "ednio_config.h"
 
+#include <stdlib.h>
 #include <functional>
 #include <memory>
 #include <stdint.h>

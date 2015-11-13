@@ -280,6 +280,15 @@ int EdSocket::send(const void* buf, int size)
 	return write(mFd, buf, size);
 }
 
+int EdSocket::sendto(uint32_t ip, int port, const void* buf, int len) {
+	struct sockaddr_in inaddr;
+	inaddr.sin_family = AF_INET;
+	inaddr.sin_addr.s_addr = ip;
+	inaddr.sin_port = htons(port);
+	socklen_t slen = sizeof(inaddr);
+	return ::sendto(getFd(), buf, len, 0, (struct sockaddr*)&inaddr, slen);
+}
+
 int EdSocket::sendto(const char* destaddr, unsigned int addrlen, const void* buf, int len)
 {
 	sockaddr_un un;
