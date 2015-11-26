@@ -51,7 +51,7 @@ endif(SSL)
 add_library(ednio SHARED ${ALLSRCS})
 add_library(ednio_static STATIC ${ALLSRCS})
 
-target_link_libraries(ednio "pthread")
+target_link_libraries(ednio "pthread" "rt")
 if(SSL)
 	target_link_libraries(ednio "ssl" )
 endif(SSL)
