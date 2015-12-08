@@ -54,8 +54,8 @@ void EdTimer::kill(void)
 {
 	if (mFd < 0)
 		return;
-	close(mFd);
 	deregisterEvent();
+	close(mFd);
 	mFd = -1;
 }
 

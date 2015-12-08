@@ -70,8 +70,8 @@ void EdSignalFd::close()
 {
 	if(mFd>=0)
 	{
-		::close(mFd);
 		deregisterEvent();
+		::close(mFd);
 		mFd = -1;
 	}
 }

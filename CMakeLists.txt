@@ -12,7 +12,7 @@ endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.7")
-	  message(FATAL_ERROR "### Error: compiler verson is too low")
+	  message(FATAL_ERROR "### Error: compiler version requirement not fulfilled")
 	endif()
 endif()	
 

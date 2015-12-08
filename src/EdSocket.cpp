@@ -103,12 +103,12 @@ void EdSocket::close()
 	if (mFd >= 0)
 	{
 		dbgd("close socket, fd=%d", mFd);
-		::close(mFd);
 		if (mTask != NULL)
 		{
 			mTask->lastSockErrorNo = 0;
 		}
 		deregisterEvent();
+		::close(mFd);
 		mFd = -1;
 		mStatus = SOCK_STATUS_DISCONNECTED;
 	}
@@ -414,11 +414,11 @@ void EdSocket::OnEventWrite()
 
 void EdSocket::OnEventHangup(void)
 {
-	dbgd("#### on event hangup");
+	dbgd("#### on event hangup, fd=%d", mFd);
 	int sockerr;
 	socklen_t socklen = sizeof(sockerr);
 	getsockopt(mFd, SOL_SOCKET, SO_ERROR, &sockerr, &socklen);
-	dbgv("    sock error=%d", sockerr);
+	dbgd("    sock error=%d", sockerr);
 	if (sockerr != 0)
 	{
 		if (sockerr == ECONNREFUSED)
