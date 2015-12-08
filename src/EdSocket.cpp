@@ -5,7 +5,7 @@
  *      Author: khkim
  */
 #define DBGTAG "EDSCK"
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_DEBUG
 
 #include <string>
 #include "EdTask.h"
