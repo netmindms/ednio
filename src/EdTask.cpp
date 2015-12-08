@@ -4,13 +4,8 @@
  *  Created on: 2014. 02. 10.
  *      Author: khkim
  */
-#include <mutex>
 
-#include "ednio_config.h"
-
-using std::unique_lock;
-
-#define DBG_LEVEL DBG_WARN
+#define DBG_LEVEL DBG_VERBOSE
 #define DBGTAG "etask"
 
 #if USE_LIBEVENT
@@ -18,6 +13,7 @@ using std::unique_lock;
 #include <event2/event.h>
 #endif
 
+#include <cstdint>
 #include <sys/epoll.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -27,12 +23,15 @@ using std::unique_lock;
 #include <stdexcept>
 #include <string.h>
 #include <fcntl.h>
+#include <execinfo.h>
 
 #include "EdNio.h"
 #include "EdTask.h"
 #include "edslog.h"
 #include "EdEvent.h"
 #include "EdEventFd.h"
+
+using std::unique_lock;
 
 #define DEFAULT_MSQ_SIZE 1000
 
@@ -507,7 +506,7 @@ void EdTask::dispatchMsgs(int cnt) {
 					event_base_loopexit(mCtx.eventBase, NULL);
 				}
 #endif
-				dbgd("EDM_EXIT message .... event loop will be exited....");
+				dbgd("EDM_EXIT message .... event loop will be exited...., ptask=%p", this);
 			}
 //			else if (pmsg->msgid == EDM_VIEW) {
 //				ViewMsgCont *msgcont = (ViewMsgCont*) pmsg->obj;
@@ -696,8 +695,28 @@ int EdTask::esMain(EdContext* psys) {
 			epv = events + i;
 			edevt_t* pevt = (edevt_t*) epv->data.ptr;
 			assert(pevt);
-			dbgv("event data.ptr=%p, pevtuser=%p, event=%0x, fd=%d", pevt, pevt->user, epv->events, pevt->fd);
+			dbgd("event data.ptr=%p, pevtuser=%p, event=%0x, obj_fd=%d", pevt, pevt->user, epv->events, pevt->fd);
+			// test
+			if(pevt->fd==0) {
+#if 0
+				void *buffer[100];
+				int j, nptrs;
+				nptrs = backtrace(buffer, 100);
+				char **strings = backtrace_symbols(buffer, nptrs);
+				strings = backtrace_symbols(buffer, nptrs);
+				if (strings == NULL) {
+					perror("backtrace_symbols");
+					exit(EXIT_FAILURE);
+				}
 
+				for (j = 0; j < nptrs; j++)
+					printf("%s\n", strings[j]);
+
+				free(strings);
+#endif
+				dbge("#### error............");
+				assert(0);
+			}
 			if (pevt->isReg == false)
 				goto __release_event__;
 			if (epv->events & EPOLLIN)
@@ -836,11 +855,10 @@ void EdTask::deregEdEvent(edevt_t* pevt) {
 	EdContext* pctx = &mCtx;
 	dbgd("esEventDereg fd=%d", pevt->fd);
 
-	struct epoll_event event;
-	memset(&event, 0, sizeof(event));
-	epoll_ctl(mCtx.epfd, EPOLL_CTL_DEL, pevt->fd, &event);
+	auto ret = epoll_ctl(mCtx.epfd, EPOLL_CTL_DEL, pevt->fd, nullptr);
+	assert(ret==0);
 	pctx->evt_count--;
-	dbgv("== dereg event, event_obj=%p, count=%d", pevt, pctx->evt_count);
+	dbgd("== dereg event, event_obj=%p, count=%d, ptask=%p, ret=%d, errno=%d", pevt, pctx->evt_count, this, ret, errno);
 	pevt->isReg = false;
 	mEvtList.remove(pevt);
 
@@ -899,6 +917,8 @@ void EdTask::cleanUpEventResource() {
 	edevt_t* pevt;
 	for (pevt = mDummyEvtList.pop_front(); pevt;) {
 		dbgd("free event resource=%p", pevt);
+		// test
+		pevt->fd = 0;
 		freeEvent(pevt);
 		pevt = mDummyEvtList.pop_front();
 	}
