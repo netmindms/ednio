@@ -8,7 +8,7 @@
 #include "ednio_config.h"
 
 #define DBGTAG "bffrd"
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 
 #include "edslog.h"
 #include "EdBuffredFileReader.h"
