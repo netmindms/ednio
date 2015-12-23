@@ -7,8 +7,8 @@
 #define DBG_LEVEL DBG_DEBUG
 #define DBGTAG "test"
 #include <gtest/gtest.h>
-#include <ednio/EdNio.h>
-#include <ednio/EdMq.h>
+#include "../src/EdNio.h"
+#include "../src/EdMq.h"
 
 using namespace edft;
 using namespace std;

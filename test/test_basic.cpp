@@ -9,7 +9,7 @@
 #define DBG_LEVEL DBG_DEBUG
 
 #include <gtest/gtest.h>
-#include <ednio/EdNio.h>
+#include "../src/EdNio.h"
 #include <chrono>
 
 #include "tglobal.h"
