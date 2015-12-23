@@ -6,7 +6,7 @@
  */
 
 #define DBGTAG "SIGFD"
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 
 #include"edslog.h"
 #include "EdSignalFd.h"

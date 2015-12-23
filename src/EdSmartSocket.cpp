@@ -120,7 +120,7 @@ void EdSmartSocket::setOnListener(SmartSocketLis lis) {
 	mOnLis = lis;
 }
 
-int EdSmartSocket::recvPacket(void* buf, int bufsize) { // TODO: return count type consider
+ssize_t EdSmartSocket::recvPacket(void* buf, int bufsize) { // TODO: return count type consider
 	int rret;
 	if (mMode == SOCKET_NORMAL) {
 		rret = mSock.recv(buf, bufsize);

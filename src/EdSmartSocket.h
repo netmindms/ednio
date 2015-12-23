@@ -104,7 +104,7 @@ public:
 
 	void sslAccept();
 
-	int recvPacket(void* buf, int size);
+	ssize_t recvPacket(void* buf, int size);
 
 	/**
 	 * @brief send packet to server.

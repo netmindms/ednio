@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(ednio)
-set(EDNIO_VER_MAJOR 0)
-set(EDNIO_VER_MINOR 9)
+set(EDNIO_VER_MAJOR 1)
+set(EDNIO_VER_MINOR 0)
 set(EDNIO_VER_PATCH 1)
 set(EDNIO_VER ${EDNIO_VER_MAJOR}.${EDNIO_VER_MINOR}.${EDNIO_VER_PATCH} )
 

@@ -5,7 +5,7 @@
  *      Author: netmind
  */
 
-#define DBG_LEVEL DBG_DEBUG
+#define DBG_LEVEL DBG_WARN
 #define DBGTAG "MSGQU"
 
 #include <string.h>
