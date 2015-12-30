@@ -5,12 +5,12 @@
  *      Author: netmind
  */
 
-#include <ednio/EdNio.h>
+#include "../src/EdNio.h"
 #include <gtest/gtest.h>
 #include <stdlib.h>
 #include <random>
 #include <chrono>
-#include <ednio/EsList.h>
+#include "../src/EsList.h"
 using namespace edft;
 using namespace std;
 

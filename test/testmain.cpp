@@ -7,7 +7,7 @@
 
 #include <iostream>
 #include <gtest/gtest.h>
-#include <ednio/EdNio.h>
+#include "../src/EdNio.h"
 
 using namespace std;
 using namespace edft;

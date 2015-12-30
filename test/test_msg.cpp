@@ -5,7 +5,7 @@
  *      Author: netmind
  */
 
-#include <ednio/EdNio.h>
+#include "../src/EdNio.h"
 #include <gtest/gtest.h>
 #include <stdlib.h>
 #include <random>

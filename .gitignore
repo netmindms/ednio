@@ -15,4 +15,5 @@ tags
 test/ednio
 /Release/
 .metadata
+/DebugLib/
 /cmakebuild/
