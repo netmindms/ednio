@@ -60,7 +60,7 @@ endif(SSL)
 #set_target_properties(ednio PROPERTIES SUFFIX .${EDNIO_VER_MAJOR}.0.${EDNIO_VER_MINOR}.so)
 #get_target_property(suffix ednio SUFFIX)
 #MESSAGE('suffix = ${suffix}')
-set_target_properties(ednio PROPERTIES SOVERSION 0 VERSION ${EDNIO_VER})
+set_target_properties(ednio PROPERTIES SOVERSION ${EDNIO_VER_MAJOR}.${EDNIO_VER_MINOR} VERSION ${EDNIO_VER})
 install(TARGETS ednio DESTINATION lib ) 
 #install(FILES  DESTINATION ednio )
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include/ednio

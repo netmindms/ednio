@@ -38,6 +38,57 @@ You may want to install this library. To do so, run 'make install' after build.
 
 	$ make install
 
+Example
+--------------
+This is a simple timer and tcp example.
+
+```cpp
+#include <ednio/EdNio.h>
+
+using namespace std;
+using namespace edft;
+
+// simple timer and tcp example
+int main(int argc, char* argv[]) {
+  EdNioInit(); // init ednio
+  EdTask task;
+  EdTimer timer1;
+  EdSocket sock;
+  task.setOnListener([&](EdMsg &msg) {
+    if(msg.msgid == EDM_INIT) {
+      printf("task init event, task started...\n");
+      // init socket
+      sock.setOnListener([&](EdSocket &s, int event) {
+        if(event == SOCK_EVENT_CONNECTED) {
+          printf("socket connected\n");
+        } else if(event == SOCK_EVENT_READ) {
+          printf("socket readable\n");
+          char buf[1024];
+          sock.recv(buf, 1024);
+        } else if(event == SOCK_EVENT_DISCONNECTED) {
+          printf("socket disconnected\n");
+        } 
+      });
+      sock.connect("127.0.0.1", 22); // make a tcp connection to 127.0.0.1:22 
+      
+      // timer1 init
+      timer1.setOnListener([&](EdTimer &t) {
+        printf("timer1 expired\n");
+        task.postExit();
+      });
+      timer1.set(1000); // start timer. After 1 sec, timer expired. 
+    } else if(msg.msgid == EDM_CLOSE) {
+      printf("task stopped\n");
+      // this is the chane to clear all resources.
+      timer1.kill();
+      sock.close(); // disconnect socket
+    }
+    return 0;
+  });
+  task.runMain(); // start event loop
+  return 0;
+}
+```
 
 Typical Usage
 -------------
@@ -85,6 +136,7 @@ It is intenional in designe concept.
 I believe the best solution for thread sychronization problem is not making the situation which synchronization is needed.
 ednio prefers single-thread, multi-instance model.
 EdEvent classes(EdSocket, EdTimer, EdPipe) refer context object stored in thread local storage to determine to run on which task. Therefore, If you opened an event object on A EdTask, callback will be on A EdTask. Also, it is not a good choice to refer event object directly on other task. If you need the situation, use IPC functions.
+
 
 
 
