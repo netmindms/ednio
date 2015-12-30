@@ -40,8 +40,60 @@ You may want to install this library. To do so, run 'make install' after build.
 
 Example
 --------------
-This is a simple timer and tcp example.
+* Overriding event procedure
+```cpp
+#include <ednio/EdNio.h>
+using namespace std;
+using namespace edft;
 
+class MainTask : public EdTask
+{
+public:
+   MainTask() {
+    mNumber = 0;
+   } 
+  ~ MainTask() {
+
+  };
+
+  // override event procedure
+  int OnEventProc(EdMsg &msg) override {
+    if(msg.msgid == EDM_INIT) {
+      printf("task started,...\n");
+      mNumber = 0;
+      mTimer.setOnListener([this](EdTimer &t) {
+        printf("timer on,...\n");
+        postMsg(EDM_USER, mNumber, 0); // post a message to self task.
+        mNumber++;
+      });
+      mTimer.set(1000); // star timer
+    } else if(msg.msgid == EDM_CLOSE) {
+      printf("task stopped.\n");
+      mTimer.kill();
+    } else if(msg.msgid == EDM_USER) {
+      printf("user event, p1=%d \n", msg.p1);
+      if(msg.p1 >= 5) {
+        postExit();
+      }
+    }
+    return 0;
+  }
+private:
+  EdTimer mTimer;
+  int mNumber;
+};
+
+// simple timer and tcp example
+int main(int argc, char* argv[]) {
+  EdNioInit(); // init ednio
+  MainTask task;
+  task.run(); // start event loop in other thread.
+  task.wait(); // wait until task is terminated.
+  return 0;
+}
+
+```
+* Using lambda function for event processing
 ```cpp
 #include <ednio/EdNio.h>
 
@@ -90,6 +142,8 @@ int main(int argc, char* argv[]) {
 }
 ```
 
+
+
 Typical Usage
 -------------
 - make your own event driven task by inheriting EdTask class and override OnEventProc() to capture events.
@@ -136,9 +190,3 @@ It is intenional in designe concept.
 I believe the best solution for thread sychronization problem is not making the situation which synchronization is needed.
 ednio prefers single-thread, multi-instance model.
 EdEvent classes(EdSocket, EdTimer, EdPipe) refer context object stored in thread local storage to determine to run on which task. Therefore, If you opened an event object on A EdTask, callback will be on A EdTask. Also, it is not a good choice to refer event object directly on other task. If you need the situation, use IPC functions.
-
-
-
-
-
-
