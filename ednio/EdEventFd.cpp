@@ -54,6 +54,7 @@ void EdEventFd::close()
 {
 	if (getFd() >= 0)
 	{
+		deregisterEvent();
 		::close(mFd);
 		mFd = -1;
 	}
