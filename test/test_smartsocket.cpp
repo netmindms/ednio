@@ -10,8 +10,8 @@
 
 #include <memory>
 #include <gtest/gtest.h>
-#include "../src/EdNio.h"
-#include "../src/edslog.h"
+#include "../ednio/EdNio.h"
+#include "../ednio/edslog.h"
 
 using namespace ::testing;
 using namespace edft;

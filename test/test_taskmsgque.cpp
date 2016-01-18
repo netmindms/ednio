@@ -1,6 +1,6 @@
 #include <iostream>
 #include <gtest/gtest.h>
-#include "../src/EdNio.h"
+#include "../ednio/EdNio.h"
 
 using namespace std;
 using namespace edft;

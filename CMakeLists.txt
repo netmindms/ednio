@@ -31,8 +31,8 @@ if(USE_SSL)
 endif()
 
 configure_file (
-  "${PROJECT_SOURCE_DIR}/src/ednio_config.h.cmakein"
-	"${PROJECT_SOURCE_DIR}/src/ednio_config.h"
+  "${PROJECT_SOURCE_DIR}/ednio/ednio_config.h.cmakein"
+	"${PROJECT_SOURCE_DIR}/ednio/ednio_config.h"
 )
 
 include_directories("${PROJECT_BINARY_DIR}")
@@ -42,10 +42,10 @@ endif()
 #set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++0x -O3 -Wall -fmessage-length=0 " )
 set(CMAKE_CXX_FLAGS "-std=c++0x -pthread " )
-file(GLOB ALLSRCS "src/*.cpp" )
-#file(GLOB ALLSRCS "src/*.cpp" "src/http/*.cpp" )
+file(GLOB ALLSRCS "ednio/*.cpp" )
+#file(GLOB ALLSRCS "ednio/*.cpp" "ednio/http/*.cpp" )
 if(SSL)
-  file(GLOB ALLSRCS ${ALLSRCS} "src/edssl/*.cpp")
+  file(GLOB ALLSRCS ${ALLSRCS} "ednio/edssl/*.cpp")
 endif(SSL)
 
 add_library(ednio SHARED ${ALLSRCS})
@@ -63,5 +63,5 @@ endif(SSL)
 set_target_properties(ednio PROPERTIES SOVERSION ${EDNIO_VER_MAJOR}.${EDNIO_VER_MINOR} VERSION ${EDNIO_VER})
 install(TARGETS ednio DESTINATION lib ) 
 #install(FILES  DESTINATION ednio )
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include/ednio
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/ednio/ DESTINATION include/ednio
         FILES_MATCHING PATTERN "*.h")
