@@ -31,6 +31,7 @@
 #include "EdEvent.h"
 #include "EdEventFd.h"
 
+using namespace std;
 using std::unique_lock;
 
 #define DEFAULT_MSQ_SIZE 1000

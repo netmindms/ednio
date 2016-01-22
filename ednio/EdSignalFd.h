@@ -18,8 +18,6 @@
 #include "EdType.h"
 #include "EdEvent.h"
 
-using namespace std;
-
 namespace edft
 {
 
@@ -30,7 +28,7 @@ public:
 	virtual ~EdSignalFd();
 	void OnEventRead() override final;
 	void setOnListener(lfvu lis);
-	int setSignal(vector<int> mask_list);
+	int setSignal(std::vector<int> mask_list);
 	void close();
 
 private:

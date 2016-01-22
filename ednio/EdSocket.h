@@ -19,8 +19,6 @@
 #include "EdEvent.h"
 #include "EdType.h"
 
-using namespace std;
-
 namespace edft
 {
 
@@ -51,7 +49,7 @@ typedef enum
 
 class EdSocket;
 
-typedef function<void (EdSocket &sock, int event)> SocketListener;
+typedef std::function<void (EdSocket &sock, int event)> SocketListener;
 
 class EdSocket: public EdEvent
 {
@@ -71,7 +69,7 @@ public:
 	 */
 	int recv(void *buf, int size);
 
-	ssize_t recvFromUnix(void *buf, int size, string *fromaddr);
+	ssize_t recvFromUnix(void *buf, int size, std::string *fromaddr);
 
 	ssize_t recvFrom(void* buf, int size, unsigned int *ipaddr=NULL, unsigned short *port=NULL);
 	/**

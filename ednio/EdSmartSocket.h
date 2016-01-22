@@ -23,7 +23,6 @@
 
 #include "EdSocket.h"
 
-using namespace std;
 
 namespace edft
 {
@@ -45,7 +44,7 @@ enum
 
 class EdSmartSocket;
 
-typedef function<void (EdSmartSocket&, int event)> SmartSocketLis;
+typedef std::function<void (EdSmartSocket&, int event)> SmartSocketLis;
 
 class EdSmartSocket
 {
@@ -89,9 +88,9 @@ public:
 	 */
 	int openClient(int mode = 0);
 	int openChild(int fd, int mode = 0);
-	int openUnixSocket(const string &addr, int type=SOCK_TYPE_UNIXSTREAM);
+	int openUnixSocket(const std::string &addr, int type=SOCK_TYPE_UNIXSTREAM);
 
-	int connect(const string &addr, int port);
+	int connect(const std::string &addr, int port);
 	int connect(unsigned int ip, int port);
 
 	/**

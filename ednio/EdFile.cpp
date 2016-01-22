@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
+using namespace std;
+
 namespace edft
 {
 

@@ -27,8 +27,6 @@
 
 #define USE_STL_THREAD 1
 
-using namespace std;
-
 namespace edft
 {
 
@@ -55,8 +53,8 @@ private:
 	int *psend_result;
 #if USE_STL_THREAD
 	//
-	condition_variable *pcv;
-	mutex *pmtx;
+	std::condition_variable *pcv;
+	std::mutex *pmtx;
 #else
 	pthread_cond_t *pmsg_sig;
 	pthread_mutex_t *pmsg_sync_mutex;
@@ -67,7 +65,7 @@ private:
 #define FETCH_MSGOBJ(T, MSG) unique_ptr<T>((T*)MSG.msgobj.release())
 
 
-typedef function<int (EdMsg& msg)> TaskEventListener;
+typedef std::function<int (EdMsg& msg)> TaskEventListener;
 
 struct ViewInfo {
 	u32 handle;
@@ -105,7 +103,7 @@ private:
 	};
 
 	int mMaxMsqQueSize;
-	unordered_map<u32, TaskTimer*> mTimerMap;
+	std::unordered_map<u32, TaskTimer*> mTimerMap;
 	int mRunMode;
 	EdMutex mMsgMutex;
 	EdObjList<EdMsg> mEmptyMsgs;
@@ -118,11 +116,11 @@ private:
 	edevt_t *mEdMsgEvt;
 	EdObjList<edevt_t> mEvtList;
 	EdObjList<edevt_t> mDummyEvtList;
-	list<EdObject*> mReserveFreeList;
-	function<int(EdMsg&)> mLis;
+	std::list<EdObject*> mReserveFreeList;
+	std::function<int(EdMsg&)> mLis;
 
 #if USE_STL_THREAD
-	thread mThread;
+	std::thread mThread;
 #endif
 	EdMsg* allocMsgObj();
 
@@ -235,7 +233,7 @@ public:
 	void reserveFree(EdObject* obj);
 	static EdTask* getCurrentTask();
 	int lastSockErrorNo;
-	void setOnListener(function<int(EdMsg&)> lis);
+	void setOnListener(std::function<int(EdMsg&)> lis);
 
 	// task messag queue
 	int postTaskMsgQue(u32 handle, u16 msgid, u32 p1, u32 p2);

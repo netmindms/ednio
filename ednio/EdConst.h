@@ -10,11 +10,9 @@
 
 #include <string>
 
-using namespace std;
-
 namespace edft {
 
-extern string NULL_STR;
+extern std::string NULL_STR;
 
 }
 

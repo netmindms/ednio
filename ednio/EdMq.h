@@ -15,15 +15,11 @@
 #include <functional>
 #include "EdEvent.h"
 
-using namespace std;
-
 namespace edft {
-
-
 
 class EdMq: public EdEvent {
 public:
-	typedef function<void (int)> Listener;
+	typedef std::function<void (int)> Listener;
 	EdMq();
 	virtual ~EdMq();
 
@@ -47,7 +43,7 @@ public:
 	int create(const char* name, long msgsize, long maxmsg, bool exist_err=false);
 	int open(const char* name , int oflag, mode_t mode, struct mq_attr *attr);
 	int send(const char* msg, size_t len, unsigned prio=0);
-	int send(const string& s, unsigned prio=0);
+	int send(const std::string& s, unsigned prio=0);
 
 	/*
 	 * @brief receive a message from queue
@@ -58,9 +54,9 @@ public:
 	 */
 	int recv(char* buf, unsigned *prio);
 	int recv(char* buf);
-	string recvString(unsigned * prio=nullptr);
+	std::string recvString(unsigned * prio=nullptr);
 	int getAttr(struct mq_attr &attr);
-	string dumpAttr();
+	std::string dumpAttr();
 	void close();
 	void unlink();
 	void setOnListener(Listener lis);
@@ -69,7 +65,7 @@ public:
 	long getMaxMsg() const;
 private:
 	mqd_t mMqd;
-	string mQueueName;
+	std::string mQueueName;
 	Listener mLis;
 	struct mq_attr mQAttr;
 

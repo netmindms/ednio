@@ -17,13 +17,11 @@
 #include "EdType.h"
 #include "EdEvent.h"
 
-using namespace std;
-
 namespace edft {
 
 class EdTimer;
 
-typedef function<void (EdTimer &ptimer)> TimerListener;
+typedef std::function<void (EdTimer &ptimer)> TimerListener;
 class EdTimer : public EdEvent
 {
 public:

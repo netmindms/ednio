@@ -13,6 +13,8 @@
 #include "edslog.h"
 #include "EdType.h"
 
+using namespace std;
+
 namespace edft
 {
 

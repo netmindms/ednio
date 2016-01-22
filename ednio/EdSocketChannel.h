@@ -11,8 +11,6 @@
 #include <list>
 #include "EdSocket.h"
 
-using namespace std;
-
 namespace edft
 {
 

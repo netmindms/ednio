@@ -11,8 +11,6 @@
 #include <memory>
 #include <unistd.h>
 
-using namespace std;
-
 namespace edft
 {
 
@@ -25,7 +23,7 @@ public:
 	virtual size_t remain()=0;
 };
 
-typedef unique_ptr< EdStreamReader > upEdStreamReader;
+typedef std::unique_ptr< EdStreamReader > upEdStreamReader;
 
 } /* namespace edft */
 

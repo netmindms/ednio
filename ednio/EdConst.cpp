@@ -10,7 +10,7 @@
 
 namespace edft {
 
-string NULL_STR;
+std::string NULL_STR;
 
 
 }

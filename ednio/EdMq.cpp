@@ -16,6 +16,8 @@
 #include "edslog.h"
 #include "EdMq.h"
 
+using namespace std;
+
 namespace edft {
 
 EdMq::EdMq() {

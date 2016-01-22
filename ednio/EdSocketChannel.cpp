@@ -10,6 +10,8 @@
 #include "edslog.h"
 #include "EdSocketChannel.h"
 
+using namespace std;
+
 namespace edft
 {
 

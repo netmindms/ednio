@@ -12,13 +12,11 @@
 #include <functional>
 #include "EdEvent.h"
 
-using namespace std;
-
 namespace edft
 {
 
 class EdEventFd;
-typedef function<void (EdEventFd &efd, int cnt) > EventFdListener;
+typedef std::function<void (EdEventFd &efd, int cnt) > EventFdListener;
 
 class EdEventFd : public EdEvent
 {

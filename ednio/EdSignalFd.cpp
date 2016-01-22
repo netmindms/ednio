@@ -11,6 +11,7 @@
 #include"edslog.h"
 #include "EdSignalFd.h"
 
+using namespace std;
 
 namespace edft
 {

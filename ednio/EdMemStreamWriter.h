@@ -10,7 +10,7 @@
 
 #include <vector>
 #include "EdStreamWriter.h"
-using namespace std;
+
 namespace edft
 {
 
@@ -25,7 +25,7 @@ public:
 	void reserve(size_t size);
 
 private:
-	vector<char> mVecBuf;
+	std::vector<char> mVecBuf;
 	size_t mWritePos;
 };
 
