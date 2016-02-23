@@ -120,9 +120,10 @@ void EdSocket::close()
 
 int EdSocket::connect(uint32_t ip, int port)
 {
-	if (mStatus != SOCK_STATUS_DISCONNECTED)
-	{
-		return EALREADY;
+	if ( mStatus == SOCK_STATUS_CONNECTED) { // TODO
+		return 0;
+	} else 	if (mStatus != SOCK_STATUS_DISCONNECTED) {
+		return EALREADY; // TODO
 	}
 
 	if (mFd < 0)

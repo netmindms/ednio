@@ -8,12 +8,14 @@
 #define DBGTAG "TIMRT"
 #define DBG_LEVEL DBG_DEBUG
 
+#include <iostream>
 #include <gtest/gtest.h>
 #include "../ednio/EdNio.h"
 #include <chrono>
 
 #include "tglobal.h"
 
+using namespace std;
 using namespace testing;
 using namespace edft;
 
