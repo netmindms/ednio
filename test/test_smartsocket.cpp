@@ -8,12 +8,14 @@
 #define DBGTAG "SMSTE"
 #define DBG_LEVEL DBG_ERR
 
+#include <iostream>
 #include <memory>
 #include <string>
 #include <gtest/gtest.h>
 #include "../ednio/EdNio.h"
 #include "../ednio/edslog.h"
 
+using namespace std;
 using namespace ::testing;
 using namespace edft;
 using namespace std;

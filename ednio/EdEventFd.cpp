@@ -41,7 +41,7 @@ int EdEventFd::open()
 	{
 		setFd(fd);
 		registerEvent(EVT_READ);
-		return 0;
+		return fd;
 	}
 	else
 	{
