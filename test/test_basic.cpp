@@ -10,12 +10,14 @@
 
 #include <gtest/gtest.h>
 #include "../ednio/EdNio.h"
+#include <iostream>
 #include <chrono>
 
 #include "tglobal.h"
 
 using namespace testing;
 using namespace edft;
+using namespace std;
 
 TEST(basic, task)
 {

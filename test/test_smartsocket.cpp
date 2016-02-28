@@ -9,12 +9,14 @@
 #define DBG_LEVEL DBG_ERR
 
 #include <memory>
+#include <string>
 #include <gtest/gtest.h>
 #include "../ednio/EdNio.h"
 #include "../ednio/edslog.h"
 
 using namespace ::testing;
 using namespace edft;
+using namespace std;
 
 TEST(socket, smart)
 {
