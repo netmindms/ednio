@@ -39,18 +39,16 @@ int EdBuffredFileReader::open(const char* path, int block_unit, int qsize)
 	mBlockSize = block_unit * 4 * 1024;
 	mQSize = qsize;
 
-	mJobEvent.setOnListener([this](EdEventFd &event, int cnt)
-	{
+	mJobEvent.open([this](int cnt) {
 		dbgd("on load job ...");
 		mIsScheduled = false;
 		int ret = loadData();
 		if(mBufList.size() < mQSize && ret > 0)
 		{
-			event.raise();
+			mJobEvent.raise();
 			mIsScheduled = true;
 		}
 	});
-	mJobEvent.open();
 	return 0;
 
 }

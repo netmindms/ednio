@@ -62,21 +62,18 @@ TEST(basic, timer)
 		{
 			if(msg.msgid == EDM_INIT)
 			{
-				mTimer.setOnListener([this](EdTimer& timer){
+				stp = system_clock::now();
+				mTimer.set(wtime, 0, [this](){
 					etp = system_clock::now();
-					timer.kill();
+					mTimer.kill();
 					postExit();
 				});
-
-				stp = system_clock::now();
-				mTimer.set(wtime);
 			}
 			else if(msg.msgid == EDM_CLOSE)
 			{
 				auto dur = duration_cast<milliseconds>(etp-stp);
 				dbgd("timer expired, dur=%d", dur.count());
-				if((dur.count() < wtime-20) || (dur.count() > wtime+20))
-				{
+				if((dur.count() < wtime-50) || (dur.count() > wtime+50)) {
 					assert(0);
 				}
 			}
@@ -100,11 +97,10 @@ TEST(timer, perf)
 	int hitcount=0;
 	task.setOnListener([&](EdMsg& msg){
 		if(msg.msgid == EDM_INIT) {
-			timer.setOnListener([&](EdTimer &timer){
+			timer.set(33, 0, [&](){
 				usleep(10*1000);
 				hitcount++;
 			});
-			timer.set(33);
 			task.setTimer(1, 10000);
 			cout << "start timer for 10 sec" << endl;
 		}

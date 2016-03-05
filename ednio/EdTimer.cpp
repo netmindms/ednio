@@ -18,7 +18,6 @@ EdTimer::EdTimer()
 {
 	mHitCount = 0;
 	mUser = NULL;
-	mOnLis = nullptr;
 }
 
 EdTimer::~EdTimer()
@@ -27,8 +26,9 @@ EdTimer::~EdTimer()
 }
 
 
-void EdTimer::setUsec(u64 usec, u64 first_usec)
+void EdTimer::setUsec(u64 usec, u64 first_usec, Lis lis)
 {
+	if(lis) mLis = lis;
 	if (getFd() < 0)
 	{
 		int fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
@@ -45,9 +45,9 @@ void EdTimer::setUsec(u64 usec, u64 first_usec)
 	timerfd_settime(getFd(), 0, &mTimerSpec, NULL);
 }
 
-void EdTimer::set(u32 msec, u32 first_msec)
+void EdTimer::set(u32 msec, u32 first_msec, Lis lis)
 {
-	setUsec(msec * 1000, first_msec*1000);
+	setUsec(msec * 1000, first_msec*1000, lis);
 }
 
 void EdTimer::kill(void)
@@ -61,8 +61,8 @@ void EdTimer::kill(void)
 
 void EdTimer::OnTimer()
 {
-	if(mOnLis != nullptr)
-		mOnLis(*this);
+	if(mLis != nullptr)
+		mLis();
 }
 
 void EdTimer::reset(void)
@@ -88,9 +88,9 @@ void EdTimer::resume(void)
 	timerfd_settime(getFd(), 0, &mTimerSpec, NULL);
 }
 
-void EdTimer::setOnListener(TimerListener lis)
+void EdTimer::setOnListener(Lis lis)
 {
-	mOnLis = lis;
+	mLis = lis;
 }
 
 void EdTimer::OnEventRead(void)

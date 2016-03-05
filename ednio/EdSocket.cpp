@@ -20,7 +20,7 @@ namespace edft
 
 EdSocket::EdSocket()
 {
-	mOnLis = nullptr;
+	mLis = nullptr;
 	clearInternal();
 }
 
@@ -37,8 +37,9 @@ int EdSocket::accept()
 	return ::accept(mFd, (struct sockaddr*) &inaddr, &slen);
 }
 
-void EdSocket::openChildSock(int fd)
+void EdSocket::openChildSock(int fd, Lis lis)
 {
+	if(lis) mLis = lis;
 	setDefaultContext();
 	setFd(fd);
 	mStatus = SOCK_STATUS_CONNECTED;
@@ -46,8 +47,9 @@ void EdSocket::openChildSock(int fd)
 	registerEvent(EVT_READ | EVT_HANGUP);
 }
 
-int EdSocket::acceptSock(EdSocket* pchild, SocketListener lis)
+int EdSocket::acceptSock(EdSocket* pchild, Lis lis)
 {
+	if(lis) mLis = lis;
 	int fd = accept();
 	if (fd < 0)
 		return fd;
@@ -118,8 +120,9 @@ void EdSocket::close()
 	mIsBinded = false;
 }
 
-int EdSocket::connect(uint32_t ip, int port)
+int EdSocket::connect(uint32_t ip, int port, Lis lis)
 {
+	if(lis) mLis = lis;
 	if ( mStatus == SOCK_STATUS_CONNECTED) { // TODO
 		return 0;
 	} else 	if (mStatus != SOCK_STATUS_DISCONNECTED) {
@@ -154,8 +157,9 @@ int EdSocket::connect(uint32_t ip, int port)
 	return cnnret;
 }
 
-int EdSocket::connect(const char* addr, int port)
+int EdSocket::connect(const char* addr, int port, Lis lis)
 {
+	if(lis) mLis = lis;
 	if (mType == SOCK_TYPE_TCP || mType == SOCK_TYPE_UDP)
 	{
 		uint32_t ip = inet_addr(addr);
@@ -199,8 +203,9 @@ int EdSocket::connect(const char* addr, int port)
 	return -1;
 }
 
-int EdSocket::listenSock(int port, const char* ip)
+int EdSocket::listenSock(int port, const char* ip, Lis lis)
 {
+	if(lis) mLis = lis;
 	int retval;
 	mIsListen = true;
 	if (mIsBinded == false)
@@ -225,8 +230,9 @@ int EdSocket::listenSock(int port, const char* ip)
 	return retval;
 }
 
-int EdSocket::openSock(int type)
+int EdSocket::openSock(int type, Lis lis)
 {
+	if(lis) mLis = lis;
 	mType = type;
 	int fd;
 
@@ -312,32 +318,32 @@ int EdSocket::sendto(const char* destaddr, const void* buf, int len)
 
 void EdSocket::OnRead(void)
 {
-	if(mOnLis != nullptr)
-		mOnLis(*this, SOCK_EVENT_READ);
+	if(mLis != nullptr)
+		mLis(SOCK_EVENT_READ);
 }
 
 void EdSocket::OnDisconnected(void)
 {
-	if(mOnLis != nullptr)
-		mOnLis(*this, SOCK_EVENT_DISCONNECTED);
+	if(mLis != nullptr)
+		mLis(SOCK_EVENT_DISCONNECTED);
 }
 
 void EdSocket::OnWrite(void)
 {
-	if(mOnLis != nullptr)
-		mOnLis(*this, SOCK_EVENT_WRITE);
+	if(mLis != nullptr)
+		mLis(SOCK_EVENT_WRITE);
 }
 
 void EdSocket::OnConnected(void)
 {
-	if(mOnLis != nullptr)
-		mOnLis(*this, SOCK_EVENT_CONNECTED);
+	if(mLis != nullptr)
+		mLis(SOCK_EVENT_CONNECTED);
 }
 
 void EdSocket::OnIncomingConnection(void)
 {
-	if(mOnLis != nullptr)
-		mOnLis(*this, SOCK_EVENT_INCOMING_ACCEPT);
+	if(mLis != nullptr)
+		mLis(SOCK_EVENT_INCOMING_ACCEPT);
 }
 
 void EdSocket::OnEventRead()
@@ -464,9 +470,9 @@ void EdSocket::getPeerAddr(char* ipaddr, u16* port)
 	*port = ntohs(addr.sin_port);
 }
 
-void EdSocket::setOnListener(SocketListener dg)
+void EdSocket::setOnListener(Lis dg)
 {
-	mOnLis = dg;
+	mLis = dg;
 }
 
 

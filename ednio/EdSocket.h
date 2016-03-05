@@ -49,7 +49,7 @@ typedef enum
 
 class EdSocket;
 
-typedef std::function<void (EdSocket &sock, int event)> SocketListener;
+
 
 class EdSocket: public EdEvent
 {
@@ -58,6 +58,7 @@ class EdSocket: public EdEvent
 //		public: virtual void IOnSocketEvent(EdSocket *psock, int event)=0;
 //	};
 public:
+	typedef std::function<void (int event)> Lis;
 	EdSocket();
 	virtual ~EdSocket();
 	/**
@@ -90,8 +91,8 @@ public:
 	 * @param port
 	 * @return
 	 */
-	int connect(const char* ip, int port);
-	int connect(uint32_t ip, int port);
+	int connect(const char* ip, int port, Lis lis=nullptr);
+	int connect(uint32_t ip, int port, Lis lis=nullptr);
 
 	/**
 	 * @brief Disconnect conneciton or close socket.
@@ -104,7 +105,7 @@ public:
 	 * @param ip
 	 * @return if successful, return 0
 	 */
-	int listenSock(int port, const char* ip = "0.0.0.0");
+	int listenSock(int port, const char* ip = "0.0.0.0", Lis lis=nullptr);
 
 	/**
 	 * @brief bind socket to specified address.
@@ -125,14 +126,14 @@ public:
 	 * @brief Open child socket from the child socket fd accepted.
 	 * @param fd returned by accept()
 	 */
-	void openChildSock(int fd);
+	void openChildSock(int fd, Lis lis=nullptr);
 
 	/**
 	 *
 	 * @param pchild
 	 * @param cb
 	 */
-	int acceptSock(EdSocket* pchild, SocketListener lis=nullptr);
+	int acceptSock(EdSocket* pchild, Lis lis=nullptr);
 
 	/**
 	 * @brief Reject incoming connection on listening socket.
@@ -183,13 +184,13 @@ public:
 	 * @param type
 	 * @return
 	 */
-	int openSock(int type);
+	int openSock(int type, Lis lis=nullptr);
 
 	/**
 	 * @brief Set socket interface callback.
 	 * @param cb
 	 */
-	void setOnListener( SocketListener dg);
+	void setOnListener( Lis dg);
 
 	void setNoTimewait();
 private:
@@ -204,7 +205,7 @@ private:
 	int mRaiseDisconnect;
 	bool mIsListen;
 	bool mIsBinded;
-	SocketListener mOnLis;
+	Lis mLis;
 
 };
 

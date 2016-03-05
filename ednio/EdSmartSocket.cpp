@@ -39,7 +39,8 @@ EdSmartSocket::~EdSmartSocket() {
 	close();
 }
 
-int EdSmartSocket::openClient(int mode) {
+int EdSmartSocket::openClient(int mode, Lis lis) {
+	if(lis) mOnLis = lis;
 	int ret;
 	mMode = mode;
 	if (mMode == SOCKET_NORMAL) {
@@ -59,7 +60,7 @@ void EdSmartSocket::fireRead() {
 	dbgv("OnRead...");
 	if (mMode == SOCKET_NORMAL) {
 		if (mOnLis != NULL) {
-			mOnLis(*this, NETEV_READABLE);
+			mOnLis(NETEV_READABLE);
 		}
 	}
 	else {
@@ -85,7 +86,7 @@ void EdSmartSocket::fireConnected() {
 	dbgd("socket connected...");
 	if (mMode == SOCKET_NORMAL) {
 		if (mOnLis != nullptr) {
-			mOnLis(*this, NETEV_CONNECTED);
+			mOnLis(NETEV_CONNECTED);
 		}
 	}
 	else {
@@ -104,19 +105,19 @@ void EdSmartSocket::fireDisconnected() {
 
 	if (mOnLis != NULL) {
 		if (mMode == SOCKET_NORMAL) {
-			mOnLis(*this, NETEV_DISCONNECTED);
+			mOnLis(NETEV_DISCONNECTED);
 		}
 
 #if USE_SSL
 		else if (sscnn == true) {
-			mOnLis(*this, NETEV_DISCONNECTED);
+			mOnLis(NETEV_DISCONNECTED);
 		}
 #endif
 
 	}
 }
 
-void EdSmartSocket::setOnListener(SmartSocketLis lis) {
+void EdSmartSocket::setOnListener(Lis lis) {
 	mOnLis = lis;
 }
 
@@ -163,17 +164,17 @@ ssize_t EdSmartSocket::recvPacket(void* buf, int bufsize) { // TODO: return coun
 
 void EdSmartSocket::OnSSLConnected() {
 	if (mOnLis != NULL)
-		mOnLis(*this, NETEV_CONNECTED);
+		mOnLis(NETEV_CONNECTED);
 }
 
 void EdSmartSocket::OnSSLDisconnected() {
 	if (mOnLis != NULL)
-		mOnLis(*this, NETEV_DISCONNECTED);
+		mOnLis(NETEV_DISCONNECTED);
 }
 
 void EdSmartSocket::OnSSLRead() {
 	if (mOnLis != NULL)
-		mOnLis(*this, NETEV_READABLE);
+		mOnLis(NETEV_READABLE);
 }
 
 int EdSmartSocket::sendPacket(const void* buf, int bufsize, bool takebuffer) {
@@ -274,12 +275,12 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize, bool takebuffer) {
 	}
 }
 
-int EdSmartSocket::connect(const string& addr, int port) {
-	return mSock.connect(addr.c_str(), port);
+int EdSmartSocket::connect(const string& addr, int port, Lis lis) {
+	return mSock.connect(addr.c_str(), port, lis);
 }
 
-int EdSmartSocket::connect(unsigned int ip, int port) {
-	return mSock.connect(ip, port);
+int EdSmartSocket::connect(unsigned int ip, int port, Lis lis) {
+	return mSock.connect(ip, port, lis);
 }
 
 void EdSmartSocket::close() {
@@ -302,7 +303,8 @@ void EdSmartSocket::close() {
 
 }
 
-int EdSmartSocket::openChild(int fd, int mode) {
+int EdSmartSocket::openChild(int fd, int mode, Lis lis) {
+	if(lis) mOnLis = lis;
 	mMode = mode;
 	if (mode == SOCKET_NORMAL) {
 		mSock.openChildSock(fd);
@@ -327,7 +329,8 @@ void EdSmartSocket::reserveWrite() {
 	mSock.changeEvent(EVT_WRITE | EVT_HANGUP | EVT_READ);
 }
 
-int EdSmartSocket::openUnixSocket(const string &addr, int type) {
+int EdSmartSocket::openUnixSocket(const string &addr, int type, Lis lis) {
+	if(lis) mOnLis = lis;
 	if (type == SOCK_TYPE_UNIXDGRAM || type == SOCK_TYPE_UNIXSTREAM) {
 		auto fd = mSock.openSock(type);
 		if (fd >= 0) {
@@ -361,7 +364,7 @@ void EdSmartSocket::procNormalOnWrite() {
 				free(mPendingBuf);
 				mPendingBuf = NULL;
 				if (mOnLis != NULL) {
-					mOnLis(*this, NETEV_WRITABLE);
+					mOnLis(NETEV_WRITABLE);
 				}
 			}
 		}
@@ -370,7 +373,7 @@ void EdSmartSocket::procNormalOnWrite() {
 		dbgd("no pending buffer on write...");
 		mSock.changeEvent(EVT_READ | EVT_HANGUP);
 		if (mOnLis != NULL) {
-			mOnLis(*this, NETEV_WRITABLE);
+			mOnLis(NETEV_WRITABLE);
 		}
 	}
 }
@@ -521,7 +524,7 @@ void EdSmartSocket::procSSLOnWrite() {
 				free(mPendingBuf);
 				mPendingBuf = NULL;
 				if (mOnLis != NULL) {
-					mOnLis(*this, NETEV_WRITABLE);
+					mOnLis(NETEV_WRITABLE);
 				}
 			}
 		}
@@ -536,7 +539,7 @@ void EdSmartSocket::procSSLOnWrite() {
 		if (mSSLWantEvent != EVT_WRITE)
 			mSock.changeEvent(EVT_READ | EVT_HANGUP);
 		if (mOnLis != NULL) {
-			mOnLis(*this, NETEV_WRITABLE);
+			mOnLis(NETEV_WRITABLE);
 		}
 	}
 }

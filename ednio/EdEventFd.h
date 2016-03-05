@@ -16,12 +16,12 @@ namespace edft
 {
 
 class EdEventFd;
-typedef std::function<void (EdEventFd &efd, int cnt) > EventFdListener;
 
 class EdEventFd : public EdEvent
 {
 private:
-	EventFdListener mOnLisCb;
+	typedef std::function<void (int cnt) > Lis;
+	Lis mLis;
 
 public:
 	EdEventFd();
@@ -29,11 +29,11 @@ public:
 	virtual void OnEventRead();
 	virtual void OnEventFd(int cnt);
 
-	int open();
+	int open(Lis lis=nullptr);
 	void close();
 
 	int raise();
-	void setOnListener(EventFdListener lis);
+	void setOnListener(Lis lis);
 };
 
 } /* namespace edft */

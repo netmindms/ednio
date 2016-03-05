@@ -35,22 +35,22 @@ TEST(socket, smart)
 		{
 			if (msg.msgid == EDM_INIT)
 			{
-				mSvrSock.setOnListener([this](EdSocket &sock, int event)
+				mSvrSock.setOnListener([this](int event)
 				{
 					if(event== SOCK_EVENT_INCOMING_ACCEPT)
 					{
-						int fd = sock.accept();
+						int fd = mSvrSock.accept();
 						upChildSock.reset( new EdSmartSocket);
-						upChildSock->setOnListener([this](EdSmartSocket &sock, int event)
+						upChildSock->setOnListener([this](int event)
 								{
 									if(event == NETEV_READABLE)
 									{
 										char buf[100];
-										auto rcnt = sock.recvPacket(buf, 100);
+										auto rcnt = upChildSock->recvPacket(buf, 100);
 										if(rcnt>0)
 										{
 											buf[rcnt] = 0;
-											sock.sendPacket(buf, rcnt);
+											upChildSock->sendPacket(buf, rcnt);
 										}
 									}
 								});
@@ -59,14 +59,13 @@ TEST(socket, smart)
 				});
 				mSvrSock.listenSock(9090);
 
-				mSock.setOnListener([this](EdSmartSocket &sock, int event)
-				{
+				mSock.setOnListener([this](int event) {
 					if(event == NETEV_CONNECTED)
 					{
-						if(&sock == &mSock)
+						if(&mSock == &mSock)
 						{
 							dbgd("connected...");
-							sock.sendPacket(sendstr.c_str(), sendstr.size());
+							mSock.sendPacket(sendstr.c_str(), sendstr.size());
 						}
 						else
 						{
@@ -82,7 +81,7 @@ TEST(socket, smart)
 					else if(event == NETEV_READABLE)
 					{
 						char buf[100];
-						auto rcnt = sock.recvPacket(buf, 100);
+						auto rcnt = mSock.recvPacket(buf, 100);
 						dbgd("client recv cnt=%d", rcnt);
 						if(rcnt>0)
 						{
@@ -91,10 +90,9 @@ TEST(socket, smart)
 					}
 				});
 				mSock.connect("127.0.0.1", 9090);
-				mTimer.setOnListener([this](EdTimer &timer)
-				{
+				mTimer.set(500, 0, [this]() {
 					dbgd("check recv data...");
-					timer.kill();
+					mTimer.kill();
 					dbgd("client recv str=%s", recvstr.c_str());
 					if(sendstr != recvstr)
 					{
@@ -103,7 +101,6 @@ TEST(socket, smart)
 					}
 					postExit();
 				});
-				mTimer.set(500);
 			}
 			else if (msg.msgid == EDM_CLOSE)
 			{

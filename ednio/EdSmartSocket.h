@@ -44,10 +44,12 @@ enum
 
 class EdSmartSocket;
 
-typedef std::function<void (EdSmartSocket&, int event)> SmartSocketLis;
+
 
 class EdSmartSocket
 {
+public:
+	typedef std::function<void (int event)> Lis;
 private:
 	class RawSocket: public EdSocket
 	{
@@ -86,12 +88,12 @@ public:
 	 virtual void OnNetRead();
 	 virtual void OnNetSendComplete();
 	 */
-	int openClient(int mode = 0);
-	int openChild(int fd, int mode = 0);
-	int openUnixSocket(const std::string &addr, int type=SOCK_TYPE_UNIXSTREAM);
+	int openClient(int mode = 0, Lis lis=nullptr);
+	int openChild(int fd, int mode = 0, Lis lis=nullptr);
+	int openUnixSocket(const std::string &addr, int type=SOCK_TYPE_UNIXSTREAM, Lis lis=nullptr);
 
-	int connect(const std::string &addr, int port);
-	int connect(unsigned int ip, int port);
+	int connect(const std::string &addr, int port, Lis lis=nullptr);
+	int connect(unsigned int ip, int port, Lis lis=nullptr);
 
 	/**
 	 * @brief Read data from ssl connection
@@ -120,7 +122,7 @@ public:
 	 * @brief Set ssl event callback.
 	 */
 	int getFd() const;
-	void setOnListener(SmartSocketLis lis);
+	void setOnListener(Lis lis);
 	bool isWritable();
 	void reserveWrite();
 	// TODO: alpn	void setAlpnProtocols(const vector<string> &protocols);
@@ -140,7 +142,7 @@ private:
 	int mPendingWriteCnt;
 	int mPendingSize;
 	RawSocket mSock;
-	SmartSocketLis mOnLis;
+	Lis mOnLis;
 
 #if USE_SSL
 public:

@@ -16,7 +16,6 @@ namespace edft
 
 EdPipe::EdPipe()
 {
-	mPipeCb = NULL;
 	mRecvFd = mSendFd = -1;
 }
 
@@ -28,20 +27,19 @@ EdPipe::~EdPipe()
 
 void EdPipe::OnEventRead(void)
 {
-	if (mPipeCb)
-		mPipeCb->IOnPipeEvent(this, EVT_READ);
-	//mPipeCb->IOnPipeRead(this);
+	if (mLis) {
+		mLis(EVT_READ);
+	}
 }
 
 void EdPipe::OnEventWrite(void)
 {
-	if (mPipeCb)
-		mPipeCb->IOnPipeEvent(this, EVT_READ);
-	//mPipeCb->IOnPipeWrite(this);
+	if (mLis)
+		mLis(EVT_WRITE);
 }
 
-int EdPipe::open()
-{
+int EdPipe::open(Lis lis) {
+	if(lis) mLis = lis;
 	int fds[2];
 	int ret = pipe(fds);
 	if (ret == 0)
@@ -80,9 +78,8 @@ int EdPipe::recv(void* buf, int size)
 	return read(mRecvFd, buf, size);
 }
 
-void EdPipe::setOnListener(IPipeCb* cb)
-{
-	mPipeCb = cb;
+void EdPipe::setOnListener(Lis lis) {
+	mLis = lis;
 }
 
 }

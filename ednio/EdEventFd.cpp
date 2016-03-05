@@ -16,7 +16,7 @@ namespace edft
 
 EdEventFd::EdEventFd()
 {
-	mOnLisCb = nullptr;
+	mLis = nullptr;
 }
 
 EdEventFd::~EdEventFd()
@@ -34,8 +34,8 @@ void EdEventFd::OnEventRead()
 		dbge("### eventfd read error...");
 }
 
-int EdEventFd::open()
-{
+int EdEventFd::open(Lis lis) {
+	if(lis) mLis = lis;
 	int fd = eventfd(0, EFD_NONBLOCK);
 	if (fd >= 0)
 	{
@@ -74,13 +74,13 @@ int EdEventFd::raise()
 
 void EdEventFd::OnEventFd(int cnt)
 {
-	if(mOnLisCb != nullptr)
-		mOnLisCb(*this, cnt);
+	if(mLis != nullptr)
+		mLis(cnt);
 }
 
-void EdEventFd::setOnListener(EventFdListener lis)
+void EdEventFd::setOnListener(Lis lis)
 {
-	mOnLisCb = lis;
+	mLis = lis;
 }
 
 } /* namespace edft */

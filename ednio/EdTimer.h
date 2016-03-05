@@ -21,19 +21,12 @@ namespace edft {
 
 class EdTimer;
 
-typedef std::function<void (EdTimer &ptimer)> TimerListener;
 class EdTimer : public EdEvent
 {
 public:
+typedef std::function<void ()> Lis;
 	EdTimer();
 	virtual ~EdTimer();
-
-private:
-	TimerListener mOnLis;
-
-private:
-	uint64_t mHitCount;
-	struct itimerspec mTimerSpec;
 
 public:
 	/**
@@ -41,9 +34,9 @@ public:
 	 * @param mtime Expiration interval(milisec)
 	 * @param first_msec Initial expiration time interval.
 	 */
-	void set(u32 mtime, u32 first_msec=0);
+	void set(u32 mtime, u32 first_msec=0, Lis=nullptr);
 
-	void setUsec(u64 usec, u64 first_usec=0);
+	void setUsec(u64 usec, u64 first_usec=0, Lis=nullptr);
 
 	/**
 	 * @brief Reset timer.
@@ -59,7 +52,7 @@ public:
 	 * @brief Set timer callback interface called when is expired.
 	 * @param itimer ITimerCb interface instance.
 	 */
-	void setOnListener(TimerListener lis);
+	void setOnListener(Lis lis);
 
 	/**
 	 * @brief Test whether timer is running.
@@ -91,6 +84,11 @@ public:
 	 */
 	virtual void OnTimer(void);
 	virtual void OnEventRead(void) override;
+private:
+	Lis mLis;
+	uint64_t mHitCount;
+	struct itimerspec mTimerSpec;
+
 
 };
 

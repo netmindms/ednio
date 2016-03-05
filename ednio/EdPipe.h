@@ -7,30 +7,28 @@
 
 #ifndef EDPIPE_H_
 #define EDPIPE_H_
+#include <functional>
 #include "ednio_config.h"
 #include "EdEvent.h"
 namespace edft {
 
 class EdPipe : public EdEvent {
 public:
+	typedef std::function<void(int)> Lis;
 	EdPipe();
 	virtual ~EdPipe();
 	virtual void OnEventRead(void);
 	virtual void OnEventWrite(void);
 public:
-	class IPipeCb {
-	public:
-		virtual void IOnPipeEvent(EdPipe *espipe, int events)=0;
-	};
-	int open();
+	int open(Lis lis=nullptr);
 	void close();
 	int send(const void *buf, int size);
 	int recv(void *buf, int size);
-	void setOnListener(IPipeCb *cb);
+	void setOnListener(Lis lis);
 
 private:
 	int mSendFd, mRecvFd;
-	IPipeCb *mPipeCb;
+	Lis mLis;
 };
 
 }

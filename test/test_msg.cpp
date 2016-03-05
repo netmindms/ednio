@@ -15,7 +15,7 @@ using namespace edft;
 using namespace std;
 
 #define CLITASK_NUM 10L
-#define SEND_CNT (1000000L/CLITASK_NUM)
+#define SEND_CNT (100000L/CLITASK_NUM)
 
 TEST(msg, basic)
 {
