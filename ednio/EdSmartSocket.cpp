@@ -276,11 +276,13 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize, bool takebuffer) {
 }
 
 int EdSmartSocket::connect(const string& addr, int port, Lis lis) {
-	return mSock.connect(addr.c_str(), port, lis);
+	mOnLis = lis;
+	return mSock.connect(addr.c_str(), port);
 }
 
 int EdSmartSocket::connect(unsigned int ip, int port, Lis lis) {
-	return mSock.connect(ip, port, lis);
+	mOnLis = lis;
+	return mSock.connect(ip, port);
 }
 
 void EdSmartSocket::close() {
