@@ -66,3 +66,60 @@ TEST(socket, reconnect) {
 	task.runMain();
 	ASSERT_EQ(connect_cnt, 2);
 }
+
+
+TEST(socket, udp) {
+
+	class MyTask: public EdTask
+	{
+	public:
+		string send_msg="1234";
+			string recv_msg;
+		EdSocket mLeftSock, mRightSock;
+		int OnEventProc(EdMsg& msg) override {
+			if (msg.msgid == EDM_INIT) {
+				mLeftSock.openSock(SOCK_TYPE_UDP, [this](int event) {
+					if(event== SOCK_EVENT_READ) {
+						char tmp[100];
+						uint32_t raddr;
+						uint16_t rport;
+						auto rcnt = mLeftSock.recvFrom(tmp, 100, &raddr, &rport);
+						if(rcnt>0) {
+							mRightSock.sendto(raddr, rport, tmp, rcnt);
+						}
+					}
+				});
+				auto ret = mLeftSock.bindSock(5050, "0.0.0.0");
+				assert(!ret);
+
+				mRightSock.openSock(SOCK_TYPE_UDP, [this](int event) {
+					if(event == SOCK_EVENT_READ){
+						char tmp[100];
+						uint32_t raddr;
+						uint16_t rport;
+						auto rcnt = mRightSock.recvFrom(tmp, 100, &raddr, &rport);
+						assert(rcnt==4);
+						recv_msg.assign(tmp, rcnt);
+						postExit();
+					}
+				});
+				ret = mRightSock.bindSock(5051, "0.0.0.0");
+				assert(!ret);
+				uint32_t rip = inet_addr("127.0.0.1");
+				mLeftSock.sendto(rip, 5051, send_msg.data(), send_msg.size());
+			}
+			else if (msg.msgid == EDM_CLOSE)
+			{
+				mLeftSock.close();
+				mRightSock.close();
+				dbgd("task will be closed...");
+
+			}
+			return 0;
+		}
+	};
+	MyTask task;
+	task.run();
+	task.wait();
+	ASSERT_STREQ(task.send_msg.data(), task.recv_msg.data());
+}
