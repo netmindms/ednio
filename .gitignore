@@ -1,16 +1,13 @@
 /Debug/
 /out/
 *.swp
-.sconf_temp
 .buildvar.conf
 .project
-.sconsign.dblite
 config.log
 installer.pyc
 .cproject
 src/ednio_config.h
 .settings/
-/TestUnitDebug/
 tags
 test/ednio
 /Release/
