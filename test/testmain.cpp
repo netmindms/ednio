@@ -21,6 +21,7 @@ int main(int argc, char* argv[])
 //	::testing::GTEST_FLAG(filter) = "event.eventfd";
 //	::testing::GTEST_FLAG(filter) = "socket.smart";
 	::testing::GTEST_FLAG(filter) = "socket.connect";
+//	::testing::GTEST_FLAG(filter) = "socket.udp";
 	::testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
 }
