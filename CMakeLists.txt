@@ -18,7 +18,7 @@ endif()
 
 # set default build option
 set(USE_SSL 0)
-option(SSL "Use SSL library" true)
+option(SSL "Use SSL library" false)
 if(SSL)
   set(USE_SSL 1)
 endif(SSL)

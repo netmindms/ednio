@@ -50,6 +50,7 @@ int EdSmartSocket::openClient(int mode, Lis lis) {
 #if USE_SSL
 		ret = openSSLClientSock();
 #else
+		ret = -1;
 		assert(0);
 #endif
 	}
@@ -271,17 +272,18 @@ int EdSmartSocket::sendPacket(const void* buf, int bufsize, bool takebuffer) {
 		}
 #else
 		assert(0);
+		return SEND_FAIL;
 #endif
 	}
 }
 
 int EdSmartSocket::connect(const string& addr, int port, Lis lis) {
-	mOnLis = lis;
+	if(lis)	mOnLis = lis;
 	return mSock.connect(addr.c_str(), port);
 }
 
 int EdSmartSocket::connect(unsigned int ip, int port, Lis lis) {
-	mOnLis = lis;
+	if(lis) mOnLis = lis;
 	return mSock.connect(ip, port);
 }
 

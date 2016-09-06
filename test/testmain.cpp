@@ -19,10 +19,9 @@ int main(int argc, char* argv[])
 //	::testing::GTEST_FLAG(filter) = "ipc.mq";
 //	::testing::GTEST_FLAG(filter) = "etc.*";
 //	::testing::GTEST_FLAG(filter) = "event.eventfd";
-//	::testing::GTEST_FLAG(filter) = "socket.reconnect";
+//	::testing::GTEST_FLAG(filter) = "socket.smart";
+	::testing::GTEST_FLAG(filter) = "socket.connect";
 	::testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
-
-
 }
 

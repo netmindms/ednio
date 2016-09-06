@@ -214,7 +214,7 @@ void EdEvent::initMembers()
 	mFd = -1;
 	mEvt = NULL;
 	mTask = NULL;
-	mContext = _tEdContext;
+	mContext = EdContext::getCurrentContext();
 }
 
 void* EdEvent::getUser()
@@ -229,15 +229,15 @@ void EdEvent::setUser(void* user)
 
 void EdEvent::setDefaultContext()
 {
-	mContext = _tEdContext;
+	mContext = EdContext::getCurrentContext();
 }
 
 void EdEvent::setFd(int fd)
 {
 	mFd = fd;
 	setNonBlockMode();
-	mContext = _tEdContext;
-	mTask = _tEdTask;
+	mContext = EdContext::getCurrentContext();
+	mTask = EdTask::getCurrentTask();
 }
 
 

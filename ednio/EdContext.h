@@ -43,6 +43,14 @@ struct edevt_t;
 
 typedef int (*EVTMSG_PROC)(EdContext* pctx, uint16_t msg, uint32_t p1, uint32_t p2);
 
+
+#if EDNIO_TLS_PTHREAD
+extern pthread_key_t _gEdContextTLSKey;
+#else
+struct EdContext;
+extern __thread EdContext *_tEdContext;
+#endif
+
 struct EdContext
 {
 	int epfd;
@@ -63,9 +71,17 @@ struct EdContext
 	// for debugging
 	int evt_alloc_cnt;
 	int timer_alloc_cnt;
+
+	static inline EdContext* getCurrentContext() {
+#if	EDNIO_TLS_PTHREAD
+		return (EdContext*)pthread_getspecific(_gEdContextTLSKey);
+#else
+		return _tEdContext;
+#endif
+	}
 } ;
 
-extern __thread EdContext *_tEdContext;
+
 
 typedef struct edevt_t
 {
