@@ -11,6 +11,7 @@
 #include <iostream>
 #include <gtest/gtest.h>
 #include "../ednio/EdNio.h"
+#include "../ednio/EdTimerPool.h"
 #include <iostream>
 #include <chrono>
 
@@ -87,6 +88,47 @@ TEST(basic, timer)
 	task.run();
 	usleep(wtime*1000+20);
 	task.terminate();
+	FDCHK_E()
+}
+
+TEST(basic, timerpool)
+{
+	using namespace std::chrono;
+	static int wtime = 500;
+	static system_clock::time_point stp;
+	static system_clock::time_point etp;
+
+	class MyTask : public EdTask
+	{
+		EdTimerPool _tmpool;
+		uint32_t _tid1=0, _tid2=0;
+		int t1cnt=0, t2cnt=0;
+		int OnEventProc(EdMsg& msg) override {
+			if(msg.msgid == EDM_INIT) {
+				_tmpool.open();
+				_tid1 = _tmpool.setTimer(0, 1000, 1000, [this](int cnt) {
+					dbgd("timer fired, _tid1=%u", _tid1);
+				});
+				_tid2 = _tmpool.setTimer(0, 300, 300, [this](int cnt) {
+					dbgd("timer fired, _tid2=%u", _tid2);
+					t2cnt++;
+					if(t2cnt >= 4) {
+						_tmpool.killTimer(_tid2);
+					}
+				});
+				dbgd("new timer , tid1=%u", _tid1);
+			} else if(msg.msgid == EDM_CLOSE) {
+				_tmpool.close();
+			}
+			return 0;
+		}
+
+	};
+
+	FDCHK_S()
+	MyTask task;
+	task.run();
+	task.wait();
 	FDCHK_E()
 }
 

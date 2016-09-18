@@ -8,10 +8,11 @@
 #include <iostream>
 #include <gtest/gtest.h>
 #include "../ednio/EdNio.h"
+#include "../ednio/EdTimerPool.h"
 
 using namespace std;
 using namespace edft;
-
+using namespace std::chrono;
 
 int main(int argc, char* argv[])
 {
@@ -19,7 +20,7 @@ int main(int argc, char* argv[])
 //	::testing::GTEST_FLAG(filter) = "ipc.mq";
 //	::testing::GTEST_FLAG(filter) = "etc.*";
 //	::testing::GTEST_FLAG(filter) = "event.eventfd";
-	::testing::GTEST_FLAG(filter) = "socket.udp";
+	::testing::GTEST_FLAG(filter) = "basic.timerpool";
 	::testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
 
