@@ -6,7 +6,7 @@
  */
 
 #define DBGTAG "SMSTE"
-#define DBG_LEVEL DBG_ERR
+#define DBG_LEVEL DBG_VERBOSE
 
 #include <iostream>
 #include <memory>

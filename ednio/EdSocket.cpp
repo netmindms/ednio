@@ -74,7 +74,7 @@ int EdSocket::bindSock(int port, const char* addr)
 		inaddr.sin_family = AF_INET;
 		inaddr.sin_port = htons(port);
 		inaddr.sin_addr.s_addr = inet_addr(addr);
-		retVal = bind(mFd, (struct sockaddr*) &inaddr, sizeof(inaddr));
+		retVal = ::bind(mFd, (struct sockaddr*) &inaddr, sizeof(inaddr));
 		if (!retVal)
 		{
 			mIsBinded = true;
@@ -88,7 +88,7 @@ int EdSocket::bindSock(int port, const char* addr)
 		uaddr.sun_family = AF_UNIX;
 		strcpy(uaddr.sun_path, addr);
 		int len = strlen(addr) + sizeof(uaddr.sun_family);
-		retVal = bind(mFd, (struct sockaddr*) &uaddr, len);
+		retVal = ::bind(mFd, (struct sockaddr*) &uaddr, len);
 		if (!retVal)
 		{
 			mIsBinded = true;
@@ -466,7 +466,7 @@ void EdSocket::getPeerAddr(char* ipaddr, u16* port)
 	struct sockaddr_in addr;
 	socklen_t len = sizeof(addr);
 	getpeername(mFd, (sockaddr*) &addr, &len);
-	strcpy(ipaddr, inet_ntoa(addr.sin_addr));
+	inet_ntop(AF_INET, &addr.sin_addr, ipaddr, sizeof(addr));
 	*port = ntohs(addr.sin_port);
 }
 

@@ -8,6 +8,8 @@
 #ifndef SRC_EDMQ_H_
 #define SRC_EDMQ_H_
 
+#ifndef ANDROID
+
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <mqueue.h>
@@ -77,5 +79,5 @@ private:
 
 } /* namespace edft */
 
-
+#endif
 #endif /* SRC_EDMQ_H_ */

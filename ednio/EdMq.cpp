@@ -5,6 +5,8 @@
  *      Author: netmind
  */
 
+#ifndef ANDROID
+
 #define DBG_LEVEL DBG_WARN
 #define DBGTAG "MSGQU"
 
@@ -185,3 +187,5 @@ long EdMq::getMaxMsg() const {
 }
 
 } /* namespace edft */
+
+#endif

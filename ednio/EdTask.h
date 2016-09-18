@@ -30,8 +30,11 @@
 namespace edft
 {
 
-
+#if EDNIO_TLS_PTHREAD
+extern pthread_key_t gEdTaskTLSKey;
+#else
 extern __thread class EdTask *_tEdTask;
+#endif
 
 typedef struct
 {

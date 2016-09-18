@@ -23,7 +23,7 @@
 #include <stdexcept>
 #include <string.h>
 #include <fcntl.h>
-#include <execinfo.h>
+//#include <execinfo.h>
 
 #include "EdNio.h"
 #include "EdTask.h"
@@ -38,7 +38,20 @@ using std::unique_lock;
 
 namespace edft {
 
+#if EDNIO_TLS_PTHREAD
+#include <pthread.h>
+static pthread_key_t _gEdTaskTLSKey;
+class MODULE_INIT_EDTASK {
+public:
+	MODULE_INIT_EDTASK() {
+		printf("MOD TASK INIT");
+		pthread_key_create(&_gEdTaskTLSKey, NULL);
+	}
+};
+static MODULE_INIT_EDTASK __gInitModEdTask;
+#else
 __thread class EdTask *_tEdTask=nullptr;
+#endif
 
 static mutex _gviewMutex;
 static unordered_map<u32, ViewInfo> gViewMap;
@@ -433,6 +446,16 @@ void EdTask::closeMsg() {
 
 int EdTask::setTimer(u32 id, u32 msec, u32 inittime) {
 	TaskTimer *pt;
+#if 1
+	auto itr = mTimerMap.find(id);
+	if(itr != mTimerMap.end()) {
+		pt = itr->second;
+	} else {
+		pt = new TaskTimer(id);
+		mTimerMap[id] = pt;
+		pt->setUser((void*) this);
+	}
+#else
 	try {
 		TaskTimer* &p = mTimerMap.at(id);
 		pt = p;
@@ -442,6 +465,7 @@ int EdTask::setTimer(u32 id, u32 msec, u32 inittime) {
 		mTimerMap[id] = pt;
 		pt->setUser((void*) this);
 	}
+#endif
 	pt->set(msec, inittime);
 	return 0;
 
@@ -752,9 +776,14 @@ int EdTask::esMain(EdContext* psys) {
 
 void EdTask::taskProc() {
 	dbgd("start thread main, run mode=%d", mRunMode);
-	_tEdTask = this;
 	EdContext* pctx = &mCtx;
+#if EDNIO_TLS_PTHREAD
+	pthread_setspecific(_gEdTaskTLSKey, (void*)this);
+	pthread_setspecific(_gEdContextTLSKey, (void*)pctx);
+#else
+	_tEdTask = this;
 	_tEdContext = pctx;
+#endif
 	esOpen(this);
 	if (mRunMode == MODE_EDEV) {
 		edEventLoop(pctx);
@@ -768,7 +797,11 @@ void EdTask::taskProc() {
 	closeMsg();
 	cleanupAllTimer();
 	esClose(pctx);
+#if EDNIO_TLS_PTHREAD
+	pthread_setspecific(_gEdTaskTLSKey, nullptr);
+#else
 	_tEdContext = NULL;
+#endif
 }
 
 void EdTask::edEventLoop(EdContext* pctx) {
@@ -818,10 +851,13 @@ void EdTask::libeventLoop(EdContext* pctx)
 
 void EdTask::threadMain() {
 	dbgd("start thread miain......");
-	_tEdTask = this;
 	EdContext* pctx = &mCtx;
+#if EDNIO_TLS_PTHREAD
+	pthread_setspecific(_gEdTaskTLSKey, (void*)pctx);
+#else
+	_tEdTask = this;
 	_tEdContext = pctx;
-
+#endif
 	esOpen(this);
 
 	mEdMsgEvt = regEdEvent(mMsgFd, EVT_READ, msgevent_cb, this);
@@ -848,8 +884,11 @@ void EdTask::threadMain() {
 	}
 
 	esClose(pctx);
-
+#if EDNIO_TLS_PTHREAD
+	pthread_setspecific(_gEdTaskTLSKey, nullptr);
+#else
 	_tEdContext = NULL;
+#endif
 }
 
 void EdTask::deregEdEvent(edevt_t* pevt) {
@@ -964,7 +1003,11 @@ void EdTask::FreeEvent::OnEventFd(int cnt)
 #endif
 
 EdTask* EdTask::getCurrentTask() {
+#if EDNIO_TLS_PTHREAD
+	return (EdTask*)pthread_getspecific(_gEdTaskTLSKey);
+#else
 	return _tEdTask;
+#endif
 }
 
 int EdTask::getRunMode() {

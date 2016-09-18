@@ -39,6 +39,7 @@ public:
 	class ISocketChannelCb {
 	public:
 		virtual void IOnSocketChannelBuffer(EdSocketChannel *pch, void* buffer, void* user)=0;
+		virtual ~ISocketChannelCb(){};
 	};
 
 public:
